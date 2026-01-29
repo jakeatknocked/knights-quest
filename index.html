@@ -699,11 +699,68 @@ function createBox(w, h, d, color, x, y, z, collide = true) {
   return mesh;
 }
 
-// Castle
+// Castle with enterable interior
 function buildCastle(cx, cz) {
-  // Main keep
-  createBox(12, 10, 12, 0x888888, cx, 5, cz);
-  // Towers
+  // Main keep - now hollow with walls instead of solid box
+  // North wall
+  createBox(12, 10, 1, 0x888888, cx, 5, cz - 6);
+  // South wall (has doorway in center)
+  createBox(4, 10, 1, 0x888888, cx - 4, 5, cz + 6);
+  createBox(4, 10, 1, 0x888888, cx + 4, 5, cz + 6);
+  // West wall
+  createBox(1, 10, 12, 0x888888, cx - 6, 5, cz);
+  // East wall
+  createBox(1, 10, 12, 0x888888, cx + 6, 5, cz);
+
+  // Interior floor (stone)
+  const keepFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(11, 11),
+    new THREE.MeshPhongMaterial({ color: 0x666666 })
+  );
+  keepFloor.rotation.x = -Math.PI / 2;
+  keepFloor.position.set(cx, 0.01, cz);
+  keepFloor.receiveShadow = true;
+  scene.add(keepFloor);
+
+  // === THRONE ROOM (center) ===
+  // Throne
+  const throne = createBox(1.5, 2, 1.5, 0xaa8800, cx, 1, cz - 3, false);
+  const throneBack = createBox(1.5, 1.5, 0.3, 0xaa8800, cx, 2.25, cz - 3.6, false);
+  // Red carpet leading to throne
+  const carpet = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 6),
+    new THREE.MeshPhongMaterial({ color: 0x990000 })
+  );
+  carpet.rotation.x = -Math.PI / 2;
+  carpet.position.set(cx, 0.02, cz);
+  scene.add(carpet);
+
+  // === ARMORY (east side) ===
+  // Interior wall dividing armory
+  createBox(1, 8, 4, 0x777777, cx + 3, 4, cz + 2);
+  // Weapon racks (decorative)
+  createBox(0.2, 1.5, 2, 0x553311, cx + 5, 0.75, cz + 3, false);
+  createBox(0.2, 1.5, 2, 0x553311, cx + 5, 0.75, cz + 1, false);
+
+  // === DUNGEON STAIRCASE (west side) ===
+  // Interior wall dividing dungeon entrance
+  createBox(1, 8, 4, 0x777777, cx - 3, 4, cz + 2);
+  // Stairs going down (stepped)
+  for (let i = 0; i < 5; i++) {
+    const step = createBox(2, 0.3, 1, 0x555555, cx - 4.5, -i * 0.3, cz + 4 - i * 0.5, false);
+  }
+
+  // === HALLWAY (connecting south entrance to main hall) ===
+  // Side walls of hallway
+  createBox(1, 8, 3, 0x888888, cx - 2, 4, cz + 3.5);
+  createBox(1, 8, 3, 0x888888, cx + 2, 4, cz + 3.5);
+
+  // === LOOT ITEMS INSIDE ===
+  // Potions in armory
+  spawnPotion(cx + 4.5, cz + 2);
+  // Coins (will be added in Batch 4, placeholder for now)
+
+  // Corner towers
   for (let dx of [-7, 7]) {
     for (let dz of [-7, 7]) {
       createBox(4, 14, 4, 0x777777, cx + dx, 7, cz + dz);
@@ -717,9 +774,8 @@ function buildCastle(cx, cz) {
       scene.add(cone);
     }
   }
-  // Gate
-  createBox(4, 6, 1, 0x553311, cx, 3, cz + 6.5);
-  // Walls
+
+  // Outer walls
   createBox(24, 6, 1, 0x777777, cx, 3, cz - 12);
   createBox(24, 6, 1, 0x777777, cx, 3, cz + 12);
   createBox(1, 6, 24, 0x777777, cx - 12, 3, cz);
@@ -727,9 +783,39 @@ function buildCastle(cx, cz) {
 }
 buildCastle(0, -30);
 
-// Village huts
+// Village huts with enterable interiors
 function buildHut(x, z) {
-  createBox(3, 2.5, 3, 0x886644, x, 1.25, z);
+  // Walls with doorway (north side open)
+  createBox(3, 2.5, 0.3, 0x886644, x, 1.25, z - 1.5); // south wall
+  createBox(0.3, 2.5, 3, 0x886644, x - 1.5, 1.25, z); // west wall
+  createBox(0.3, 2.5, 3, 0x886644, x + 1.5, 1.25, z); // east wall
+  createBox(1, 2.5, 0.3, 0x886644, x - 1, 1.25, z + 1.5); // north wall left
+  createBox(1, 2.5, 0.3, 0x886644, x + 1, 1.25, z + 1.5); // north wall right (doorway in center)
+
+  // Interior floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.8, 2.8),
+    new THREE.MeshPhongMaterial({ color: 0x775533 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(x, 0.01, z);
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Furniture: table in center
+  createBox(0.8, 0.6, 0.8, 0x553311, x, 0.3, z, false);
+
+  // Furniture: chest in corner
+  createBox(0.6, 0.4, 0.4, 0x664422, x + 1, 0.2, z - 1, false);
+
+  // Loot items (coins and potions)
+  // Alternate between different loot types
+  const lootType = Math.floor(Math.random() * 3);
+  if (lootType === 0) {
+    spawnPotion(x - 0.8, z + 0.8);
+  }
+  // Coins will be added in Batch 4
+
   const roof = new THREE.Mesh(
     new THREE.ConeGeometry(2.8, 2, 4),
     new THREE.MeshPhongMaterial({ color: 0xaa4422 })
@@ -738,7 +824,13 @@ function buildHut(x, z) {
   roof.rotation.y = Math.PI / 4;
   roof.castShadow = true;
   scene.add(roof);
-  addCollider(x, z, 2, 2);
+
+  // Colliders for walls only (not entire hut)
+  addCollider(x, z - 1.5, 1.5, 0.3); // south
+  addCollider(x - 1.5, z, 0.3, 1.5); // west
+  addCollider(x + 1.5, z, 0.3, 1.5); // east
+  addCollider(x - 1, z + 1.5, 0.5, 0.3); // north left
+  addCollider(x + 1, z + 1.5, 0.5, 0.3); // north right
 }
 buildHut(10, 5);
 buildHut(15, 8);
