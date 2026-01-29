@@ -246,6 +246,8 @@ const state = {
   tourActive: false,
   tourWaypointIndex: 0,
   tourProgress: 0,
+  // Day/night cycle
+  timeOfDay: 0.25, // 0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk, 1=midnight
 };
 
 // Tour waypoints (camera position, lookAt, message, duration in seconds)
@@ -1059,8 +1061,16 @@ for (let i = 0; i < 1000; i++) {
   );
 }
 skyGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-const stars = new THREE.Points(skyGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 }));
+const stars = new THREE.Points(skyGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, transparent: true, opacity: 0.3 }));
 scene.add(stars);
+
+// Moon
+const moon = new THREE.Mesh(
+  new THREE.SphereGeometry(8, 16, 16),
+  new THREE.MeshPhongMaterial({ color: 0xddddee, emissive: 0xaaaacc, emissiveIntensity: 0.4, transparent: true, opacity: 0 })
+);
+moon.position.set(-80, 60, -80);
+scene.add(moon);
 
 // ============================================================
 // WORLD BORDER — mountains and walls around the entire map
@@ -2303,6 +2313,64 @@ function update() {
       updateHUD();
     }
   }
+
+  // ---- Day/Night Cycle ----
+  // Cycle time: 5 minutes = 300 seconds
+  state.timeOfDay += dt / 300;
+  if (state.timeOfDay >= 1.0) state.timeOfDay -= 1.0;
+
+  // Calculate lighting based on time of day
+  // 0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk
+  let sunIntensity, sunColor, ambientIntensity, skyColor, moonOpacity, starOpacity;
+
+  if (state.timeOfDay < 0.25) {
+    // Night to dawn (0 -> 0.25)
+    const t = state.timeOfDay / 0.25;
+    sunIntensity = 0.3 + t * 0.9;
+    sunColor = new THREE.Color().lerpColors(new THREE.Color(0x4444aa), new THREE.Color(0xffeedd), t);
+    ambientIntensity = 0.2 + t * 0.4;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x0a0a1e), new THREE.Color(0x1a1a2e), t);
+    moonOpacity = 1.0 - t;
+    starOpacity = 0.8 - t * 0.5;
+  } else if (state.timeOfDay < 0.5) {
+    // Dawn to noon (0.25 -> 0.5)
+    const t = (state.timeOfDay - 0.25) / 0.25;
+    sunIntensity = 1.2;
+    sunColor = new THREE.Color(0xffeedd);
+    ambientIntensity = 0.6;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x1a1a2e), new THREE.Color(0x2a3a5e), t);
+    moonOpacity = 0;
+    starOpacity = 0;
+  } else if (state.timeOfDay < 0.75) {
+    // Noon to dusk (0.5 -> 0.75)
+    const t = (state.timeOfDay - 0.5) / 0.25;
+    sunIntensity = 1.2 - t * 0.7;
+    sunColor = new THREE.Color().lerpColors(new THREE.Color(0xffeedd), new THREE.Color(0xff8844), t);
+    ambientIntensity = 0.6 - t * 0.2;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x2a3a5e), new THREE.Color(0x3a2a2e), t);
+    moonOpacity = 0;
+    starOpacity = t * 0.3;
+  } else {
+    // Dusk to night (0.75 -> 1.0)
+    const t = (state.timeOfDay - 0.75) / 0.25;
+    sunIntensity = 0.5 - t * 0.2;
+    sunColor = new THREE.Color().lerpColors(new THREE.Color(0xff8844), new THREE.Color(0x4444aa), t);
+    ambientIntensity = 0.4 - t * 0.2;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x3a2a2e), new THREE.Color(0x0a0a1e), t);
+    moonOpacity = t;
+    starOpacity = 0.3 + t * 0.5;
+  }
+
+  // Apply lighting changes
+  sunLight.intensity = sunIntensity;
+  sunLight.color = sunColor;
+  ambientLight.intensity = ambientIntensity;
+  scene.background = skyColor;
+  scene.fog.color = skyColor;
+
+  // Moon and stars
+  moon.material.opacity = moonOpacity;
+  stars.material.opacity = starOpacity;
 }
 
 // Simple ground height function
