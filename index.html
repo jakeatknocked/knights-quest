@@ -207,6 +207,7 @@ canvas { display: block; }
   <div id="shield-indicator">🛡 Shield: READY</div>
   <div id="friends-display">👥 Friends: 0</div>
   <div id="score-display">★ Score: 0</div>
+  <div id="coin-display" style="position:absolute; top:92px; right:20px; color:#ffdd00; font-size:16px; background:rgba(0,0,0,0.6); padding:8px 14px; border-radius:8px; border:2px solid #aa8800;">💰 Coins: 0</div>
   <div id="crosshair"></div>
   <div id="message"></div>
   <div id="zone-name"></div>
@@ -252,6 +253,8 @@ const state = {
   potions: [],
   ammoPickups: [],
   ammo: { fire: 30, ice: 20, lightning: 15 }, // Starting ammo
+  coins: [],
+  totalCoins: parseInt(localStorage.getItem('totalCoins') || '0'),
   keys: {},
   mouse: { x: 0, y: 0, leftDown: false, rightDown: false },
   yaw: 0,
@@ -1481,6 +1484,41 @@ spawnAmmo(-12, -93, 'lightning'); // Floating island
 spawnAmmo(-8, -30, 'fire');       // Near castle
 
 // ============================================================
+// COIN SYSTEM
+// ============================================================
+function spawnCoin(x, z) {
+  const coinGroup = new THREE.Group();
+
+  // Coin disc
+  const coin = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16),
+    new THREE.MeshPhongMaterial({ color: 0xffdd00, emissive: 0xffdd00, emissiveIntensity: 0.6, shininess: 100 })
+  );
+  coin.rotation.x = Math.PI / 2;
+  coin.position.y = 0.4;
+  coinGroup.add(coin);
+
+  // Glow
+  const light = new THREE.PointLight(0xffdd00, 0.5, 4);
+  light.position.y = 0.4;
+  coinGroup.add(light);
+
+  coinGroup.position.set(x, 0, z);
+  scene.add(coinGroup);
+  state.coins.push({ mesh: coinGroup, collected: false, value: 1 });
+}
+
+// Scatter coins around the world
+spawnCoin(4.5, -28);      // Castle
+spawnCoin(-3, -32);       // Castle
+spawnCoin(11, 7);         // Village
+spawnCoin(-11, 5);        // Village
+spawnCoin(78, -16);       // Forest
+spawnCoin(88, 6);         // Forest
+spawnCoin(2, -80);        // Floating islands
+spawnCoin(-11, -91);      // Floating islands
+
+// ============================================================
 // BOSS SYSTEM (Multiple Bosses)
 // ============================================================
 const bossesDefeated = { boss1: false, boss2: false, boss3: false };
@@ -2015,20 +2053,37 @@ function damageEnemy(enemy, amount) {
   if (enemy.health <= 0) {
     enemy.dead = true;
     spawnParticles(enemy.mesh.position.clone().setY(1.5), 0xff4444, 20, 4);
+    const enemyPos = enemy.mesh.position.clone();
     scene.remove(enemy.mesh);
     if (enemy.isBoss) {
       state.score += 1000;
       state.bossDefeated = true;
-      showMessage('VICTORY! The Dark Knight Lord is defeated!');
+      showMessage('VICTORY! Boss defeated!');
       // Drop potions on boss death
       for (let i = 0; i < 3; i++) {
         spawnPotion(
-          enemy.mesh.position.x + (Math.random() - 0.5) * 5,
-          enemy.mesh.position.z + (Math.random() - 0.5) * 5
+          enemyPos.x + (Math.random() - 0.5) * 5,
+          enemyPos.z + (Math.random() - 0.5) * 5
+        );
+      }
+      // Drop boss coins (5-10)
+      const bossCoins = 5 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < bossCoins; i++) {
+        spawnCoin(
+          enemyPos.x + (Math.random() - 0.5) * 6,
+          enemyPos.z + (Math.random() - 0.5) * 6
         );
       }
     } else {
       state.score += 100;
+      // Drop regular enemy coins (1-3)
+      const coinCount = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < coinCount; i++) {
+        spawnCoin(
+          enemyPos.x + (Math.random() - 0.5) * 3,
+          enemyPos.z + (Math.random() - 0.5) * 3
+        );
+      }
     }
     playSound('enemyDie');
     updateHUD();
@@ -2068,6 +2123,7 @@ function updateHUD() {
   const alive = state.enemies.filter(e => !e.dead).length;
   document.getElementById('enemy-count').textContent = `⚔ Enemies: ${alive}`;
   document.getElementById('score-display').textContent = `★ Score: ${state.score}`;
+  document.getElementById('coin-display').textContent = `💰 Coins: ${state.totalCoins}`;
 
   // Gun glow color
   const glowColors = { fire: 0xff6600, ice: 0x44ccff, lightning: 0xffee00 };
@@ -2532,6 +2588,28 @@ function update() {
       showMessage(`+${a.amount} ${ammoNames[a.type]} Ammo!`);
       const colors = { fire: 0xff6600, ice: 0x44ccff, lightning: 0xffee00 };
       spawnParticles(player.position.clone().setY(1.5), colors[a.type], 15, 3);
+      updateHUD();
+    }
+  });
+
+  // ---- Coin pickup ----
+  state.coins.forEach(c => {
+    if (c.collected) return;
+    c.mesh.rotation.y += dt * 3;
+    c.mesh.children.forEach(child => {
+      if (child.geometry && child.geometry.type === 'CylinderGeometry') {
+        child.position.y = 0.4 + Math.sin(performance.now() * 0.006) * 0.15;
+      }
+    });
+    const dist = player.position.distanceTo(c.mesh.position);
+    if (dist < 2) {
+      c.collected = true;
+      scene.remove(c.mesh);
+      state.totalCoins += c.value;
+      localStorage.setItem('totalCoins', state.totalCoins.toString());
+      playSound('pickup');
+      showMessage(`+${c.value} Coin!`);
+      spawnParticles(player.position.clone().setY(1.5), 0xffdd00, 10, 3);
       updateHUD();
     }
   });
