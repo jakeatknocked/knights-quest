@@ -67,6 +67,9 @@ export class Projectile {
   destroy() {
     this.dead = true;
     if (this.mesh) {
+      if (this.mesh.material) {
+        this.mesh.material.dispose();
+      }
       this.mesh.dispose();
     }
     if (this.light) {

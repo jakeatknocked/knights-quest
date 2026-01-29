@@ -13,35 +13,23 @@ export class InputManager {
   }
   
   setupKeyboard() {
-    this.scene.actionManager = new BABYLON.ActionManager(this.scene);
-    
-    // Key down
-    this.scene.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-        BABYLON.ActionManager.OnKeyDownTrigger,
-        (evt) => {
-          this.keys[evt.sourceEvent.key.toLowerCase()] = true;
-          
-          if (evt.sourceEvent.key === ' ') {
-            this.jumpPressed = true;
-          }
-        }
-      )
-    );
-    
-    // Key up
-    this.scene.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-        BABYLON.ActionManager.OnKeyUpTrigger,
-        (evt) => {
-          this.keys[evt.sourceEvent.key.toLowerCase()] = false;
-          
-          if (evt.sourceEvent.key === ' ') {
-            this.jumpPressed = false;
-          }
-        }
-      )
-    );
+    // Use window event listeners for more reliable keyboard input
+    window.addEventListener('keydown', (evt) => {
+      this.keys[evt.key.toLowerCase()] = true;
+
+      if (evt.key === ' ') {
+        evt.preventDefault(); // Prevent page scroll
+        this.jumpPressed = true;
+      }
+    });
+
+    window.addEventListener('keyup', (evt) => {
+      this.keys[evt.key.toLowerCase()] = false;
+
+      if (evt.key === ' ') {
+        this.jumpPressed = false;
+      }
+    });
   }
   
   getMovementVector() {

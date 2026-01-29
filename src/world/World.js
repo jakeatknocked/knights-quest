@@ -8,6 +8,30 @@ export class World {
   }
   
   buildWorld() {
+    // Create shared materials
+    this.materials = {};
+
+    this.materials.wall = new BABYLON.StandardMaterial('wallMat', this.scene);
+    this.materials.wall.diffuseColor = new BABYLON.Color3(0.53, 0.53, 0.53);
+
+    this.materials.tower = new BABYLON.StandardMaterial('towerMat', this.scene);
+    this.materials.tower.diffuseColor = new BABYLON.Color3(0.47, 0.47, 0.47);
+
+    this.materials.towerRoof = new BABYLON.StandardMaterial('roofMat', this.scene);
+    this.materials.towerRoof.diffuseColor = new BABYLON.Color3(0.67, 0.2, 0.2);
+
+    this.materials.hut = new BABYLON.StandardMaterial('hutMat', this.scene);
+    this.materials.hut.diffuseColor = new BABYLON.Color3(0.53, 0.4, 0.27);
+
+    this.materials.hutRoof = new BABYLON.StandardMaterial('hutRoofMat', this.scene);
+    this.materials.hutRoof.diffuseColor = new BABYLON.Color3(0.67, 0.27, 0.13);
+
+    this.materials.trunk = new BABYLON.StandardMaterial('trunkMat', this.scene);
+    this.materials.trunk.diffuseColor = new BABYLON.Color3(0.4, 0.27, 0.13);
+
+    this.materials.leaves = new BABYLON.StandardMaterial('leavesMat', this.scene);
+    this.materials.leaves.diffuseColor = new BABYLON.Color3(0.13, 0.53, 0.2);
+
     // Create ground - using a box for more reliable physics
     const ground = BABYLON.MeshBuilder.CreateBox('ground', {
       width: 200,
@@ -30,13 +54,13 @@ export class World {
       { mass: 0, friction: 0.8, restitution: 0 },
       this.scene
     );
-    
+
     // Build castle
     this.buildCastle(0, -30);
-    
+
     // Build village
     this.buildVillage();
-    
+
     // Add some trees
     this.addTrees();
   }
@@ -85,10 +109,7 @@ export class World {
     }, this.scene);
     
     wall.position = new BABYLON.Vector3(x, y + height / 2, z);
-    
-    const wallMat = new BABYLON.StandardMaterial('wallMat', this.scene);
-    wallMat.diffuseColor = new BABYLON.Color3(0.53, 0.53, 0.53);
-    wall.material = wallMat;
+    wall.material = this.materials.wall;
     wall.receiveShadows = true;
     wall.checkCollisions = true;
     
@@ -110,10 +131,7 @@ export class World {
     }, this.scene);
     
     tower.position = new BABYLON.Vector3(x, y + 7, z);
-    
-    const towerMat = new BABYLON.StandardMaterial('towerMat', this.scene);
-    towerMat.diffuseColor = new BABYLON.Color3(0.47, 0.47, 0.47);
-    tower.material = towerMat;
+    tower.material = this.materials.tower;
     tower.receiveShadows = true;
     
     // Tower roof (cone)
@@ -124,10 +142,7 @@ export class World {
     }, this.scene);
     
     roof.position = new BABYLON.Vector3(x, y + 15, z);
-    
-    const roofMat = new BABYLON.StandardMaterial('roofMat', this.scene);
-    roofMat.diffuseColor = new BABYLON.Color3(0.67, 0.2, 0.2);
-    roof.material = roofMat;
+    roof.material = this.materials.towerRoof;
     
     // Physics
     tower.physicsImpostor = new BABYLON.PhysicsImpostor(
@@ -157,10 +172,7 @@ export class World {
     }, this.scene);
     
     hut.position = new BABYLON.Vector3(x, 1.25, z);
-    
-    const hutMat = new BABYLON.StandardMaterial('hutMat', this.scene);
-    hutMat.diffuseColor = new BABYLON.Color3(0.53, 0.4, 0.27);
-    hut.material = hutMat;
+    hut.material = this.materials.hut;
     hut.receiveShadows = true;
     
     // Roof
@@ -173,10 +185,7 @@ export class World {
     
     roof.position = new BABYLON.Vector3(x, 3.5, z);
     roof.rotation.y = Math.PI / 4;
-    
-    const roofMat = new BABYLON.StandardMaterial('hutRoofMat', this.scene);
-    roofMat.diffuseColor = new BABYLON.Color3(0.67, 0.27, 0.13);
-    roof.material = roofMat;
+    roof.material = this.materials.hutRoof;
   }
   
   addTrees() {
@@ -196,10 +205,7 @@ export class World {
     }, this.scene);
     
     trunk.position = new BABYLON.Vector3(x, 1.5, z);
-    
-    const trunkMat = new BABYLON.StandardMaterial('trunkMat', this.scene);
-    trunkMat.diffuseColor = new BABYLON.Color3(0.4, 0.27, 0.13);
-    trunk.material = trunkMat;
+    trunk.material = this.materials.trunk;
     trunk.receiveShadows = true;
     
     // Leaves
@@ -208,10 +214,7 @@ export class World {
     }, this.scene);
     
     leaves.position = new BABYLON.Vector3(x, 3.5, z);
-    
-    const leavesMat = new BABYLON.StandardMaterial('leavesMat', this.scene);
-    leavesMat.diffuseColor = new BABYLON.Color3(0.13, 0.53, 0.2);
-    leaves.material = leavesMat;
+    leaves.material = this.materials.leaves;
     
     // Physics for trunk
     trunk.physicsImpostor = new BABYLON.PhysicsImpostor(

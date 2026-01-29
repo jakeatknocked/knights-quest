@@ -1,5 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
-import * as CANNON from 'cannon';
+import * as CANNON from 'cannon-es';
 import { Player } from './entities/Player.js';
 import { World } from './world/World.js';
 import { InputManager } from './systems/InputManager.js';
@@ -24,10 +24,14 @@ export class Game {
     this.scene.clearColor = new BABYLON.Color4(0.1, 0.1, 0.18, 1);
 
     // Enable physics
-    this.scene.enablePhysics(
-      new BABYLON.Vector3(0, -9.81, 0),
-      new BABYLON.CannonJSPlugin()
-    );
+    try {
+      this.scene.enablePhysics(
+        new BABYLON.Vector3(0, -9.81, 0),
+        new BABYLON.CannonJSPlugin(true, 10, CANNON)
+      );
+    } catch (error) {
+      console.error('Physics error:', error);
+    }
     
     // Game state
     this.state = {
@@ -53,7 +57,7 @@ export class Game {
     this.enemyManager = new EnemyManager(this.scene, this.player);
 
     // Create combat system
-    this.combatSystem = new CombatSystem(this.scene, this.player, this.enemyManager);
+    this.combatSystem = new CombatSystem(this.scene, this.player, this.enemyManager, this.state);
 
     // Setup camera to follow player
     this.setupCamera();
@@ -78,7 +82,6 @@ export class Game {
       this.scene
     );
 
-    this.camera.attachControl(this.canvas, true);
     this.camera.lowerRadiusLimit = 5;
     this.camera.upperRadiusLimit = 20;
     this.camera.lowerBetaLimit = 0.1;
@@ -86,12 +89,37 @@ export class Game {
 
     // Smooth camera movement
     this.camera.inertia = 0.9;
-    this.camera.angularSensibilityX = 1000;
-    this.camera.angularSensibilityY = 1000;
     this.camera.wheelPrecision = 20;
 
     // Follow player
     this.camera.lockedTarget = this.player.mesh;
+
+    // Use pointer lock for camera orbit — frees mouse buttons for combat
+    this.camera.attachControl(this.canvas, true);
+    this.camera.inputs.attached.pointers.buttons = []; // Disable all click-to-orbit
+
+    // Pointer lock: mouse movement controls camera without clicking
+    this.canvas.addEventListener('click', () => {
+      this.canvas.requestPointerLock();
+    });
+
+    const sensitivity = 0.003;
+    document.addEventListener('mousemove', (evt) => {
+      if (document.pointerLockElement === this.canvas) {
+        this.camera.alpha -= evt.movementX * sensitivity;
+        this.camera.beta -= evt.movementY * sensitivity;
+        // Clamp beta to limits
+        this.camera.beta = Math.max(this.camera.lowerBetaLimit, Math.min(this.camera.upperBetaLimit, this.camera.beta));
+      }
+    });
+
+    // Scroll to zoom still works via attachControl
+    this.canvas.addEventListener('wheel', (evt) => {
+      if (document.pointerLockElement === this.canvas) {
+        this.camera.radius += evt.deltaY * 0.01;
+        this.camera.radius = Math.max(this.camera.lowerRadiusLimit, Math.min(this.camera.upperRadiusLimit, this.camera.radius));
+      }
+    });
   }
   
   setupLighting() {
@@ -137,9 +165,6 @@ export class Game {
   }
   
   start() {
-    console.log('Knight\'s Quest - Babylon.js Edition');
-    console.log('Game starting...');
-    
     // Run render loop
     this.engine.runRenderLoop(() => {
       const deltaTime = this.engine.getDeltaTime() / 1000; // Convert to seconds
@@ -154,7 +179,7 @@ export class Game {
   
   update(deltaTime) {
     // Update player
-    this.player.update(deltaTime, this.inputManager);
+    this.player.update(deltaTime, this.inputManager, this.camera);
 
     // Update enemies
     this.enemyManager.update(deltaTime);

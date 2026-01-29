@@ -2,12 +2,13 @@ import * as BABYLON from '@babylonjs/core';
 import { Projectile } from '../entities/Projectile.js';
 
 export class CombatSystem {
-  constructor(scene, player, enemyManager) {
+  constructor(scene, player, enemyManager, gameState) {
     this.scene = scene;
     this.player = player;
     this.enemyManager = enemyManager;
+    this.gameState = gameState;
     this.projectiles = [];
-    
+
     // Cooldowns
     this.swordCooldown = 0;
     this.gunCooldown = 0;
@@ -33,10 +34,9 @@ export class CombatSystem {
 
   swordAttack() {
     this.swordCooldown = 0.5;
-    console.log('Sword attack!');
 
     // Get player forward direction
-    const forward = this.player.mesh.forward;
+    const forward = this.player.forwardVector;
     const attackRange = 3;
 
     // Check for hits
@@ -57,13 +57,17 @@ export class CombatSystem {
   }
 
   gunShoot() {
+    const element = this.gameState.selectedElement;
+    if (this.gameState.ammo[element] <= 0) return;
+
     this.gunCooldown = 0.35;
+    this.gameState.ammo[element]--;
 
     // Get player position and forward direction
     const startPos = this.player.mesh.position.clone();
     startPos.y += 1.5;
 
-    const forward = this.player.mesh.forward.clone();
+    const forward = this.player.forwardVector.clone();
     startPos.addInPlace(forward.scale(1));
 
     // Create projectile
@@ -71,7 +75,7 @@ export class CombatSystem {
       this.scene,
       startPos,
       forward,
-      'fire',
+      element,
       false
     );
 
@@ -108,17 +112,19 @@ export class CombatSystem {
   }
 
   createHitEffect(position) {
-    // Create particle effect for hit
+    // Create shared material for all particles in this effect
+    const mat = new BABYLON.StandardMaterial('particleMat', this.scene);
+    mat.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
+
     const particleCount = 15;
+    let disposed = 0;
+
     for (let i = 0; i < particleCount; i++) {
       const particle = BABYLON.MeshBuilder.CreateSphere('particle', {
         diameter: 0.1
       }, this.scene);
 
       particle.position = position.clone();
-
-      const mat = new BABYLON.StandardMaterial('particleMat', this.scene);
-      mat.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
       particle.material = mat;
 
       // Random velocity
@@ -140,6 +146,11 @@ export class CombatSystem {
         if (life <= 0) {
           particle.dispose();
           this.scene.onBeforeRenderObservable.remove(animation);
+          disposed++;
+          // Dispose shared material when all particles are gone
+          if (disposed >= particleCount) {
+            mat.dispose();
+          }
         }
       });
     }
@@ -156,8 +167,15 @@ export class CombatSystem {
     mat.emissiveColor = new BABYLON.Color3(1, 0.6, 0);
     flash.material = mat;
 
-    setTimeout(() => {
-      flash.dispose();
-    }, 100);
+    let life = 0.1;
+    const observer = this.scene.onBeforeRenderObservable.add(() => {
+      const dt = this.scene.getEngine().getDeltaTime() / 1000;
+      life -= dt;
+      if (life <= 0) {
+        mat.dispose();
+        flash.dispose();
+        this.scene.onBeforeRenderObservable.remove(observer);
+      }
+    });
   }
 }
