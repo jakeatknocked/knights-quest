@@ -229,6 +229,8 @@ const state = {
   rescuables: [],
   powerables: [],
   potions: [],
+  ammoPickups: [],
+  ammo: { fire: 30, ice: 20, lightning: 15 }, // Starting ammo
   keys: {},
   mouse: { x: 0, y: 0, leftDown: false, rightDown: false },
   yaw: 0,
@@ -1399,6 +1401,53 @@ spawnPotion(0, -50);
 spawnPotion(25, 25);
 
 // ============================================================
+// AMMO PICKUP SYSTEM
+// ============================================================
+function spawnAmmo(x, z, type) {
+  const colors = { fire: 0xff6600, ice: 0x44ccff, lightning: 0xffee00 };
+  const color = colors[type];
+
+  const ammoGroup = new THREE.Group();
+
+  // Glowing orb
+  const orb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 12, 12),
+    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.8, transparent: true, opacity: 0.9 })
+  );
+  orb.position.y = 0.5;
+  ammoGroup.add(orb);
+
+  // Glow light
+  const light = new THREE.PointLight(color, 0.8, 6);
+  light.position.y = 0.5;
+  ammoGroup.add(light);
+
+  // Floating marker
+  const marker = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.15, 0),
+    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 1.0 })
+  );
+  marker.position.y = 1.2;
+  ammoGroup.add(marker);
+
+  ammoGroup.position.set(x, 0, z);
+  scene.add(ammoGroup);
+  state.ammoPickups.push({ mesh: ammoGroup, collected: false, type, amount: 10 });
+}
+
+// Place ammo in hidden spots and inside buildings
+spawnAmmo(4.5, -30, 'fire');      // Castle armory
+spawnAmmo(-4.5, -26, 'ice');      // Castle interior
+spawnAmmo(10, 6, 'lightning');    // Village house
+spawnAmmo(75, -18, 'fire');       // Forest ruins
+spawnAmmo(88, 8, 'ice');          // Forest
+spawnAmmo(65, -8, 'lightning');   // Forest
+spawnAmmo(0, -78, 'fire');        // Floating island
+spawnAmmo(18, -88, 'ice');        // Floating island
+spawnAmmo(-12, -93, 'lightning'); // Floating island
+spawnAmmo(-8, -30, 'fire');       // Near castle
+
+// ============================================================
 // BOSS SYSTEM (Multiple Bosses)
 // ============================================================
 const bossesDefeated = { boss1: false, boss2: false, boss3: false };
@@ -1823,6 +1872,17 @@ function handleSwordAttack() {
 
 function handleGunShoot() {
   if (state.gunCooldown > 0 || state.shieldActive) return;
+
+  // Check ammo
+  if (state.ammo[state.element] <= 0) {
+    showMessage(`Out of ${state.element} ammo!`);
+    return;
+  }
+
+  // Consume ammo
+  state.ammo[state.element]--;
+  updateHUD();
+
   state.gunCooldown = state.element === 'lightning' ? 0.6 : 0.35;
   playSound(state.element);
 
@@ -1955,7 +2015,7 @@ function updateHUD() {
 
   const elNames = { fire: 'FIRE', ice: 'ICE', lightning: 'LIGHTNING' };
   const elSpan = document.querySelector('#weapon-display .element-name');
-  elSpan.textContent = elNames[state.element];
+  elSpan.textContent = `${elNames[state.element]} (${state.ammo[state.element]})`;
   elSpan.className = 'element-name ' + state.element;
 
   document.getElementById('friends-display').textContent = `👥 Friends: ${state.friends.length}`;
@@ -2402,6 +2462,30 @@ function update() {
       playSound('pickup');
       showMessage(`+${p.healAmount} Health!`);
       spawnParticles(player.position.clone().setY(1.5), 0xff4466, 15, 3);
+      updateHUD();
+    }
+  });
+
+  // ---- Ammo pickup ----
+  state.ammoPickups.forEach(a => {
+    if (a.collected) return;
+    a.mesh.rotation.y += dt * 2;
+    a.mesh.children.forEach(c => {
+      if (c.geometry && c.geometry.type === 'OctahedronGeometry') {
+        c.position.y = 1.2 + Math.sin(performance.now() * 0.005) * 0.2;
+        c.rotation.y += dt * 3;
+      }
+    });
+    const dist = player.position.distanceTo(a.mesh.position);
+    if (dist < 2.5) {
+      a.collected = true;
+      scene.remove(a.mesh);
+      state.ammo[a.type] += a.amount;
+      playSound('pickup');
+      const ammoNames = { fire: 'Fire', ice: 'Ice', lightning: 'Lightning' };
+      showMessage(`+${a.amount} ${ammoNames[a.type]} Ammo!`);
+      const colors = { fire: 0xff6600, ice: 0x44ccff, lightning: 0xffee00 };
+      spawnParticles(player.position.clone().setY(1.5), colors[a.type], 15, 3);
       updateHUD();
     }
   });
