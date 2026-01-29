@@ -1399,66 +1399,128 @@ spawnPotion(0, -50);
 spawnPotion(25, 25);
 
 // ============================================================
-// BOSS SYSTEM
+// BOSS SYSTEM (Multiple Bosses)
 // ============================================================
-let bossData = null;
+const bossesDefeated = { boss1: false, boss2: false, boss3: false };
+let currentBoss = null;
 
-function spawnBoss() {
-  if (state.bossSpawned) return;
-  state.bossSpawned = true;
+// Boss templates
+const bossTemplates = {
+  darkKnightLord: {
+    name: 'DARK KNIGHT LORD',
+    health: 500,
+    speed: 3.0,
+    color: 0x220022,
+    scale: 2.5,
+    position: [0, 0, 5],
+    killThreshold: 10,
+    attackType: 'darkProjectiles',
+  },
+  frostGiant: {
+    name: 'FROST GIANT',
+    health: 750,
+    speed: 2.5,
+    color: 0x44aaff,
+    scale: 3.5,
+    position: [80, 0, 0],
+    killThreshold: 20,
+    attackType: 'iceSlam',
+  },
+  dragon: {
+    name: 'DRAGON',
+    health: 1000,
+    speed: 4.0,
+    color: 0xff4400,
+    scale: 4.0,
+    position: [0, 18, -105],
+    killThreshold: 30,
+    attackType: 'fireBreath',
+  },
+};
 
-  // Create a huge dark knight boss (2.5x scale)
-  const boss = createKnight(0x220022, 2.5, true);
-  boss.position.set(0, 0, 5);
+function spawnBoss(bossType) {
+  const template = bossTemplates[bossType];
+  if (!template) return;
+
+  // Create boss mesh
+  const boss = createKnight(template.color, template.scale, true);
+  boss.position.set(...template.position);
   scene.add(boss);
 
-  // Extra boss armor pieces
-  const crownMat = new THREE.MeshPhongMaterial({ color: 0xaa00aa, emissive: 0x660066, emissiveIntensity: 0.4, shininess: 100 });
-  const crown = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.08, 6, 8), crownMat);
-  crown.position.y = 2.75;
-  crown.rotation.x = Math.PI / 2;
-  crown.scale.setScalar(2.5);
-  boss.add(crown);
-
-  // Glowing eyes (purple)
-  const bossEyeMat = new THREE.MeshPhongMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 1.0 });
-  boss.children.forEach(c => {
-    if (c.material && c.material.emissive && c.material.color && c.material.color.getHex() === 0xff0000) {
-      c.material = bossEyeMat;
-    }
-  });
-
-  // Boss aura
-  const aura = new THREE.PointLight(0xaa00ff, 2, 15);
-  aura.position.y = 3;
-  boss.add(aura);
+  // Boss-specific decorations
+  if (bossType === 'darkKnightLord') {
+    const crown = new THREE.Mesh(
+      new THREE.TorusGeometry(0.35, 0.08, 6, 8),
+      new THREE.MeshPhongMaterial({ color: 0xaa00aa, emissive: 0x660066, emissiveIntensity: 0.4 })
+    );
+    crown.position.y = 2.75;
+    crown.rotation.x = Math.PI / 2;
+    crown.scale.setScalar(template.scale);
+    boss.add(crown);
+  } else if (bossType === 'frostGiant') {
+    // Ice crown/horns
+    const horn1 = new THREE.Mesh(
+      new THREE.ConeGeometry(0.15, 0.8, 6),
+      new THREE.MeshPhongMaterial({ color: 0xaaccff, emissive: 0x44aaff, emissiveIntensity: 0.6 })
+    );
+    horn1.position.set(-0.3, 3, 0);
+    horn1.rotation.z = -0.3;
+    horn1.scale.setScalar(template.scale);
+    boss.add(horn1);
+    const horn2 = horn1.clone();
+    horn2.position.set(0.3, 3, 0);
+    horn2.rotation.z = 0.3;
+    boss.add(horn2);
+  } else if (bossType === 'dragon') {
+    // Dragon wings (simple triangle mesh)
+    const wingGeo = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+      0, 0, 0,
+      -2, 0.5, -1,
+      -2, -0.5, -1,
+    ]);
+    wingGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    const wing1 = new THREE.Mesh(
+      wingGeo,
+      new THREE.MeshPhongMaterial({ color: 0xaa2200, emissive: 0xff4400, emissiveIntensity: 0.3, side: THREE.DoubleSide })
+    );
+    wing1.position.set(-0.6, 1.5, -0.3);
+    wing1.scale.setScalar(template.scale);
+    boss.add(wing1);
+    const wing2 = wing1.clone();
+    wing2.scale.x *= -1;
+    wing2.position.x = 0.6;
+    boss.add(wing2);
+  }
 
   const data = {
     mesh: boss,
-    health: 500,
-    maxHealth: 500,
-    speed: 3.0,
+    health: template.health,
+    maxHealth: template.health,
+    speed: template.speed,
     attackCooldown: 0,
-    specialCooldown: 5,
+    specialCooldown: 3,
     state: 'chase',
-    patrolCenter: new THREE.Vector3(0, 0, 5),
+    patrolCenter: new THREE.Vector3(...template.position),
     patrolAngle: 0,
     hitFlash: 0,
     dead: false,
     isBoss: true,
-    phase: 1, // gets harder at lower health
+    bossType: bossType,
+    attackType: template.attackType,
+    phase: 1,
   };
 
-  // Boss health bar (bigger)
+  // Boss health bar
   const barBg = new THREE.Mesh(
     new THREE.PlaneGeometry(3, 0.3),
-    new THREE.MeshBasicMaterial({ color: 0x440044, side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color: 0x440000, side: THREE.DoubleSide })
   );
   barBg.position.y = 7;
   boss.add(barBg);
   const bar = new THREE.Mesh(
     new THREE.PlaneGeometry(2.8, 0.2),
-    new THREE.MeshBasicMaterial({ color: 0xff00ff, side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color: template.color, side: THREE.DoubleSide })
   );
   bar.position.y = 7;
   bar.position.z = 0.01;
@@ -1466,10 +1528,28 @@ function spawnBoss() {
   data.healthBar = bar;
 
   state.enemies.push(data);
-  bossData = data;
+  currentBoss = data;
 
   playSound('bossRoar');
-  showMessage('THE DARK KNIGHT LORD HAS APPEARED!');
+  showMessage(`${template.name} HAS APPEARED!`);
+
+  // Create arena markers
+  createArena(...template.position, 15, template.color);
+}
+
+function createArena(x, y, z, radius, color) {
+  // Circular arena boundary markers
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+    const mx = x + Math.cos(angle) * radius;
+    const mz = z + Math.sin(angle) * radius;
+    const marker = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.3, 3, 6),
+      new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.5 })
+    );
+    marker.position.set(mx, y + 1.5, mz);
+    scene.add(marker);
+  }
 }
 
 // ============================================================
@@ -1895,9 +1975,13 @@ function updateHUD() {
   }
 
   // Boss health bar
-  if (bossData && !bossData.dead) {
+  if (currentBoss && !currentBoss.dead) {
+    const bossNameEl = document.querySelector('#boss-bar-container > div:first-child');
+    if (bossNameEl && currentBoss.bossType) {
+      bossNameEl.textContent = bossTemplates[currentBoss.bossType].name;
+    }
     document.getElementById('boss-bar-container').style.display = 'block';
-    document.getElementById('boss-health-bar').style.width = (bossData.health / bossData.maxHealth * 100) + '%';
+    document.getElementById('boss-health-bar').style.width = (currentBoss.health / currentBoss.maxHealth * 100) + '%';
   } else {
     document.getElementById('boss-bar-container').style.display = 'none';
   }
@@ -2087,21 +2171,44 @@ function update() {
       if (e.mesh.userData.leftLeg) e.mesh.userData.leftLeg.rotation.x = Math.sin(t) * 0.5;
       if (e.mesh.userData.rightLeg) e.mesh.userData.rightLeg.rotation.x = -Math.sin(t) * 0.5;
 
-      // Boss special: ranged attack
-      if (e.isBoss && e.specialCooldown !== undefined) {
+      // Boss special attacks (unique per boss)
+      if (e.isBoss && e.specialCooldown !== undefined && e.attackType) {
         e.specialCooldown -= dt;
         if (e.specialCooldown <= 0) {
-          e.specialCooldown = e.phase === 2 ? 1.5 : 3.0;
           const bossDir = player.position.clone().sub(e.mesh.position).normalize();
           const bossOrigin = e.mesh.position.clone().add(new THREE.Vector3(0, 3, 0)).add(bossDir.clone().multiplyScalar(2));
-          shootProjectile(bossOrigin, bossDir, 'fire', true);
-          spawnParticles(bossOrigin, 0xff00ff, 8, 3);
-          if (e.phase === 2) {
-            // Phase 2: fires spread shots
-            const left = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), 0.3);
-            const right = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -0.3);
-            shootProjectile(bossOrigin.clone(), left, 'fire', true);
-            shootProjectile(bossOrigin.clone(), right, 'fire', true);
+
+          if (e.attackType === 'darkProjectiles') {
+            // Dark Knight Lord: dark projectiles
+            e.specialCooldown = e.phase === 2 ? 1.5 : 3.0;
+            shootProjectile(bossOrigin, bossDir, 'fire', true);
+            spawnParticles(bossOrigin, 0xff00ff, 8, 3);
+            if (e.phase === 2) {
+              const left = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), 0.3);
+              const right = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -0.3);
+              shootProjectile(bossOrigin.clone(), left, 'fire', true);
+              shootProjectile(bossOrigin.clone(), right, 'fire', true);
+            }
+          } else if (e.attackType === 'iceSlam') {
+            // Frost Giant: ice slam AoE
+            e.specialCooldown = 4.0;
+            if (dist < 12) {
+              damagePlayer(15);
+              spawnParticles(player.position.clone().setY(0.5), 0x44ccff, 30, 6);
+              showMessage('Ice Slam!');
+              // Slow player temporarily
+              setTimeout(() => {}, 2000);
+            }
+            spawnParticles(e.mesh.position.clone().setY(0.5), 0x44ccff, 50, 8);
+          } else if (e.attackType === 'fireBreath') {
+            // Dragon: fire breath cone
+            e.specialCooldown = 3.5;
+            for (let i = 0; i < 5; i++) {
+              const spread = (i - 2) * 0.15;
+              const fireDir = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), spread);
+              shootProjectile(bossOrigin.clone(), fireDir, 'fire', true);
+            }
+            spawnParticles(bossOrigin, 0xff4400, 20, 4);
           }
         }
       }
@@ -2305,13 +2412,22 @@ function update() {
     updateHUD();
   }
 
-  // ---- Boss spawn (after killing 10 enemies) ----
-  if (!state.bossSpawned && !state.bossDefeated) {
-    const killed = state.enemies.filter(e => e.dead && !e.isBoss).length;
-    if (killed >= 10) {
-      spawnBoss();
-      updateHUD();
+  // ---- Sequential Boss Spawns ----
+  const killed = state.enemies.filter(e => e.dead && !e.isBoss).length;
+  const anyBossAlive = state.enemies.some(e => e.isBoss && !e.dead);
+
+  if (!anyBossAlive) {
+    if (killed >= 30 && !bossesDefeated.boss3) {
+      spawnBoss('dragon');
+      bossesDefeated.boss3 = true;
+    } else if (killed >= 20 && !bossesDefeated.boss2) {
+      spawnBoss('frostGiant');
+      bossesDefeated.boss2 = true;
+    } else if (killed >= 10 && !bossesDefeated.boss1) {
+      spawnBoss('darkKnightLord');
+      bossesDefeated.boss1 = true;
     }
+    if (currentBoss && !currentBoss.dead) updateHUD();
   }
 
   // ---- Day/Night Cycle ----
