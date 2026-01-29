@@ -166,6 +166,7 @@ canvas { display: block; }
     <span>E</span> — Rescue Friends / Power Objects &nbsp;|&nbsp; <span>Shift</span> — Sprint
   </div>
   <button id="start-btn">START QUEST</button>
+  <button id="tour-btn" style="margin-top: 15px; padding: 12px 36px; font-size: 18px; background: linear-gradient(to bottom, #44aaff, #2266aa); border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">CASTLE TOUR</button>
 </div>
 
 <div id="game-over">
@@ -241,7 +242,23 @@ const state = {
   // Boss
   bossSpawned: false,
   bossDefeated: false,
+  // Tour mode
+  tourActive: false,
+  tourWaypointIndex: 0,
+  tourProgress: 0,
 };
+
+// Tour waypoints (camera position, lookAt, message, duration in seconds)
+const tourWaypoints = [
+  { pos: [0, 5, 20], look: [0, 2, -30], msg: "🏰 Welcome to the Castle!", duration: 3 },
+  { pos: [-15, 8, -30], look: [0, 5, -30], msg: "The mighty fortress stands before you", duration: 3 },
+  { pos: [0, 3, -24], look: [0, 2, -30], msg: "Enter through the grand doorway", duration: 3 },
+  { pos: [0, 4, -30], look: [0, 2, -33], msg: "⚔️ The Throne Room - seat of power", duration: 3 },
+  { pos: [5, 3, -28], look: [5, 2, -32], msg: "🗡️ The Armory - weapons and supplies", duration: 3 },
+  { pos: [-5, 3, -28], look: [-5, 1, -32], msg: "🔽 Dungeon stairs lead to the depths below", duration: 3 },
+  { pos: [15, 12, -15], look: [0, 5, -30], msg: "🌍 Explore the village and beyond!", duration: 3 },
+  { pos: [0, 8, 0], look: [0, 0, 0], msg: "Your adventure begins now!", duration: 2 },
+];
 
 // ============================================================
 // THREE.JS SETUP
@@ -1619,6 +1636,14 @@ function spawnParticles(position, color, count = 10, speed = 3) {
 // INPUT
 // ============================================================
 document.addEventListener('keydown', (e) => {
+  // Exit tour on Escape
+  if (e.code === 'Escape' && state.tourActive) {
+    state.tourActive = false;
+    state.tourWaypointIndex = 0;
+    document.getElementById('start-screen').style.display = 'flex';
+    return;
+  }
+
   state.keys[e.code] = true;
   if (e.code === 'Digit1') { state.element = 'fire'; updateHUD(); }
   if (e.code === 'Digit2') { state.element = 'ice'; updateHUD(); }
@@ -1892,8 +1917,42 @@ function showZone(name) {
 const clock = new THREE.Clock();
 
 function update() {
-  if (!state.started || state.dead) return;
   const dt = Math.min(clock.getDelta(), 0.05);
+
+  // ---- Tour Mode ----
+  if (state.tourActive) {
+    const wp = tourWaypoints[state.tourWaypointIndex];
+    state.tourProgress += dt;
+
+    // Smooth camera interpolation
+    const t = Math.min(state.tourProgress / wp.duration, 1);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease in-out
+
+    camera.position.set(wp.pos[0], wp.pos[1], wp.pos[2]);
+    camera.lookAt(new THREE.Vector3(wp.look[0], wp.look[1], wp.look[2]));
+
+    // Show message
+    if (state.tourProgress < 0.1) {
+      showMessage(wp.msg);
+    }
+
+    // Move to next waypoint
+    if (state.tourProgress >= wp.duration) {
+      state.tourWaypointIndex++;
+      state.tourProgress = 0;
+
+      if (state.tourWaypointIndex >= tourWaypoints.length) {
+        // Tour finished, return to start screen
+        state.tourActive = false;
+        state.tourWaypointIndex = 0;
+        document.getElementById('start-screen').style.display = 'flex';
+        showMessage('Tour complete! Ready to begin your quest?');
+      }
+    }
+    return;
+  }
+
+  if (!state.started || state.dead) return;
 
   // ---- Player Movement ----
   const moveSpeed = state.keys['ShiftLeft'] ? 12 : 7;
@@ -2297,10 +2356,25 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   location.reload();
 });
 
+document.getElementById('tour-btn').addEventListener('click', () => {
+  document.getElementById('start-screen').style.display = 'none';
+  state.tourActive = true;
+  state.tourWaypointIndex = 0;
+  state.tourProgress = 0;
+  clock.start();
+  showMessage('Welcome to the Castle Tour! Press ESC to exit anytime.');
+});
+
 // Re-lock pointer on click
 renderer.domElement.addEventListener('click', () => {
   if (state.started && !state.dead && !document.pointerLockElement) {
     renderer.domElement.requestPointerLock();
+  }
+  // Exit tour on click
+  if (state.tourActive) {
+    state.tourActive = false;
+    state.tourWaypointIndex = 0;
+    document.getElementById('start-screen').style.display = 'flex';
   }
 });
 </script>
