@@ -4,11 +4,12 @@ export class InputManager {
   constructor(scene, canvas) {
     this.scene = scene;
     this.canvas = canvas;
-    
+
     this.keys = {};
     this.jumpPressed = false;
-    
+
     this.setupKeyboard();
+    this.setupMouse();
   }
   
   setupKeyboard() {
@@ -66,5 +67,29 @@ export class InputManager {
   
   isKeyDown(key) {
     return this.keys[key.toLowerCase()] || false;
+  }
+
+  setupMouse() {
+    // Mouse buttons
+    this.canvas.addEventListener('mousedown', (evt) => {
+      if (evt.button === 0) {
+        this.keys['mouseLeft'] = true;
+      } else if (evt.button === 2) {
+        this.keys['mouseRight'] = true;
+      }
+    });
+
+    this.canvas.addEventListener('mouseup', (evt) => {
+      if (evt.button === 0) {
+        this.keys['mouseLeft'] = false;
+      } else if (evt.button === 2) {
+        this.keys['mouseRight'] = false;
+      }
+    });
+
+    // Prevent context menu
+    this.canvas.addEventListener('contextmenu', (evt) => {
+      evt.preventDefault();
+    });
   }
 }

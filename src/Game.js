@@ -4,6 +4,7 @@ import { Player } from './entities/Player.js';
 import { World } from './world/World.js';
 import { InputManager } from './systems/InputManager.js';
 import { EnemyManager } from './systems/EnemyManager.js';
+import { CombatSystem } from './systems/CombatSystem.js';
 
 // Make CANNON available globally for Babylon.js
 window.CANNON = CANNON;
@@ -50,6 +51,9 @@ export class Game {
 
     // Create enemy manager
     this.enemyManager = new EnemyManager(this.scene, this.player);
+
+    // Create combat system
+    this.combatSystem = new CombatSystem(this.scene, this.player, this.enemyManager);
 
     // Setup camera to follow player
     this.setupCamera();
@@ -155,7 +159,10 @@ export class Game {
     // Update enemies
     this.enemyManager.update(deltaTime);
 
+    // Update combat (attacks, projectiles)
+    this.combatSystem.update(deltaTime, this.inputManager);
+
     // Update world systems
-    // (projectiles, pickups, etc. will go here)
+    // (pickups, etc. will go here)
   }
 }

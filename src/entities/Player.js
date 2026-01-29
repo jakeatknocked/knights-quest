@@ -16,6 +16,9 @@ export class Player {
 
     // Position player at spawn (on ground with proper offset)
     this.mesh.position = new BABYLON.Vector3(0, 2.0, 0);
+
+    // Initialize forward vector
+    this.mesh.forward = new BABYLON.Vector3(0, 0, 1);
   }
 
   createKnight() {
@@ -99,6 +102,13 @@ export class Player {
       // Rotate to face movement direction
       const angle = Math.atan2(movement.x, movement.z);
       this.mesh.rotation.y = angle;
+
+      // Update forward vector
+      this.mesh.forward = new BABYLON.Vector3(
+        Math.sin(angle),
+        0,
+        Math.cos(angle)
+      );
     } else {
       // Stop horizontal movement when no input
       this.mesh.physicsImpostor.setLinearVelocity(
