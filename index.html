@@ -1428,19 +1428,30 @@ function spawnEnemy(x, z) {
   return data;
 }
 
-// Initial enemies
+// Initial enemies — spread across all zones (no respawning)
 function spawnInitialEnemies() {
   // Castle area guards
   spawnEnemy(8, -25);
   spawnEnemy(-8, -25);
   spawnEnemy(0, -40);
+  spawnEnemy(5, -35);
+  spawnEnemy(-5, -20);
+  spawnEnemy(12, -30);
+  // Village patrol
+  spawnEnemy(12, 10);
+  spawnEnemy(-12, 8);
+  spawnEnemy(0, 15);
   // Forest enemies
   spawnEnemy(65, 0);
   spawnEnemy(80, -15);
   spawnEnemy(95, 5);
+  spawnEnemy(70, 10);
+  spawnEnemy(85, -5);
+  spawnEnemy(60, -10);
   // Floating island enemies
   spawnEnemy(5, -78);
   spawnEnemy(-10, -90);
+  spawnEnemy(15, -85);
 }
 
 // ============================================================
@@ -2089,19 +2100,7 @@ function update() {
     return true;
   });
 
-  // ---- Enemy spawning ----
-  state.enemySpawnTimer -= dt;
-  const aliveEnemies = state.enemies.filter(e => !e.dead).length;
-  if (state.enemySpawnTimer <= 0 && aliveEnemies < 12) {
-    state.enemySpawnTimer = 5 + Math.random() * 5;
-    // Spawn near player but off screen, clamped to world
-    const angle = Math.random() * Math.PI * 2;
-    const dist = 30 + Math.random() * 15;
-    const sx = Math.max(WORLD.minX + 5, Math.min(WORLD.maxX - 5, player.position.x + Math.cos(angle) * dist));
-    const sz = Math.max(WORLD.minZ + 5, Math.min(WORLD.maxZ - 5, player.position.z + Math.sin(angle) * dist));
-    if (!checkCollision(sx, sz)) spawnEnemy(sx, sz);
-    updateHUD();
-  }
+  // No enemy respawning — finite enemies only
 
   // ---- Rescuable marker bobbing ----
   state.rescuables.forEach(r => {
