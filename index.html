@@ -165,6 +165,15 @@ canvas { display: block; }
     <span>Space</span> — Jump &nbsp;|&nbsp; <span>F</span> — Shield<br>
     <span>E</span> — Rescue Friends / Power Objects &nbsp;|&nbsp; <span>Shift</span> — Sprint
   </div>
+  <div style="margin-bottom: 25px;">
+    <div style="color: #aaccff; font-size: 16px; margin-bottom: 10px;">Choose Your Knight:</div>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button class="skin-btn" data-skin="silver" style="padding: 8px 16px; background: linear-gradient(to bottom, #aaaacc, #6666aa); border: 3px solid #fff; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">Silver</button>
+      <button class="skin-btn" data-skin="gold" style="padding: 8px 16px; background: linear-gradient(to bottom, #ffcc44, #aa8800); border: 3px solid transparent; border-radius: 8px; cursor: pointer; color: #442200; font-weight: bold; pointer-events: all;">Gold</button>
+      <button class="skin-btn" data-skin="dark" style="padding: 8px 16px; background: linear-gradient(to bottom, #444466, #222244); border: 3px solid transparent; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">Dark</button>
+      <button class="skin-btn" data-skin="crystal" style="padding: 8px 16px; background: linear-gradient(to bottom, #44ffff, #2288aa); border: 3px solid transparent; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">Crystal</button>
+    </div>
+  </div>
   <button id="start-btn">START QUEST</button>
   <button id="tour-btn" style="margin-top: 15px; padding: 12px 36px; font-size: 18px; background: linear-gradient(to bottom, #44aaff, #2266aa); border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">CASTLE TOUR</button>
 </div>
@@ -264,6 +273,8 @@ const state = {
   timeOfDay: 0.25, // 0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk, 1=midnight
   // Pause
   paused: false,
+  // Player skin
+  selectedSkin: localStorage.getItem('knightSkin') || 'silver',
 };
 
 // Tour waypoints (camera position, lookAt, message, duration in seconds)
@@ -682,7 +693,15 @@ function createKnight(color, scale = 1, isEnemy = false) {
 // ============================================================
 // PLAYER
 // ============================================================
-const player = createKnight(0x3366aa, 1, false);
+// Skin colors
+const skinColors = {
+  silver: 0x3366aa,
+  gold: 0xffaa00,
+  dark: 0x333355,
+  crystal: 0x22dddd,
+};
+const selectedSkin = localStorage.getItem('knightSkin') || 'silver';
+const player = createKnight(skinColors[selectedSkin], 1, false);
 player.position.set(0, 0, 0);
 scene.add(player);
 
@@ -2668,6 +2687,20 @@ document.getElementById('tour-btn').addEventListener('click', () => {
   state.tourProgress = 0;
   clock.start();
   showMessage('Welcome to the Castle Tour! Press ESC to exit anytime.');
+});
+
+// Skin selection
+document.querySelectorAll('.skin-btn').forEach(btn => {
+  const skin = btn.getAttribute('data-skin');
+  // Set initial selected state
+  if (skin === (localStorage.getItem('knightSkin') || 'silver')) {
+    btn.style.borderColor = '#fff';
+  }
+  btn.addEventListener('click', () => {
+    localStorage.setItem('knightSkin', skin);
+    document.querySelectorAll('.skin-btn').forEach(b => b.style.borderColor = 'transparent');
+    btn.style.borderColor = '#fff';
+  });
 });
 
 // Re-lock pointer on click
