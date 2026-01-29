@@ -7,35 +7,35 @@ export class Player {
 
     // Player properties
     this.speed = 7;
-    this.jumpForce = 300;
+    this.jumpForce = 50; // Reduced from 300 - more reasonable jump
     this.health = 100;
     this.isJumping = false;
 
     // Create player mesh (knight)
     this.createKnight();
 
-    // Position player at spawn (on ground)
-    this.mesh.position = new BABYLON.Vector3(0, 1.5, 0);
+    // Position player at spawn (on ground with proper offset)
+    this.mesh.position = new BABYLON.Vector3(0, 2.0, 0);
   }
 
   createKnight() {
     // Create a parent mesh
     this.mesh = new BABYLON.Mesh('player', this.scene);
 
-    // Main body
+    // Main body (offset up from origin)
     const body = BABYLON.MeshBuilder.CreateBox('body', {
       width: 0.8,
       height: 1.0,
       depth: 0.5
     }, this.scene);
-    body.position.y = 0;
+    body.position.y = 0.5; // Half the height to sit properly
     body.parent = this.mesh;
 
     // Head/helmet
     const head = BABYLON.MeshBuilder.CreateSphere('head', {
       diameter: 0.6
     }, this.scene);
-    head.position.y = 0.8;
+    head.position.y = 1.3; // Above the body
     head.parent = this.mesh;
 
     // Material (blue knight)
