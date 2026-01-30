@@ -46,6 +46,14 @@ export class World {
       this._buildFrozenDepthsMap();
     } else if (levelIndex === 5) {
       this._buildShadowRealmMap();
+    } else if (levelIndex === 6) {
+      this._buildStormPeaksMap();
+    } else if (levelIndex === 7) {
+      this._buildPoisonSwampMap();
+    } else if (levelIndex === 8) {
+      this._buildCrystalCavernsMap();
+    } else if (levelIndex === 9) {
+      this._buildTheVoidMap();
     }
   }
 
@@ -93,6 +101,10 @@ export class World {
       { r: 0.25, g: 0.1, b: 0.05 },    // scorched earth
       { r: 0.5, g: 0.6, b: 0.7 },      // ice/snow
       { r: 0.08, g: 0.04, b: 0.12 },   // shadow void
+      { r: 0.3, g: 0.35, b: 0.45 },    // storm grey
+      { r: 0.15, g: 0.25, b: 0.08 },   // swamp green
+      { r: 0.35, g: 0.2, b: 0.45 },    // crystal purple
+      { r: 0.03, g: 0.01, b: 0.05 },   // void black
     ];
     const c = groundColors[levelIndex] || groundColors[0];
 
@@ -757,5 +769,411 @@ export class World {
     fogMat.emissiveColor = new BABYLON.Color3(0.05, 0, 0.08);
     fogMat.alpha = 0.6;
     fog.material = fogMat;
+  }
+
+  // ============================================
+  // LEVEL 7: Storm Peaks — Mountain peaks with lightning
+  // ============================================
+  _buildStormPeaksMap() {
+    // Jagged mountain peaks
+    const peakPositions = [
+      { x: 0, z: 0, h: 15, d: 12 },
+      { x: -30, z: -20, h: 20, d: 10 },
+      { x: 30, z: -15, h: 18, d: 11 },
+      { x: -20, z: 25, h: 12, d: 14 },
+      { x: 25, z: 30, h: 22, d: 9 },
+      { x: 0, z: -45, h: 25, d: 8 },
+      { x: -45, z: 0, h: 16, d: 10 },
+      { x: 45, z: 10, h: 14, d: 12 },
+      { x: -15, z: -40, h: 18, d: 10 },
+      { x: 35, z: -35, h: 20, d: 9 },
+    ];
+    peakPositions.forEach(p => {
+      const peak = this._track(BABYLON.MeshBuilder.CreateCylinder('stormPeak', {
+        height: p.h, diameterTop: 2, diameterBottom: p.d, tessellation: 6
+      }, this.scene));
+      peak.position = new BABYLON.Vector3(p.x, p.h / 2, p.z);
+      peak.material = this.materials.stone;
+      peak.physicsImpostor = new BABYLON.PhysicsImpostor(
+        peak, BABYLON.PhysicsImpostor.CylinderImpostor,
+        { mass: 0, friction: 0.8 }, this.scene
+      );
+      // Flat walkable top
+      const top = this._track(BABYLON.MeshBuilder.CreateCylinder('peakTop', {
+        height: 0.5, diameter: p.d * 0.6, tessellation: 8
+      }, this.scene));
+      top.position = new BABYLON.Vector3(p.x, p.h + 0.25, p.z);
+      top.material = this.materials.stone;
+      top.physicsImpostor = new BABYLON.PhysicsImpostor(
+        top, BABYLON.PhysicsImpostor.CylinderImpostor,
+        { mass: 0, friction: 0.8 }, this.scene
+      );
+    });
+
+    // Bridges between peaks
+    for (let i = 0; i < peakPositions.length - 1; i++) {
+      const a = peakPositions[i];
+      const b = peakPositions[i + 1];
+      this._createBridge(a.x, a.h, a.z, b.x, b.h, b.z);
+    }
+    // Extra connections
+    this._createBridge(peakPositions[0].x, peakPositions[0].h, peakPositions[0].z,
+      peakPositions[3].x, peakPositions[3].h, peakPositions[3].z);
+    this._createBridge(peakPositions[2].x, peakPositions[2].h, peakPositions[2].z,
+      peakPositions[4].x, peakPositions[4].h, peakPositions[4].z);
+
+    // Lightning rods (tall metal poles with glowing tips)
+    const stormMat = new BABYLON.StandardMaterial('stormMat', this.scene);
+    stormMat.diffuseColor = new BABYLON.Color3(0.4, 0.6, 0.9);
+    stormMat.emissiveColor = new BABYLON.Color3(0.15, 0.25, 0.4);
+    for (let i = 0; i < 12; i++) {
+      const x = -55 + Math.random() * 110;
+      const z = -55 + Math.random() * 110;
+      const rod = this._track(BABYLON.MeshBuilder.CreateCylinder('lightRod', {
+        height: 12, diameter: 0.3
+      }, this.scene));
+      rod.position = new BABYLON.Vector3(x, 6, z);
+      rod.material = this.materials.stone;
+      const tip = this._track(BABYLON.MeshBuilder.CreateSphere('lightTip', { diameter: 0.8 }, this.scene));
+      tip.position = new BABYLON.Vector3(x, 12.5, z);
+      tip.material = stormMat;
+      const l = this._trackLight(new BABYLON.PointLight('stormLight', tip.position.clone(), this.scene));
+      l.diffuse = new BABYLON.Color3(0.4, 0.6, 1);
+      l.intensity = 0.8;
+      l.range = 10;
+    }
+
+    // Dark storm clouds (flat dark planes above)
+    for (let i = 0; i < 8; i++) {
+      const cloud = this._track(BABYLON.MeshBuilder.CreateBox('stormCloud', {
+        width: 15 + Math.random() * 20, height: 1, depth: 15 + Math.random() * 20
+      }, this.scene));
+      cloud.position = new BABYLON.Vector3(
+        -50 + Math.random() * 100, 30 + Math.random() * 10, -50 + Math.random() * 100
+      );
+      const cMat = new BABYLON.StandardMaterial('cloudMat', this.scene);
+      cMat.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.3);
+      cMat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.08);
+      cMat.alpha = 0.6;
+      cloud.material = cMat;
+    }
+  }
+
+  // ============================================
+  // LEVEL 8: Poison Swamp — Toxic marshland
+  // ============================================
+  _buildPoisonSwampMap() {
+    // Poison lakes (green glowing pools)
+    const poisonMat = new BABYLON.StandardMaterial('poisonMat', this.scene);
+    poisonMat.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.1);
+    poisonMat.emissiveColor = new BABYLON.Color3(0.08, 0.25, 0.04);
+    poisonMat.alpha = 0.85;
+
+    for (let i = 0; i < 15; i++) {
+      const x = -60 + Math.random() * 120;
+      const z = -60 + Math.random() * 120;
+      const pool = this._track(BABYLON.MeshBuilder.CreateCylinder('poisonPool', {
+        height: 0.1, diameter: 5 + Math.random() * 8, tessellation: 12
+      }, this.scene));
+      pool.position = new BABYLON.Vector3(x, 0.06, z);
+      pool.material = poisonMat;
+      const l = this._trackLight(new BABYLON.PointLight('poolGlow', new BABYLON.Vector3(x, 0.5, z), this.scene));
+      l.diffuse = new BABYLON.Color3(0.2, 0.8, 0.1);
+      l.intensity = 0.4;
+      l.range = 6;
+    }
+
+    // Dead trees (no leaves, gnarled trunks)
+    for (let i = 0; i < 40; i++) {
+      const x = -65 + Math.random() * 130;
+      const z = -65 + Math.random() * 130;
+      const h = 3 + Math.random() * 5;
+      const trunk = this._track(BABYLON.MeshBuilder.CreateCylinder('deadTree', {
+        height: h, diameterTop: 0.1, diameterBottom: 0.6
+      }, this.scene));
+      trunk.position = new BABYLON.Vector3(x, h / 2, z);
+      trunk.rotation.z = (Math.random() - 0.5) * 0.3;
+      trunk.material = this.materials.trunk;
+      trunk.physicsImpostor = new BABYLON.PhysicsImpostor(
+        trunk, BABYLON.PhysicsImpostor.CylinderImpostor,
+        { mass: 0, friction: 0.5 }, this.scene
+      );
+    }
+
+    // Mushroom clusters (toxic)
+    const mushMat = new BABYLON.StandardMaterial('mushMat', this.scene);
+    mushMat.diffuseColor = new BABYLON.Color3(0.4, 0.7, 0.1);
+    mushMat.emissiveColor = new BABYLON.Color3(0.12, 0.2, 0.03);
+    for (let i = 0; i < 25; i++) {
+      const x = -55 + Math.random() * 110;
+      const z = -55 + Math.random() * 110;
+      const stem = this._track(BABYLON.MeshBuilder.CreateCylinder('mushStem', {
+        height: 1.5, diameter: 0.5
+      }, this.scene));
+      stem.position = new BABYLON.Vector3(x, 0.75, z);
+      stem.material = this.materials.stone;
+      const cap = this._track(BABYLON.MeshBuilder.CreateCylinder('mushCap', {
+        height: 0.5, diameterTop: 0.2, diameterBottom: 2 + Math.random()
+      }, this.scene));
+      cap.position = new BABYLON.Vector3(x, 1.75, z);
+      cap.material = mushMat;
+    }
+
+    // Bog mounds (raised earth)
+    for (let i = 0; i < 12; i++) {
+      const x = -50 + Math.random() * 100;
+      const z = -50 + Math.random() * 100;
+      const mound = this._track(BABYLON.MeshBuilder.CreateSphere('bogMound', {
+        diameter: 6 + Math.random() * 6
+      }, this.scene));
+      mound.position = new BABYLON.Vector3(x, 0.5, z);
+      mound.scaling.y = 0.3;
+      mound.material = this.materials.hut;
+      mound.physicsImpostor = new BABYLON.PhysicsImpostor(
+        mound, BABYLON.PhysicsImpostor.SphereImpostor,
+        { mass: 0, friction: 0.5 }, this.scene
+      );
+    }
+
+    // Hanging vines (vertical cylinders from above)
+    for (let i = 0; i < 20; i++) {
+      const x = -50 + Math.random() * 100;
+      const z = -50 + Math.random() * 100;
+      const vine = this._track(BABYLON.MeshBuilder.CreateCylinder('vine', {
+        height: 8 + Math.random() * 6, diameter: 0.1
+      }, this.scene));
+      vine.position = new BABYLON.Vector3(x, 6, z);
+      vine.material = this.materials.leaves;
+    }
+
+    // Fog layer
+    const swampFog = this._track(BABYLON.MeshBuilder.CreateBox('swampFog', {
+      width: 200, height: 0.1, depth: 200
+    }, this.scene));
+    swampFog.position.y = 1.5;
+    const sfMat = new BABYLON.StandardMaterial('swampFogMat', this.scene);
+    sfMat.diffuseColor = new BABYLON.Color3(0.15, 0.25, 0.08);
+    sfMat.emissiveColor = new BABYLON.Color3(0.05, 0.1, 0.03);
+    sfMat.alpha = 0.25;
+    swampFog.material = sfMat;
+  }
+
+  // ============================================
+  // LEVEL 9: Crystal Caverns — Underground crystal cave
+  // ============================================
+  _buildCrystalCavernsMap() {
+    // Crystal material (shared for efficiency)
+    const crystMat = new BABYLON.StandardMaterial('caveCrystMat', this.scene);
+    crystMat.diffuseColor = new BABYLON.Color3(0.5, 0.3, 0.8);
+    crystMat.emissiveColor = new BABYLON.Color3(0.2, 0.1, 0.35);
+    crystMat.specularColor = new BABYLON.Color3(1, 1, 1);
+    crystMat.specularPower = 128;
+    crystMat.alpha = 0.85;
+
+    // Giant crystal formations
+    for (let i = 0; i < 40; i++) {
+      const x = -65 + Math.random() * 130;
+      const z = -65 + Math.random() * 130;
+      const h = 4 + Math.random() * 12;
+      const crystal = this._track(BABYLON.MeshBuilder.CreateCylinder('caveCrystal', {
+        height: h, diameterTop: 0, diameterBottom: 1 + Math.random() * 2, tessellation: 6
+      }, this.scene));
+      crystal.position = new BABYLON.Vector3(x, h / 2, z);
+      crystal.rotation.z = (Math.random() - 0.5) * 0.4;
+      crystal.rotation.x = (Math.random() - 0.5) * 0.4;
+      crystal.material = crystMat;
+      crystal.physicsImpostor = new BABYLON.PhysicsImpostor(
+        crystal, BABYLON.PhysicsImpostor.CylinderImpostor,
+        { mass: 0, friction: 0.5 }, this.scene
+      );
+    }
+
+    // Glowing crystal clusters with lights
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      const r = 15 + Math.random() * 30;
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+      // Cluster of 3 crystals
+      for (let j = 0; j < 3; j++) {
+        const cx = x + (Math.random() - 0.5) * 3;
+        const cz = z + (Math.random() - 0.5) * 3;
+        const ch = 2 + Math.random() * 4;
+        const c = this._track(BABYLON.MeshBuilder.CreateCylinder('clusterCryst', {
+          height: ch, diameterTop: 0, diameterBottom: 0.6 + Math.random() * 0.6, tessellation: 6
+        }, this.scene));
+        c.position = new BABYLON.Vector3(cx, ch / 2, cz);
+        c.rotation.z = (Math.random() - 0.5) * 0.5;
+        c.material = crystMat;
+      }
+      const l = this._trackLight(new BABYLON.PointLight('crystClusterLight', new BABYLON.Vector3(x, 3, z), this.scene));
+      l.diffuse = new BABYLON.Color3(0.6, 0.3, 1);
+      l.intensity = 0.6;
+      l.range = 10;
+    }
+
+    // Cave ceiling (dark rock above)
+    const ceiling = this._track(BABYLON.MeshBuilder.CreateBox('caveCeiling', {
+      width: 200, height: 2, depth: 200
+    }, this.scene));
+    ceiling.position.y = 25;
+    ceiling.material = this.materials.darkStone;
+
+    // Stalactites hanging from ceiling
+    for (let i = 0; i < 30; i++) {
+      const x = -60 + Math.random() * 120;
+      const z = -60 + Math.random() * 120;
+      const h = 3 + Math.random() * 6;
+      const stal = this._track(BABYLON.MeshBuilder.CreateCylinder('stalactite', {
+        height: h, diameterTop: 1 + Math.random(), diameterBottom: 0, tessellation: 6
+      }, this.scene));
+      stal.position = new BABYLON.Vector3(x, 25 - h / 2, z);
+      stal.material = this.materials.stone;
+    }
+
+    // Underground lake
+    const lake = this._track(BABYLON.MeshBuilder.CreateBox('crystLake', {
+      width: 25, height: 0.08, depth: 25
+    }, this.scene));
+    lake.position = new BABYLON.Vector3(0, 0.05, 0);
+    const lakeMat = new BABYLON.StandardMaterial('crystLakeMat', this.scene);
+    lakeMat.diffuseColor = new BABYLON.Color3(0.3, 0.2, 0.6);
+    lakeMat.emissiveColor = new BABYLON.Color3(0.1, 0.06, 0.2);
+    lakeMat.alpha = 0.7;
+    lake.material = lakeMat;
+
+    // Stone platforms
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = 25 + Math.random() * 20;
+      const plat = this._track(BABYLON.MeshBuilder.CreateCylinder('cavePlat', {
+        height: 1, diameter: 8 + Math.random() * 6, tessellation: 8
+      }, this.scene));
+      plat.position = new BABYLON.Vector3(
+        Math.cos(angle) * r, 0.5, Math.sin(angle) * r
+      );
+      plat.material = this.materials.stone;
+      plat.physicsImpostor = new BABYLON.PhysicsImpostor(
+        plat, BABYLON.PhysicsImpostor.CylinderImpostor,
+        { mass: 0, friction: 0.8 }, this.scene
+      );
+    }
+  }
+
+  // ============================================
+  // LEVEL 10: The Void — Final arena in nothingness
+  // ============================================
+  _buildTheVoidMap() {
+    // Central massive arena platform
+    const arena = this._track(BABYLON.MeshBuilder.CreateCylinder('voidArena', {
+      height: 2, diameter: 50, tessellation: 16
+    }, this.scene));
+    arena.position = new BABYLON.Vector3(0, -0.5, 0);
+    arena.material = this.materials.darkStone;
+    arena.physicsImpostor = new BABYLON.PhysicsImpostor(
+      arena, BABYLON.PhysicsImpostor.CylinderImpostor,
+      { mass: 0, friction: 0.8 }, this.scene
+    );
+
+    // Outer ring platforms
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const r = 45;
+      const plat = this._track(BABYLON.MeshBuilder.CreateCylinder('voidPlat', {
+        height: 1.5, diameter: 10, tessellation: 8
+      }, this.scene));
+      plat.position = new BABYLON.Vector3(
+        Math.cos(angle) * r, -0.5, Math.sin(angle) * r
+      );
+      plat.material = this.materials.darkStone;
+      plat.physicsImpostor = new BABYLON.PhysicsImpostor(
+        plat, BABYLON.PhysicsImpostor.CylinderImpostor,
+        { mass: 0, friction: 0.8 }, this.scene
+      );
+    }
+
+    // Bridges connecting outer to center
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      this._createBridge(0, 0, 0,
+        Math.cos(angle) * 45, 0, Math.sin(angle) * 45
+      );
+    }
+
+    // Void pillars — tall ominous columns
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * Math.PI * 2;
+      const r = 55 + Math.random() * 15;
+      const h = 15 + Math.random() * 20;
+      const pillar = this._track(BABYLON.MeshBuilder.CreateBox('voidPillar', {
+        width: 2, height: h, depth: 2
+      }, this.scene));
+      pillar.position = new BABYLON.Vector3(
+        Math.cos(angle) * r, h / 2, Math.sin(angle) * r
+      );
+      pillar.material = this.materials.darkStone;
+    }
+
+    // Glowing red rune circles on the ground
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = 15;
+      const rune = this._track(BABYLON.MeshBuilder.CreateTorus('voidRune', {
+        diameter: 6, thickness: 0.12, tessellation: 24
+      }, this.scene));
+      rune.position = new BABYLON.Vector3(
+        Math.cos(angle) * r, 0.6, Math.sin(angle) * r
+      );
+      const runeMat = new BABYLON.StandardMaterial('vRuneMat' + i, this.scene);
+      runeMat.diffuseColor = new BABYLON.Color3(1, 0.1, 0.2);
+      runeMat.emissiveColor = new BABYLON.Color3(0.5, 0.05, 0.1);
+      rune.material = runeMat;
+      const l = this._trackLight(new BABYLON.PointLight('vRuneLight', rune.position.clone(), this.scene));
+      l.diffuse = new BABYLON.Color3(1, 0.1, 0.2);
+      l.intensity = 0.7;
+      l.range = 8;
+    }
+
+    // Central void eye (giant glowing sphere above)
+    const eye = this._track(BABYLON.MeshBuilder.CreateSphere('voidEye', {
+      diameter: 8
+    }, this.scene));
+    eye.position = new BABYLON.Vector3(0, 30, 0);
+    const eyeMat = new BABYLON.StandardMaterial('voidEyeMat', this.scene);
+    eyeMat.diffuseColor = new BABYLON.Color3(1, 0, 0.2);
+    eyeMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0.1);
+    eye.material = eyeMat;
+    const eyeLight = this._trackLight(new BABYLON.PointLight('voidEyeLight', eye.position.clone(), this.scene));
+    eyeLight.diffuse = new BABYLON.Color3(1, 0.1, 0.2);
+    eyeLight.intensity = 2.0;
+    eyeLight.range = 50;
+
+    // Dark portals around the edges
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const r = 60;
+      const portal = this._track(BABYLON.MeshBuilder.CreateTorus('voidPortal', {
+        diameter: 8, thickness: 0.5, tessellation: 24
+      }, this.scene));
+      portal.position = new BABYLON.Vector3(
+        Math.cos(angle) * r, 4, Math.sin(angle) * r
+      );
+      portal.rotation.y = angle;
+      const pMat = new BABYLON.StandardMaterial('vPortalMat' + i, this.scene);
+      pMat.diffuseColor = new BABYLON.Color3(0.3, 0, 0.5);
+      pMat.emissiveColor = new BABYLON.Color3(0.15, 0, 0.25);
+      pMat.alpha = 0.7;
+      portal.material = pMat;
+    }
+
+    // Void abyss below
+    const abyss = this._track(BABYLON.MeshBuilder.CreateBox('voidAbyss', {
+      width: 200, height: 0.1, depth: 200
+    }, this.scene));
+    abyss.position.y = -10;
+    const abyssMat = new BABYLON.StandardMaterial('voidAbyssMat', this.scene);
+    abyssMat.diffuseColor = new BABYLON.Color3(0.02, 0, 0.04);
+    abyssMat.emissiveColor = new BABYLON.Color3(0.01, 0, 0.02);
+    abyss.material = abyssMat;
   }
 }

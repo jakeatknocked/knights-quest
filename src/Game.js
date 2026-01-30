@@ -305,6 +305,10 @@ export class Game {
       new BABYLON.Vector3(0, 1, 15),   // Level 4: Lava Fortress
       new BABYLON.Vector3(0, 1, 0),    // Level 5: Frozen Depths
       new BABYLON.Vector3(0, 1, 0),    // Level 6: Shadow Realm
+      new BABYLON.Vector3(0, 16, 0),   // Level 7: Storm Peaks
+      new BABYLON.Vector3(0, 1, 10),   // Level 8: Poison Swamp
+      new BABYLON.Vector3(0, 1, 0),    // Level 9: Crystal Caverns
+      new BABYLON.Vector3(0, 1, 0),    // Level 10: The Void
     ];
     const spawn = spawnPoints[levelIndex] || spawnPoints[0];
     this.player.mesh.position.copyFrom(spawn);
@@ -323,8 +327,13 @@ export class Game {
     // Start level music
     this.soundManager.startMusic(levelIndex);
 
-    // Refill ammo each level
-    this.state.ammo = { fire: 30, ice: 20, lightning: 15 };
+    // Refill ammo each level — more ammo on harder levels
+    const ammoScale = 1 + levelIndex * 0.3;
+    this.state.ammo = {
+      fire: Math.round(30 * ammoScale),
+      ice: Math.round(20 * ammoScale),
+      lightning: Math.round(15 * ammoScale)
+    };
     // Heal player
     this.state.health = this.state.maxHealth;
     // Save progress

@@ -79,6 +79,58 @@ const BOSS_CONFIGS = {
     damage: 40,
     projectileColor: new BABYLON.Color3(0.8, 0, 0.5),
   },
+  stormTitan: {
+    name: 'Storm Titan',
+    health: 2500,
+    speed: 4.0,
+    scale: 5.0,
+    bodyColor: new BABYLON.Color3(0.3, 0.4, 0.7),
+    emissive: new BABYLON.Color3(0.1, 0.15, 0.3),
+    eyeColor: new BABYLON.Color3(0.5, 0.8, 1),
+    killThreshold: 40,
+    attackCooldownBase: 2.0,
+    damage: 35,
+    projectileColor: new BABYLON.Color3(0.4, 0.7, 1),
+  },
+  plagueQueen: {
+    name: 'Plague Queen',
+    health: 2800,
+    speed: 4.5,
+    scale: 3.5,
+    bodyColor: new BABYLON.Color3(0.2, 0.5, 0.1),
+    emissive: new BABYLON.Color3(0.08, 0.2, 0.04),
+    eyeColor: new BABYLON.Color3(0.6, 1, 0.2),
+    killThreshold: 45,
+    attackCooldownBase: 1.5,
+    damage: 30,
+    projectileColor: new BABYLON.Color3(0.4, 0.9, 0.1),
+  },
+  crystalGolem: {
+    name: 'Crystal Golem',
+    health: 3500,
+    speed: 3.0,
+    scale: 5.5,
+    bodyColor: new BABYLON.Color3(0.6, 0.3, 0.8),
+    emissive: new BABYLON.Color3(0.2, 0.1, 0.3),
+    eyeColor: new BABYLON.Color3(0.9, 0.5, 1),
+    killThreshold: 50,
+    attackCooldownBase: 2.5,
+    damage: 45,
+    projectileColor: new BABYLON.Color3(0.7, 0.3, 1),
+  },
+  voidEmperor: {
+    name: 'Void Emperor',
+    health: 5000,
+    speed: 5.5,
+    scale: 5.0,
+    bodyColor: new BABYLON.Color3(0.05, 0.02, 0.08),
+    emissive: new BABYLON.Color3(0.03, 0.01, 0.05),
+    eyeColor: new BABYLON.Color3(1, 0.2, 0.2),
+    killThreshold: 55,
+    attackCooldownBase: 1.2,
+    damage: 50,
+    projectileColor: new BABYLON.Color3(1, 0.1, 0.3),
+  },
 };
 
 export { BOSS_CONFIGS };
@@ -318,6 +370,112 @@ export class Boss {
       runeMat.diffuseColor = new BABYLON.Color3(0.8, 0, 0.5);
       runeMat.emissiveColor = new BABYLON.Color3(0.4, 0, 0.25);
       rune.material = runeMat;
+    } else if (this.bossType === 'stormTitan') {
+      // Lightning horns + storm aura
+      for (let side = -1; side <= 1; side += 2) {
+        const horn = BABYLON.MeshBuilder.CreateCylinder('stormHorn', {
+          height: 0.8 * s, diameterTop: 0, diameterBottom: 0.18 * s
+        }, this.scene);
+        horn.position.set(side * 0.3 * s, 1.5 * s, 0);
+        horn.rotation.z = side * -0.5;
+        horn.parent = this.mesh;
+        const hMat = new BABYLON.StandardMaterial('stHornMat', this.scene);
+        hMat.diffuseColor = new BABYLON.Color3(0.4, 0.7, 1);
+        hMat.emissiveColor = new BABYLON.Color3(0.2, 0.35, 0.5);
+        horn.material = hMat;
+      }
+      const stormAura = BABYLON.MeshBuilder.CreateTorus('stormAura', {
+        diameter: 1.8 * s, thickness: 0.08 * s, tessellation: 24
+      }, this.scene);
+      stormAura.position.y = 0.5 * s;
+      stormAura.parent = this.mesh;
+      const saMat = new BABYLON.StandardMaterial('stormAuraMat', this.scene);
+      saMat.diffuseColor = new BABYLON.Color3(0.3, 0.6, 1);
+      saMat.emissiveColor = new BABYLON.Color3(0.15, 0.3, 0.5);
+      saMat.alpha = 0.5;
+      stormAura.material = saMat;
+    } else if (this.bossType === 'plagueQueen') {
+      // Toxic crown + poison drip spheres
+      const crown = BABYLON.MeshBuilder.CreateTorus('plagueCrown', {
+        diameter: 0.65 * s, thickness: 0.09 * s, tessellation: 16
+      }, this.scene);
+      crown.position.y = 1.35 * s;
+      crown.parent = this.mesh;
+      const pcMat = new BABYLON.StandardMaterial('plagueCrownMat', this.scene);
+      pcMat.diffuseColor = new BABYLON.Color3(0.3, 0.8, 0.1);
+      pcMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.03);
+      crown.material = pcMat;
+      for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2;
+        const drip = BABYLON.MeshBuilder.CreateSphere('poisonDrip', { diameter: 0.2 * s }, this.scene);
+        drip.position.set(Math.cos(angle) * 0.5 * s, -0.4 * s, Math.sin(angle) * 0.5 * s);
+        drip.parent = this.mesh;
+        const dMat = new BABYLON.StandardMaterial('dripMat', this.scene);
+        dMat.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.05);
+        dMat.emissiveColor = new BABYLON.Color3(0.08, 0.25, 0.02);
+        dMat.alpha = 0.7;
+        drip.material = dMat;
+      }
+    } else if (this.bossType === 'crystalGolem') {
+      // Crystal spikes on shoulders and head
+      for (let side = -1; side <= 1; side += 2) {
+        const spike = BABYLON.MeshBuilder.CreateCylinder('crystalSpike', {
+          height: 0.7 * s, diameterTop: 0, diameterBottom: 0.2 * s, tessellation: 6
+        }, this.scene);
+        spike.position.set(side * 0.6 * s, 1.0 * s, 0);
+        spike.rotation.z = side * -0.4;
+        spike.parent = this.mesh;
+        const csMat = new BABYLON.StandardMaterial('crystSpkMat', this.scene);
+        csMat.diffuseColor = new BABYLON.Color3(0.7, 0.4, 1);
+        csMat.emissiveColor = new BABYLON.Color3(0.25, 0.12, 0.4);
+        csMat.alpha = 0.85;
+        spike.material = csMat;
+      }
+      const headCrystal = BABYLON.MeshBuilder.CreateCylinder('headCrystal', {
+        height: 0.5 * s, diameterTop: 0, diameterBottom: 0.15 * s, tessellation: 6
+      }, this.scene);
+      headCrystal.position.set(0, 1.5 * s, 0);
+      headCrystal.parent = this.mesh;
+      const hcMat = new BABYLON.StandardMaterial('hcMat', this.scene);
+      hcMat.diffuseColor = new BABYLON.Color3(0.9, 0.5, 1);
+      hcMat.emissiveColor = new BABYLON.Color3(0.35, 0.2, 0.5);
+      headCrystal.material = hcMat;
+    } else if (this.bossType === 'voidEmperor') {
+      // Massive dark wings + dual rune circles + crown
+      for (let side = -1; side <= 1; side += 2) {
+        const wing = BABYLON.MeshBuilder.CreatePlane('voidWing', {
+          width: 2.5 * s, height: 1.5 * s
+        }, this.scene);
+        wing.position.set(side * 1.0 * s, 0.6 * s, -0.3 * s);
+        wing.rotation.y = side * 0.7;
+        wing.parent = this.mesh;
+        const vwMat = new BABYLON.StandardMaterial('voidWingMat', this.scene);
+        vwMat.diffuseColor = new BABYLON.Color3(0.1, 0, 0.15);
+        vwMat.emissiveColor = new BABYLON.Color3(0.05, 0, 0.08);
+        vwMat.backFaceCulling = false;
+        vwMat.alpha = 0.85;
+        wing.material = vwMat;
+      }
+      for (let i = 0; i < 2; i++) {
+        const rune = BABYLON.MeshBuilder.CreateTorus('voidRune', {
+          diameter: (1.2 + i * 0.6) * s, thickness: 0.04 * s, tessellation: 32
+        }, this.scene);
+        rune.position.y = (-0.7 + i * 0.3) * s;
+        rune.parent = this.mesh;
+        const vrMat = new BABYLON.StandardMaterial('vrMat', this.scene);
+        vrMat.diffuseColor = new BABYLON.Color3(1, 0.1, 0.2);
+        vrMat.emissiveColor = new BABYLON.Color3(0.5, 0.05, 0.1);
+        rune.material = vrMat;
+      }
+      const crown = BABYLON.MeshBuilder.CreateTorus('voidCrown', {
+        diameter: 0.7 * s, thickness: 0.1 * s, tessellation: 16
+      }, this.scene);
+      crown.position.y = 1.4 * s;
+      crown.parent = this.mesh;
+      const vcMat = new BABYLON.StandardMaterial('voidCrownMat', this.scene);
+      vcMat.diffuseColor = new BABYLON.Color3(1, 0, 0.2);
+      vcMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0.1);
+      crown.material = vcMat;
     }
 
     this.mesh.position = position.clone();
@@ -455,7 +613,7 @@ export class Boss {
         this.fireProjectile(target);
       }
     } else if (this.bossType === 'shadowLord') {
-      // Shadow storm — 6 cone + 6 ring
+      // Shadow storm — 5 cone + 6 ring
       const rawDir = this.player.mesh.position.subtract(this.mesh.position);
       rawDir.y = 0;
       if (rawDir.length() < 0.01) return;
@@ -472,6 +630,68 @@ export class Boss {
         const target = this.mesh.position.add(
           new BABYLON.Vector3(Math.cos(angle) * 18, 0, Math.sin(angle) * 18)
         );
+        this.fireProjectile(target);
+      }
+    } else if (this.bossType === 'stormTitan') {
+      // Lightning strike — 10 bolts in random positions around player
+      for (let i = 0; i < 10; i++) {
+        const target = this.player.mesh.position.clone();
+        target.x += (Math.random() - 0.5) * 16;
+        target.z += (Math.random() - 0.5) * 16;
+        this.fireProjectile(target);
+      }
+    } else if (this.bossType === 'plagueQueen') {
+      // Poison spray — 12 projectiles in expanding spiral
+      const rawDir = this.player.mesh.position.subtract(this.mesh.position);
+      rawDir.y = 0;
+      if (rawDir.length() < 0.01) return;
+      const baseAngle = Math.atan2(rawDir.z, rawDir.x);
+      for (let i = 0; i < 12; i++) {
+        const angle = baseAngle + (i / 12) * Math.PI * 2;
+        const target = this.mesh.position.add(
+          new BABYLON.Vector3(Math.cos(angle) * 22, 0, Math.sin(angle) * 22)
+        );
+        this.fireProjectile(target);
+      }
+    } else if (this.bossType === 'crystalGolem') {
+      // Crystal shatter — 6 aimed + 8 ring outward
+      for (let i = 0; i < 6; i++) {
+        const target = this.player.mesh.position.clone();
+        target.x += (Math.random() - 0.5) * 8;
+        target.z += (Math.random() - 0.5) * 8;
+        this.fireProjectile(target);
+      }
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const target = this.mesh.position.add(
+          new BABYLON.Vector3(Math.cos(angle) * 25, 0, Math.sin(angle) * 25)
+        );
+        this.fireProjectile(target);
+      }
+    } else if (this.bossType === 'voidEmperor') {
+      // Void annihilation — 8 cone + 12 ring + 6 random
+      const rawDir = this.player.mesh.position.subtract(this.mesh.position);
+      rawDir.y = 0;
+      if (rawDir.length() < 0.01) return;
+      const dir = rawDir.normalize();
+      for (let i = -3; i <= 4; i++) {
+        const angle = Math.atan2(dir.z, dir.x) + i * 0.12;
+        const target = this.mesh.position.add(
+          new BABYLON.Vector3(Math.cos(angle) * 30, 0, Math.sin(angle) * 30)
+        );
+        this.fireProjectile(target);
+      }
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const target = this.mesh.position.add(
+          new BABYLON.Vector3(Math.cos(angle) * 20, 0, Math.sin(angle) * 20)
+        );
+        this.fireProjectile(target);
+      }
+      for (let i = 0; i < 6; i++) {
+        const target = this.player.mesh.position.clone();
+        target.x += (Math.random() - 0.5) * 12;
+        target.z += (Math.random() - 0.5) * 12;
         this.fireProjectile(target);
       }
     }

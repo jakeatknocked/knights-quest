@@ -127,6 +127,85 @@ const LEVEL_MUSIC = [
     melodyType: 'square',
     bassType: 'sawtooth',
   },
+  // Level 7: Storm Peaks — electric and driving
+  {
+    tempo: 170,
+    melody: [
+      [NOTE.E4, 1], [NOTE.G4, 1], [NOTE.B4, 1], [NOTE.E5, 1], [NOTE.D5, 1], [NOTE.B4, 1],
+      [NOTE.G4, 2], [NOTE.A4, 1], [NOTE.B4, 1], [NOTE.C5, 2],
+      [NOTE.B4, 1], [NOTE.A4, 1], [NOTE.G4, 1], [NOTE.E4, 1], [NOTE.G4, 2],
+      [NOTE.A4, 1], [NOTE.C5, 1], [NOTE.B4, 1], [NOTE.A4, 1], [NOTE.G4, 2],
+      [NOTE.E4, 1], [NOTE.G4, 1], [NOTE.A4, 1], [NOTE.B4, 2], [0, 1],
+    ],
+    bass: [
+      [NOTE.E3, 1], [NOTE.E3, 1], [NOTE.G3, 1], [NOTE.G3, 1],
+      [NOTE.A3, 1], [NOTE.A3, 1], [NOTE.B3, 1], [NOTE.B3, 1],
+      [NOTE.C3, 1], [NOTE.C3, 1], [NOTE.D3, 1], [NOTE.D3, 1],
+      [NOTE.E3, 1], [NOTE.G3, 1], [NOTE.A3, 1], [NOTE.B3, 1],
+      [NOTE.E3, 2], [NOTE.G3, 2],
+    ],
+    melodyType: 'sawtooth',
+    bassType: 'square',
+  },
+  // Level 8: Poison Swamp — sickly and unsettling
+  {
+    tempo: 110,
+    melody: [
+      [NOTE.Eb4, 2], [NOTE.E4, 1], [NOTE.Eb4, 2], [NOTE.Db4, 1],
+      [NOTE.C4, 3], [NOTE.Eb4, 1], [NOTE.E4, 2],
+      [NOTE.G4, 2], [NOTE.Ab4, 1], [NOTE.G4, 2], [NOTE.Eb4, 1],
+      [NOTE.E4, 3], [0, 1],
+      [NOTE.Db4, 2], [NOTE.Eb4, 1], [NOTE.E4, 2], [NOTE.G4, 1],
+      [NOTE.Ab4, 2], [NOTE.G4, 1], [NOTE.Eb4, 3], [0, 1],
+    ],
+    bass: [
+      [NOTE.Eb3, 3], [NOTE.C3, 3], [NOTE.Eb3, 3], [NOTE.Gb3, 3],
+      [NOTE.Ab3, 3], [NOTE.Eb3, 3], [NOTE.C3, 3], [NOTE.Eb3, 3],
+    ],
+    melodyType: 'triangle',
+    bassType: 'sawtooth',
+  },
+  // Level 9: Crystal Caverns — shimmering and magical
+  {
+    tempo: 120,
+    melody: [
+      [NOTE.C5, 1], [NOTE.B4, 1], [NOTE.A4, 1], [NOTE.G4, 2],
+      [NOTE.A4, 1], [NOTE.B4, 1], [NOTE.C5, 2], [NOTE.E5, 1],
+      [NOTE.D5, 1], [NOTE.C5, 1], [NOTE.B4, 1], [NOTE.A4, 2],
+      [NOTE.G4, 1], [NOTE.A4, 1], [NOTE.B4, 2], [NOTE.C5, 1],
+      [NOTE.A4, 1], [NOTE.G4, 2], [NOTE.E4, 1], [NOTE.G4, 1],
+      [NOTE.A4, 2], [NOTE.B4, 1], [NOTE.C5, 2], [0, 1],
+    ],
+    bass: [
+      [NOTE.C3, 2], [NOTE.E3, 2], [NOTE.G3, 2], [NOTE.A3, 2],
+      [NOTE.E3, 2], [NOTE.G3, 2], [NOTE.C3, 2], [NOTE.D3, 2],
+      [NOTE.E3, 2], [NOTE.A3, 2], [NOTE.G3, 2], [NOTE.C3, 2],
+    ],
+    melodyType: 'sine',
+    bassType: 'triangle',
+  },
+  // Level 10: The Void — final ominous apocalypse
+  {
+    tempo: 180,
+    melody: [
+      [NOTE.E4, 1], [NOTE.Eb4, 1], [NOTE.E4, 1], [NOTE.G4, 1], [NOTE.Bb4, 1], [NOTE.C5, 1],
+      [NOTE.Bb4, 1], [NOTE.G4, 1], [NOTE.E4, 1], [NOTE.Eb4, 1], [NOTE.E4, 2],
+      [NOTE.G4, 1], [NOTE.Bb4, 1], [NOTE.C5, 1], [NOTE.D5, 1], [NOTE.C5, 1], [NOTE.Bb4, 1],
+      [NOTE.G4, 1], [NOTE.E4, 1], [NOTE.Eb4, 1], [NOTE.E4, 2],
+      [NOTE.Bb4, 1], [NOTE.C5, 1], [NOTE.E5, 1], [NOTE.D5, 1],
+      [NOTE.C5, 1], [NOTE.Bb4, 1], [NOTE.G4, 1], [NOTE.E4, 2], [0, 1],
+    ],
+    bass: [
+      [NOTE.E3, 1], [NOTE.E3, 1], [NOTE.Eb3, 1], [NOTE.Eb3, 1],
+      [NOTE.E3, 1], [NOTE.G3, 1], [NOTE.Bb3, 1], [NOTE.E3, 1],
+      [NOTE.Eb3, 1], [NOTE.E3, 1], [NOTE.G3, 1], [NOTE.Bb3, 1],
+      [NOTE.E3, 1], [NOTE.E3, 1], [NOTE.Eb3, 1], [NOTE.Eb3, 1],
+      [NOTE.E3, 1], [NOTE.G3, 1], [NOTE.Bb3, 1], [NOTE.C3, 1],
+      [NOTE.E3, 2], [NOTE.E3, 2],
+    ],
+    melodyType: 'sawtooth',
+    bassType: 'sawtooth',
+  },
 ];
 
 // Menu music — calm and majestic
