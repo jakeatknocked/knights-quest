@@ -1,0 +1,49 @@
+{
+  "name": "knights-quest",
+  "version": "1.0.0",
+  "description": "Knights Quest - An epic knight adventure game",
+  "main": "main.js",
+  "author": "jakeatknocked",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.jakeatknocked.knightsquest",
+    "productName": "Knights Quest",
+    "directories": {
+      "output": "../releases"
+    },
+    "files": [
+      "main.js",
+      "../dist/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "../public/icons/icon-512.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "../public/icons/icon-512.png",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "../public/icons/icon-512.png",
+      "category": "Game"
+    }
+  }
+}
