@@ -19,6 +19,9 @@ export class Enemy {
 
     // Awareness — unaware enemies take extra damage (stealth bonus)
     this.aware = false;
+    this.chasingPlayer = false;
+    this.lastSeenPlayerPos = null;
+    this.loseInterestTimer = 0;
 
     // Create enemy mesh
     this.createEnemy(position);
@@ -235,25 +238,51 @@ export class Enemy {
     const currentVel = this.mesh.physicsImpostor.getLinearVelocity();
     const distToPlayer = BABYLON.Vector3.Distance(this.mesh.position, this.player.mesh.position);
 
-    // Always chase when alerted (e.g. last enemies remaining)
-    if (distToPlayer < 25 || this.alerted) {
+    // Detection: can see player within 50 units, or hear them within 15
+    const canSeePlayer = distToPlayer < 50 && this._hasLineOfSight();
+    const canHearPlayer = distToPlayer < 15;
+
+    // Start chasing if player detected or alerted
+    if (canSeePlayer || canHearPlayer || this.alerted) {
       this.aware = true;
-      // Chase player
-      const direction = this.player.mesh.position.subtract(this.mesh.position);
+      this.chasingPlayer = true;
+      this.lastSeenPlayerPos = this.player.mesh.position.clone();
+      this.loseInterestTimer = 8; // Keep chasing for 8s after losing sight
+    }
+
+    // Count down lose-interest timer when can't see player
+    if (this.chasingPlayer && !canSeePlayer && !canHearPlayer && !this.alerted) {
+      this.loseInterestTimer -= deltaTime;
+      if (this.loseInterestTimer <= 0) {
+        this.chasingPlayer = false;
+        this.aware = false;
+      }
+    }
+
+    if (this.chasingPlayer) {
+      // Chase player (or last known position)
+      const target = (canSeePlayer || canHearPlayer)
+        ? this.player.mesh.position
+        : this.lastSeenPlayerPos;
+
+      const direction = target.subtract(this.mesh.position);
       direction.y = 0;
       if (direction.length() > 0.01) direction.normalize();
       else return;
 
+      // Run faster when chasing
+      const chaseSpeed = this.speed * 1.3;
+
       this.mesh.physicsImpostor.setLinearVelocity(
         new BABYLON.Vector3(
-          direction.x * this.speed,
+          direction.x * chaseSpeed,
           currentVel.y,
-          direction.z * this.speed
+          direction.z * chaseSpeed
         )
       );
 
       // Face player
-      const lookTarget = this.player.mesh.position.clone();
+      const lookTarget = target.clone();
       lookTarget.y = this.mesh.position.y;
       this.mesh.lookAt(lookTarget);
 
@@ -263,10 +292,10 @@ export class Enemy {
         this.attackCooldown = 1.2;
       }
 
-      // Ranged attack (gun enemies)
-      if (this.hasGun && distToPlayer > 5 && distToPlayer < 20 && this.shootCooldown <= 0) {
+      // Ranged attack (gun enemies) — further range when aware
+      if (this.hasGun && distToPlayer > 5 && distToPlayer < 35 && this.shootCooldown <= 0) {
         this.fireProjectile();
-        this.shootCooldown = 2.0 + Math.random();
+        this.shootCooldown = 1.5 + Math.random();
       }
     } else {
       // Patrol in circle around spawn point
@@ -349,8 +378,43 @@ export class Enemy {
     }
   }
 
+  _hasLineOfSight() {
+    if (!this.mesh || !this.player || !this.player.mesh) return false;
+
+    const origin = this.mesh.position.clone();
+    origin.y += 1.0; // Eye height
+    const target = this.player.mesh.position.clone();
+    target.y += 1.0;
+
+    const dir = target.subtract(origin);
+    const dist = dir.length();
+    if (dist < 0.1) return true;
+    dir.normalize();
+
+    const ray = new BABYLON.Ray(origin, dir, dist);
+    const hit = this.scene.pickWithRay(ray, (mesh) => {
+      // Only block line of sight with world geometry (static physics objects)
+      return mesh.physicsImpostor &&
+        mesh.physicsImpostor.mass === 0 &&
+        mesh !== this.mesh &&
+        mesh !== this.player.mesh &&
+        !mesh.isDescendantOf(this.mesh) &&
+        !mesh.isDescendantOf(this.player.mesh);
+    });
+
+    // If nothing blocks the view, we can see the player
+    return !hit || !hit.hit;
+  }
+
   takeDamage(amount) {
     this.health -= amount;
+    // Getting hit always alerts the enemy
+    this.aware = true;
+    this.chasingPlayer = true;
+    this.loseInterestTimer = 10;
+    if (this.player && this.player.mesh) {
+      this.lastSeenPlayerPos = this.player.mesh.position.clone();
+    }
     if (this.health <= 0) {
       this.die();
     }
