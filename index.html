@@ -2,9 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Knight's Quest - Babylon.js Edition</title>
+    <meta name="theme-color" content="#1a1a3e" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <title>Knights Quest</title>
     <script type="module" crossorigin src="/assets/index-C5XIWlNU.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-DDhow_wp.css">
   </head>
@@ -128,5 +130,10 @@
       </div>
     </div>
 
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+      }
+    </script>
   </body>
 </html>
