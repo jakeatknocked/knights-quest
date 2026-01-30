@@ -391,6 +391,46 @@ body {
   pointer-events: all;
 }
 
+/* ---- Survival Mode ---- */
+#survival-btn {
+  padding: 14px 40px; font-size: 20px;
+  background: linear-gradient(to bottom, #ff4444, #aa0000);
+  border: none; border-radius: 8px; cursor: pointer;
+  color: white; font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+#survival-btn:hover { filter: brightness(1.2); }
+
+#survival-timer {
+  position: absolute;
+  top: 60px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 48px; font-weight: bold;
+  color: #ff4444;
+  text-shadow: 0 0 15px #ff0000, 0 0 30px #aa0000;
+  display: none;
+}
+
+#survival-victory {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 100; cursor: default;
+}
+#survival-victory h1 { font-size: 64px; color: #44ff44; text-shadow: 0 0 20px #00aa00; margin-bottom: 10px; }
+#survival-victory h2 { font-size: 24px; color: #aaccff; margin-bottom: 20px; }
+#survival-victory p { color: #ffdd00; font-size: 20px; margin-bottom: 30px; }
+#survival-restart-btn {
+  padding: 14px 40px; font-size: 20px;
+  background: linear-gradient(to bottom, #44ff44, #00aa00);
+  border: none; border-radius: 8px; cursor: pointer;
+  color: #0a2e0a; font-weight: bold;
+  pointer-events: all;
+}
+
 /* ---- Pause Screen ---- */
 #pause-screen {
   position: fixed;

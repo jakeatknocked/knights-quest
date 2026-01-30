@@ -141,6 +141,11 @@ export class Game {
       }
     }
 
+    // Survival mode state
+    this.survivalMode = false;
+    this.survivalTimer = 0;
+    this.survivalTimerEl = document.getElementById('survival-timer');
+
     // Emote wheel state
     this.emoteWheelOpen = false;
     this.emoteBubble = null;
@@ -207,6 +212,33 @@ export class Game {
       this.startLevel(this.state.currentLevel);
       this.hud.update();
       this.canvas.requestPointerLock();
+    });
+
+    // Survival mode button
+    document.getElementById('survival-btn').addEventListener('click', () => {
+      const nameVal = (usernameInput.value || '').trim() || 'Knight';
+      this.state.username = nameVal;
+      localStorage.setItem('username', nameVal);
+
+      document.getElementById('start-screen').style.display = 'none';
+      this.state.started = true;
+      this.survivalMode = true;
+      this.survivalTimer = 60;
+      this.soundManager.init();
+      this.hud.show();
+      this.chat.setUsername(this.state.username);
+      this.chat.show();
+      this.chat.systemMsg(`${this.state.username} entered SURVIVAL MODE! Survive 60 seconds!`);
+      // Pick a random level map for variety
+      const randomLevel = Math.floor(Math.random() * this.enemyManager.getTotalLevels());
+      this.startSurvivalLevel(randomLevel);
+      this.hud.update();
+      this.canvas.requestPointerLock();
+    });
+
+    // Survival victory restart
+    document.getElementById('survival-restart-btn').addEventListener('click', () => {
+      location.reload();
     });
 
     // Next level button
@@ -339,6 +371,51 @@ export class Game {
     // Save progress
     localStorage.setItem('savedLevel', levelIndex.toString());
     localStorage.setItem('savedScore', this.state.score.toString());
+    this.hud.update();
+  }
+
+  startSurvivalLevel(levelIndex) {
+    this.state.currentLevel = levelIndex;
+    this.state.levelComplete = false;
+
+    // Build the map
+    this.world.buildLevel(levelIndex);
+
+    // Teleport player to center
+    this.player.mesh.position = new BABYLON.Vector3(0, 3, 0);
+    if (this.player.mesh.physicsImpostor) {
+      this.player.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+    }
+
+    // Spawn lots of enemies — all with guns, all alerted
+    this.enemyManager.startLevel(levelIndex);
+    // Make all enemies aware + alerted + give them guns
+    this.enemyManager.getAliveEnemies().forEach(e => {
+      e.aware = true;
+      e.chasingPlayer = true;
+      e.alerted = true;
+      e.hasGun = true;
+      e.shootCooldown = Math.random() * 2; // Stagger initial shots
+    });
+
+    this.state.levelName = 'SURVIVAL MODE';
+    this.state.levelNum = 0;
+    this.hud.showMessage('SURVIVE FOR 60 SECONDS!');
+    this.chat.levelMsg('SURVIVAL MODE — Stay alive!');
+
+    // Start intense music
+    this.soundManager.startBossMusic();
+
+    // Full health, no ammo (can't fight)
+    this.state.health = this.state.maxHealth;
+    this.state.ammo = { fire: 0, ice: 0, lightning: 0 };
+
+    // Show survival timer
+    if (this.survivalTimerEl) {
+      this.survivalTimerEl.style.display = 'block';
+      this.survivalTimerEl.textContent = '60';
+    }
+
     this.hud.update();
   }
 
@@ -521,6 +598,7 @@ export class Game {
     if (this.state.health <= 0) {
       this.state.dead = true;
       this.soundManager.stopMusic();
+      if (this.survivalTimerEl) this.survivalTimerEl.style.display = 'none';
       document.getElementById('final-score').textContent = this.state.score;
       document.getElementById('game-over').style.display = 'flex';
       this.hud.hide();
@@ -664,7 +742,9 @@ export class Game {
     this.enemyManager.update(deltaTime, this);
 
     // Update combat (attacks, projectiles — always update projectiles, block new attacks if shielded)
-    this.combatSystem.update(deltaTime, this.inputManager, this.state.shieldActive);
+    // In survival mode, block ALL player attacks (sword + gun)
+    const blockAttacks = this.state.shieldActive || this.survivalMode;
+    this.combatSystem.update(deltaTime, this.inputManager, blockAttacks);
 
     // Update pickups
     this.pickupManager.update(deltaTime, this);
@@ -675,8 +755,60 @@ export class Game {
     // Track alive enemies
     this.state.enemiesAlive = this.enemyManager.getAliveEnemies().length;
 
-    // Check level complete
-    this.checkLevelComplete();
+    // Check level complete (not in survival mode)
+    if (!this.survivalMode) {
+      this.checkLevelComplete();
+    }
+
+    // Survival mode timer
+    if (this.survivalMode && this.survivalTimer > 0) {
+      this.survivalTimer -= deltaTime;
+
+      // Update timer display
+      if (this.survivalTimerEl) {
+        const secs = Math.ceil(this.survivalTimer);
+        this.survivalTimerEl.textContent = secs > 0 ? secs : '0';
+        // Flash red when low
+        if (secs <= 10) {
+          this.survivalTimerEl.style.color = secs % 2 === 0 ? '#ff0000' : '#ff4444';
+        }
+      }
+
+      // Survived!
+      if (this.survivalTimer <= 0) {
+        this.survivalTimer = 0;
+        this.soundManager.stopMusic();
+        if (this.survivalTimerEl) this.survivalTimerEl.style.display = 'none';
+        document.getElementById('survival-score').textContent = this.state.score;
+        document.getElementById('survival-victory').style.display = 'flex';
+        this.state.levelComplete = true;
+        this.hud.hide();
+        document.exitPointerLock();
+      }
+
+      // Keep spawning enemies every 10 seconds in survival
+      this._survivalSpawnTimer = (this._survivalSpawnTimer || 0) + deltaTime;
+      if (this._survivalSpawnTimer >= 10) {
+        this._survivalSpawnTimer = 0;
+        // Spawn 5 more enemies near the player
+        for (let i = 0; i < 5; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 20 + Math.random() * 15;
+          const pos = new BABYLON.Vector3(
+            this.player.mesh.position.x + Math.cos(angle) * dist,
+            0,
+            this.player.mesh.position.z + Math.sin(angle) * dist
+          );
+          const enemy = this.enemyManager.spawnEnemy(pos);
+          enemy.aware = true;
+          enemy.chasingPlayer = true;
+          enemy.alerted = true;
+          enemy.hasGun = true;
+          enemy.shootCooldown = Math.random() * 2;
+        }
+        this.chat.systemMsg('More enemies incoming!');
+      }
+    }
 
     // Sky Battle: fall off the islands = instant death
     if (this.state.currentLevel === 2 && this.player.mesh.position.y < -3) {

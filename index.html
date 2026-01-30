@@ -36,6 +36,7 @@
       <div id="admin-label"></div>
       <div style="display:flex; gap:15px; justify-content:center; margin-bottom: 20px;">
         <button id="start-btn">START QUEST</button>
+        <button id="survival-btn">SURVIVAL</button>
         <button id="shop-btn">SHOP</button>
       </div>
       <div id="leaderboard">
@@ -75,6 +76,13 @@
       <button id="restart-btn">TRY AGAIN</button>
     </div>
 
+    <div id="survival-victory">
+      <h1>YOU SURVIVED!</h1>
+      <h2>60 seconds of pure chaos!</h2>
+      <p>Score: <span id="survival-score">0</span></p>
+      <button id="survival-restart-btn">PLAY AGAIN</button>
+    </div>
+
     <div id="pause-screen">
       <h1>PAUSED</h1>
       <div class="controls-info">
@@ -101,6 +109,7 @@
       <div id="username-display"></div>
       <div id="level-display"></div>
       <div id="crosshair"></div>
+      <div id="survival-timer"></div>
       <canvas id="minimap" width="160" height="160"></canvas>
       <div id="message"></div>
       <div id="zone-name"></div>
