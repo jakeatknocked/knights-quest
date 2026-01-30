@@ -30,6 +30,12 @@ export class InputManager {
         this.jumpPressed = false;
       }
     });
+
+    // Clear all keys when window loses focus
+    window.addEventListener('blur', () => {
+      this.keys = {};
+      this.jumpPressed = false;
+    });
   }
   
   getMovementVector() {
@@ -58,26 +64,41 @@ export class InputManager {
   }
 
   setupMouse() {
-    // Mouse buttons
-    this.canvas.addEventListener('mousedown', (evt) => {
+    // Mouse buttons — only register when pointer is locked (in-game)
+    // This prevents UI button clicks from triggering combat
+    document.addEventListener('mousedown', (evt) => {
+      if (document.pointerLockElement !== this.canvas) return;
       if (evt.button === 0) {
-        this.keys['mouseLeft'] = true;
+        this.keys['mouseleft'] = true;
       } else if (evt.button === 2) {
-        this.keys['mouseRight'] = true;
+        this.keys['mouseright'] = true;
       }
     });
 
-    this.canvas.addEventListener('mouseup', (evt) => {
+    document.addEventListener('mouseup', (evt) => {
       if (evt.button === 0) {
-        this.keys['mouseLeft'] = false;
+        this.keys['mouseleft'] = false;
       } else if (evt.button === 2) {
-        this.keys['mouseRight'] = false;
+        this.keys['mouseright'] = false;
+      }
+    });
+
+    // Clear ALL input state when pointer lock changes
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement !== this.canvas) {
+        this.keys = {};
+        this.jumpPressed = false;
       }
     });
 
     // Prevent context menu
     this.canvas.addEventListener('contextmenu', (evt) => {
       evt.preventDefault();
+    });
+    document.addEventListener('contextmenu', (evt) => {
+      if (document.pointerLockElement === this.canvas) {
+        evt.preventDefault();
+      }
     });
   }
 }

@@ -32,7 +32,6 @@ export class Projectile {
 
     // Material with glow
     const material = new BABYLON.StandardMaterial('projectileMat', scene);
-    material.emissiveColor = color;
     material.diffuseColor = color;
     this.mesh.material = material;
 
@@ -47,14 +46,14 @@ export class Projectile {
   }
 
   update(deltaTime) {
-    if (this.dead) return;
+    if (this.dead || !this.mesh) return;
 
     // Move projectile
     const movement = this.velocity.scale(deltaTime);
     this.mesh.position.addInPlace(movement);
-    
+
     if (this.light) {
-      this.light.position = this.mesh.position.clone();
+      this.light.position.copyFrom(this.mesh.position);
     }
 
     this.life -= deltaTime;
@@ -66,14 +65,16 @@ export class Projectile {
 
   destroy() {
     this.dead = true;
+    if (this.light) {
+      this.light.dispose();
+      this.light = null;
+    }
     if (this.mesh) {
       if (this.mesh.material) {
         this.mesh.material.dispose();
       }
       this.mesh.dispose();
-    }
-    if (this.light) {
-      this.light.dispose();
+      this.mesh = null;
     }
   }
 }
