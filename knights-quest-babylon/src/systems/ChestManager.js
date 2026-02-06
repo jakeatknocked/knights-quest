@@ -110,10 +110,13 @@ export class ChestManager {
     this.chests.forEach(chest => {
       chest.update(deltaTime);
 
-      // Check if player is near and can open chest
-      if (chest.state === 'closed' && chest.isNearPlayer(this.player.mesh.position)) {
-        // Show prompt to player
-        game.hud.showMessage('Press E to open chest');
+      // Check if player is near and show appropriate message
+      if (chest.isNearPlayer(this.player.mesh.position)) {
+        if (chest.state === 'closed') {
+          game.hud.showMessage('Press E to open chest');
+        } else if (chest.state === 'opened') {
+          game.hud.showMessage('Press E to collect treasure');
+        }
       }
     });
   }

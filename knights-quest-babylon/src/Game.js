@@ -12,6 +12,7 @@ import { SoundManager } from './systems/SoundManager.js';
 import { Shop } from './ui/Shop.js';
 import { ChatSystem } from './ui/ChatSystem.js';
 import { ChestManager } from './systems/ChestManager.js';
+import { WeaponDisplay } from './systems/WeaponDisplay.js';
 
 // Make CANNON available globally for Babylon.js
 window.CANNON = CANNON;
@@ -137,6 +138,13 @@ export class Game {
     // Give combat system the camera reference for aiming
     this.combatSystem.camera = this.camera;
 
+    // Weapon display (first-person weapon view)
+    this.weaponDisplay = new WeaponDisplay(this.scene, this.camera);
+    this.weaponDisplay.switchWeapon(this.state.selectedElement);
+
+    // Link weapon display to combat system
+    this.combatSystem.weaponDisplay = this.weaponDisplay;
+
     // Setup lighting
     this.setupLighting();
 
@@ -162,6 +170,9 @@ export class Game {
     this.emoteBubble = null;
     this.emoteBubbleTimer = null;
     this.setupEmoteWheel();
+
+    // Interaction cooldown
+    this.interactionCooldown = 0;
 
     // Handle window resize
     window.addEventListener('resize', () => {
@@ -324,10 +335,26 @@ export class Game {
       }
 
       // Element switching
-      if (evt.code === 'Digit1') { this.state.selectedElement = 'basic'; this.hud.update(); }
-      if (evt.code === 'Digit2') { this.state.selectedElement = 'fire'; this.hud.update(); }
-      if (evt.code === 'Digit3') { this.state.selectedElement = 'ice'; this.hud.update(); }
-      if (evt.code === 'Digit4') { this.state.selectedElement = 'lightning'; this.hud.update(); }
+      if (evt.code === 'Digit1') {
+        this.state.selectedElement = 'basic';
+        this.weaponDisplay.switchWeapon('basic');
+        this.hud.update();
+      }
+      if (evt.code === 'Digit2') {
+        this.state.selectedElement = 'fire';
+        this.weaponDisplay.switchWeapon('fire');
+        this.hud.update();
+      }
+      if (evt.code === 'Digit3') {
+        this.state.selectedElement = 'ice';
+        this.weaponDisplay.switchWeapon('ice');
+        this.hud.update();
+      }
+      if (evt.code === 'Digit4') {
+        this.state.selectedElement = 'lightning';
+        this.weaponDisplay.switchWeapon('lightning');
+        this.hud.update();
+      }
     });
   }
 
@@ -855,6 +882,9 @@ export class Game {
     const blockAttacks = this.state.shieldActive || this.survivalMode;
     this.combatSystem.update(deltaTime, this.inputManager, blockAttacks);
 
+    // Update weapon display
+    this.weaponDisplay.update(deltaTime);
+
     // Update pickups
     this.pickupManager.update(deltaTime, this);
 
@@ -864,17 +894,24 @@ export class Game {
     // Update chests
     this.chestManager.update(deltaTime, this);
 
-    // Handle chest interaction (E key)
-    if (this.inputManager.isKeyDown('e')) {
+    // Update interaction cooldown
+    if (this.interactionCooldown > 0) {
+      this.interactionCooldown -= deltaTime;
+    }
+
+    // Handle chest interaction (E key with cooldown)
+    if (this.inputManager.isKeyDown('e') && this.interactionCooldown <= 0) {
       // Try to open a nearby chest
       const opened = this.chestManager.tryOpenNearbyChest(this.player.mesh.position);
       if (opened) {
         this.soundManager.play('chestOpen');
+        this.interactionCooldown = 0.3; // 300ms cooldown
       } else {
         // Try to collect from an opened chest
         const loot = this.chestManager.tryCollectNearbyChest(this.player.mesh.position);
         if (loot) {
           this.handleChestLoot(loot);
+          this.interactionCooldown = 0.3; // 300ms cooldown
         }
       }
     }

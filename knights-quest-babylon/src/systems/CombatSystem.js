@@ -9,7 +9,9 @@ export class CombatSystem {
     this.gameState = gameState;
     this.camera = null;
     this.projectiles = [];
+    this.particles = []; // Centralized particle tracking
     this.soundManager = null; // Will be set by Game
+    this.weaponDisplay = null; // Will be set by Game
 
     // Cooldowns
     this.swordCooldown = 0;
@@ -36,8 +38,9 @@ export class CombatSystem {
       }
     }
 
-    // Always update projectiles (even while shielded)
+    // Always update projectiles and particles (even while shielded)
     this.updateProjectiles(deltaTime);
+    this.updateParticles(deltaTime);
 
     // Block new attacks while shield is active
     if (shieldActive) return;
@@ -59,6 +62,11 @@ export class CombatSystem {
 
   swordAttack() {
     this.swordCooldown = 0.5;
+
+    // Trigger sword swing animation
+    if (this.weaponDisplay) {
+      this.weaponDisplay.playSwordSwingAnimation();
+    }
 
     // Use camera aim direction, flattened to XZ for melee
     const forward = this.getAimDirection();
@@ -172,6 +180,11 @@ export class CombatSystem {
 
     this.projectiles.push(projectile);
     this.createMuzzleFlash(startPos);
+
+    // Trigger weapon display animation
+    if (this.weaponDisplay) {
+      this.weaponDisplay.playShootAnimation();
+    }
   }
 
   startReload() {
@@ -284,64 +297,46 @@ export class CombatSystem {
   }
 
   createHitEffect(position) {
-    // Create shared material for all particles in this effect
-    const mat = new BABYLON.StandardMaterial('particleMat', this.scene);
+    const particleCount = 15;
+    const mat = new BABYLON.StandardMaterial('particleMat_' + Date.now() + Math.random(), this.scene);
     mat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
 
-    const particleCount = 15;
-    let disposed = 0;
-
     for (let i = 0; i < particleCount; i++) {
-      const particle = BABYLON.MeshBuilder.CreateSphere('particle', {
+      const mesh = BABYLON.MeshBuilder.CreateSphere('particle_' + Date.now() + '_' + i, {
         diameter: 0.1
       }, this.scene);
 
-      particle.position = position.clone();
-      particle.material = mat;
+      mesh.position = position.clone();
+      mesh.material = mat;
 
-      // Random velocity
       const velocity = new BABYLON.Vector3(
         (Math.random() - 0.5) * 5,
         Math.random() * 5,
         (Math.random() - 0.5) * 5
       );
 
-      // Animate and dispose
-      let life = 0.5;
-      const animation = this.scene.onBeforeRenderObservable.add(() => {
-        const dt = this.scene.getEngine().getDeltaTime() / 1000;
-        life -= dt;
-
-        particle.position.addInPlace(velocity.scale(dt));
-        velocity.y -= 10 * dt; // Gravity
-
-        if (life <= 0) {
-          particle.dispose();
-          this.scene.onBeforeRenderObservable.remove(animation);
-          disposed++;
-          // Dispose shared material when all particles are gone
-          if (disposed >= particleCount) {
-            mat.dispose();
-          }
-        }
+      this.particles.push({
+        mesh: mesh,
+        velocity: velocity,
+        life: 0.5,
+        material: mat,
+        isLastInGroup: i === particleCount - 1
       });
     }
   }
 
   createHeadshotEffect(position) {
-    const mat = new BABYLON.StandardMaterial('headshotMat', this.scene);
+    const particleCount = 20;
+    const mat = new BABYLON.StandardMaterial('headshotMat_' + Date.now() + Math.random(), this.scene);
     mat.diffuseColor = new BABYLON.Color3(1, 1, 0);
     mat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0);
 
-    const particleCount = 20;
-    let disposed = 0;
-
     for (let i = 0; i < particleCount; i++) {
-      const particle = BABYLON.MeshBuilder.CreateSphere('particle', {
+      const mesh = BABYLON.MeshBuilder.CreateSphere('headshotParticle_' + Date.now() + '_' + i, {
         diameter: 0.12
       }, this.scene);
-      particle.position = position.clone();
-      particle.material = mat;
+      mesh.position = position.clone();
+      mesh.material = mat;
 
       const velocity = new BABYLON.Vector3(
         (Math.random() - 0.5) * 6,
@@ -349,42 +344,51 @@ export class CombatSystem {
         (Math.random() - 0.5) * 6
       );
 
-      let life = 0.6;
-      const animation = this.scene.onBeforeRenderObservable.add(() => {
-        const dt = this.scene.getEngine().getDeltaTime() / 1000;
-        life -= dt;
-        particle.position.addInPlace(velocity.scale(dt));
-        velocity.y -= 10 * dt;
-        if (life <= 0) {
-          particle.dispose();
-          this.scene.onBeforeRenderObservable.remove(animation);
-          disposed++;
-          if (disposed >= particleCount) mat.dispose();
-        }
+      this.particles.push({
+        mesh: mesh,
+        velocity: velocity,
+        life: 0.6,
+        material: mat,
+        isLastInGroup: i === particleCount - 1
       });
     }
   }
 
   createMuzzleFlash(position) {
-    const flash = BABYLON.MeshBuilder.CreateSphere('flash', {
+    const mesh = BABYLON.MeshBuilder.CreateSphere('flash_' + Date.now() + Math.random(), {
       diameter: 0.4
     }, this.scene);
 
-    flash.position = position.clone();
+    mesh.position = position.clone();
 
-    const mat = new BABYLON.StandardMaterial('flashMat', this.scene);
+    const mat = new BABYLON.StandardMaterial('flashMat_' + Date.now() + Math.random(), this.scene);
     mat.diffuseColor = new BABYLON.Color3(1, 0.6, 0);
-    flash.material = mat;
+    mesh.material = mat;
 
-    let life = 0.1;
-    const observer = this.scene.onBeforeRenderObservable.add(() => {
-      const dt = this.scene.getEngine().getDeltaTime() / 1000;
-      life -= dt;
-      if (life <= 0) {
-        mat.dispose();
-        flash.dispose();
-        this.scene.onBeforeRenderObservable.remove(observer);
-      }
+    this.particles.push({
+      mesh: mesh,
+      velocity: new BABYLON.Vector3(0, 0, 0),
+      life: 0.1,
+      material: mat,
+      isLastInGroup: true
     });
+  }
+
+  updateParticles(deltaTime) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.life -= deltaTime;
+
+      if (p.life <= 0) {
+        // Clean up
+        if (p.mesh) p.mesh.dispose();
+        if (p.isLastInGroup && p.material) p.material.dispose();
+        this.particles.splice(i, 1);
+      } else {
+        // Update position
+        p.mesh.position.addInPlace(p.velocity.scale(deltaTime));
+        p.velocity.y -= 10 * deltaTime; // Gravity
+      }
+    }
   }
 }

@@ -35,8 +35,11 @@ export class Enemy {
   }
 
   createEnemy(position) {
+    // Create unique ID for this enemy to avoid material name conflicts
+    const enemyId = Date.now() + Math.random();
+
     // Create physics collider as main mesh (no parent - fixes physics warning)
-    this.mesh = BABYLON.MeshBuilder.CreateCylinder('enemyCollider', {
+    this.mesh = BABYLON.MeshBuilder.CreateCylinder('enemyCollider_' + enemyId, {
       height: 2,
       diameter: 0.8
     }, this.scene);
@@ -51,18 +54,18 @@ export class Enemy {
     );
 
     // Red enemy material — vibrant crimson
-    const material = new BABYLON.StandardMaterial('enemyMat', this.scene);
+    const material = new BABYLON.StandardMaterial('enemyMat_' + enemyId, this.scene);
     material.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
     material.emissiveColor = new BABYLON.Color3(0.45, 0.05, 0.05);
     material.specularColor = new BABYLON.Color3(0.3, 0.1, 0.1);
 
     // Dark limb material
-    const limbMat = new BABYLON.StandardMaterial('enemyLimbMat', this.scene);
+    const limbMat = new BABYLON.StandardMaterial('enemyLimbMat_' + enemyId, this.scene);
     limbMat.diffuseColor = new BABYLON.Color3(0.5, 0.1, 0.1);
     limbMat.emissiveColor = new BABYLON.Color3(0.2, 0.04, 0.04);
 
     // Enemy armor material (dark metal)
-    const armorMat = new BABYLON.StandardMaterial('enemyArmorMat', this.scene);
+    const armorMat = new BABYLON.StandardMaterial('enemyArmorMat_' + enemyId, this.scene);
     armorMat.diffuseColor = new BABYLON.Color3(0.3, 0.08, 0.08);
     armorMat.emissiveColor = new BABYLON.Color3(0.12, 0.032, 0.032);
     armorMat.specularColor = new BABYLON.Color3(0.4, 0.2, 0.2);
@@ -99,10 +102,10 @@ export class Enemy {
     helmetSpike.material = armorMat;
 
     // Visor (dark slit with glowing eyes behind)
-    const visorMat = new BABYLON.StandardMaterial('eVisorMat', this.scene);
+    const visorMat = new BABYLON.StandardMaterial('eVisorMat_' + enemyId, this.scene);
     visorMat.diffuseColor = new BABYLON.Color3(0.05, 0.02, 0.02);
     visorMat.emissiveColor = new BABYLON.Color3(0.02, 0, 0);
-    const visor = BABYLON.MeshBuilder.CreateBox('eVisor', {
+    const visor = BABYLON.MeshBuilder.CreateBox('eVisor_' + enemyId, {
       width: 0.45, height: 0.1, depth: 0.08
     }, this.scene);
     visor.position.set(0, 1.02, 0.28);
@@ -110,16 +113,16 @@ export class Enemy {
     visor.material = visorMat;
 
     // Glowing red eyes (behind visor)
-    const eyeMat = new BABYLON.StandardMaterial('eyeMat', this.scene);
+    const eyeMat = new BABYLON.StandardMaterial('eyeMat_' + enemyId, this.scene);
     eyeMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
     eyeMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
 
-    const eyeL = BABYLON.MeshBuilder.CreateSphere('eyeL', { diameter: 0.08 }, this.scene);
+    const eyeL = BABYLON.MeshBuilder.CreateSphere('eyeL_' + enemyId, { diameter: 0.08 }, this.scene);
     eyeL.position.set(-0.12, 1.03, 0.3);
     eyeL.parent = this.mesh;
     eyeL.material = eyeMat;
 
-    const eyeR = BABYLON.MeshBuilder.CreateSphere('eyeR', { diameter: 0.08 }, this.scene);
+    const eyeR = BABYLON.MeshBuilder.CreateSphere('eyeR_' + enemyId, { diameter: 0.08 }, this.scene);
     eyeR.position.set(0.12, 1.03, 0.3);
     eyeR.parent = this.mesh;
     eyeR.material = eyeMat;
@@ -181,12 +184,12 @@ export class Enemy {
 
     // Gun mesh (if this enemy has a gun)
     if (this.hasGun) {
-      const gun = BABYLON.MeshBuilder.CreateBox('eGun', {
+      const gun = BABYLON.MeshBuilder.CreateBox('eGun_' + enemyId, {
         width: 0.12, height: 0.12, depth: 0.5
       }, this.scene);
       gun.position.set(0.45, 0.2, 0.2);
       gun.parent = this.mesh;
-      const gunMat = new BABYLON.StandardMaterial('eGunMat', this.scene);
+      const gunMat = new BABYLON.StandardMaterial('eGunMat_' + enemyId, this.scene);
       gunMat.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
       gunMat.emissiveColor = new BABYLON.Color3(0.04, 0.04, 0.04);
       gun.material = gunMat;
@@ -208,7 +211,8 @@ export class Enemy {
   }
 
   createHealthBar() {
-    const barBg = BABYLON.MeshBuilder.CreatePlane('healthBarBg', {
+    const healthBarId = Date.now() + Math.random();
+    const barBg = BABYLON.MeshBuilder.CreatePlane('healthBarBg_' + healthBarId, {
       width: 1.2,
       height: 0.15
     }, this.scene);
@@ -216,11 +220,11 @@ export class Enemy {
     barBg.parent = this.mesh;
     barBg.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
-    const bgMat = new BABYLON.StandardMaterial('healthBarBgMat', this.scene);
+    const bgMat = new BABYLON.StandardMaterial('healthBarBgMat_' + healthBarId, this.scene);
     bgMat.diffuseColor = new BABYLON.Color3(0.2, 0, 0);
     barBg.material = bgMat;
 
-    this.healthBar = BABYLON.MeshBuilder.CreatePlane('healthBar', {
+    this.healthBar = BABYLON.MeshBuilder.CreatePlane('healthBar_' + healthBarId, {
       width: 1.1,
       height: 0.1
     }, this.scene);
@@ -229,7 +233,7 @@ export class Enemy {
     this.healthBar.parent = this.mesh;
     this.healthBar.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
-    const barMat = new BABYLON.StandardMaterial('healthBarMat', this.scene);
+    const barMat = new BABYLON.StandardMaterial('healthBarMat_' + healthBarId, this.scene);
     barMat.diffuseColor = new BABYLON.Color3(1, 0.2, 0.2);
     this.healthBar.material = barMat;
   }
@@ -355,11 +359,12 @@ export class Enemy {
     // Decrement magazine
     this.currentMagazine--;
 
-    const proj = BABYLON.MeshBuilder.CreateSphere('eProj', { diameter: 0.3 }, this.scene);
+    const projId = Date.now() + Math.random();
+    const proj = BABYLON.MeshBuilder.CreateSphere('eProj_' + projId, { diameter: 0.3 }, this.scene);
     proj.position = this.mesh.position.clone();
     proj.position.y += 1.2;
 
-    const mat = new BABYLON.StandardMaterial('eProjMat', this.scene);
+    const mat = new BABYLON.StandardMaterial('eProjMat_' + projId, this.scene);
     mat.diffuseColor = new BABYLON.Color3(1, 0.3, 0);
     mat.emissiveColor = new BABYLON.Color3(0.3, 0.08, 0);
     proj.material = mat;
