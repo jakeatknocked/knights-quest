@@ -180,7 +180,7 @@ export class Game {
       if (ownedPets >= 4) this.achievements.unlock('pet_4', this.hud);
       if (ownedPets >= pets.length) this.achievements.unlock('pet_all', this.hud);
       // Skins
-      const skins = ['skin_gold','skin_dark','skin_crystal','skin_rainbow','skin_lava','skin_ice','skin_shadow','skin_emerald','skin_royal','skin_candy','skin_galaxy'];
+      const skins = ['skin_gold','skin_dark','skin_crystal','skin_rainbow','skin_lava','skin_ice','skin_shadow','skin_emerald','skin_royal','skin_candy','skin_galaxy','skin_sunrise','skin_ocean','skin_storm','skin_toxic','skin_blood','skin_sakura','skin_void','skin_copper','skin_diamond','skin_inferno'];
       const ownedSkins = skins.filter(id => p[id]).length;
       if (ownedSkins >= 3) this.achievements.unlock('skin_3', this.hud);
       if (ownedSkins >= 6) this.achievements.unlock('skin_6', this.hud);
@@ -498,6 +498,16 @@ export class Game {
         { id: 'royal', name: 'Royal', shopId: 'skin_royal' },
         { id: 'candy', name: 'Candy', shopId: 'skin_candy' },
         { id: 'galaxy', name: 'Galaxy', shopId: 'skin_galaxy' },
+        { id: 'sunrise', name: 'Sunrise', shopId: 'skin_sunrise' },
+        { id: 'ocean', name: 'Ocean', shopId: 'skin_ocean' },
+        { id: 'storm', name: 'Storm', shopId: 'skin_storm' },
+        { id: 'toxic', name: 'Toxic', shopId: 'skin_toxic' },
+        { id: 'blood', name: 'Blood', shopId: 'skin_blood' },
+        { id: 'sakura', name: 'Sakura', shopId: 'skin_sakura' },
+        { id: 'void', name: 'Void', shopId: 'skin_void' },
+        { id: 'copper', name: 'Copper', shopId: 'skin_copper' },
+        { id: 'diamond', name: 'Diamond', shopId: 'skin_diamond' },
+        { id: 'inferno', name: 'Inferno', shopId: 'skin_inferno' },
       ];
 
       // Only show skins the player owns (silver is always owned)
