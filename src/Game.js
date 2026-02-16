@@ -1053,8 +1053,8 @@ export class Game {
     this.enemyManager.enemies = [];
     this.enemyManager.bossDefeated = true;
 
-    // Build The Void map with party decorations on top
-    this.world.buildLevel(9);
+    // Build the Castle map (bright green) with party decorations on top
+    this.world.buildLevel(0);
     this.world.addPartyDecorations();
 
     // Teleport player to the arena
