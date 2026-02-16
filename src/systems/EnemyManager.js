@@ -473,6 +473,24 @@ export class EnemyManager {
     }
   }
 
+  clearAll() {
+    this.enemies.forEach(e => {
+      if (e.mesh) {
+        e.mesh.getChildMeshes().forEach(c => {
+          if (c.material) c.material.dispose();
+          c.dispose();
+        });
+        if (e.mesh.physicsImpostor) e.mesh.physicsImpostor.dispose();
+        e.mesh.dispose();
+      }
+    });
+    this.enemies = [];
+    if (this.activeBoss) {
+      if (this.activeBoss.mesh) this.activeBoss.mesh.dispose();
+      this.activeBoss = null;
+    }
+  }
+
   getAliveEnemies() {
     return this.enemies.filter(e => !e.dead);
   }

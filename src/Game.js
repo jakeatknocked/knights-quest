@@ -14,6 +14,7 @@ import { SoundManager } from './systems/SoundManager.js';
 import { Shop } from './ui/Shop.js';
 import { ChatSystem } from './ui/ChatSystem.js';
 import { Achievements } from './ui/Achievements.js';
+import { TrailerMode } from './TrailerMode.js';
 
 // Make CANNON available globally for Babylon.js
 window.CANNON = CANNON;
@@ -277,6 +278,19 @@ export class Game {
       this.startSurvivalLevel(randomLevel);
       this.hud.update();
       this.canvas.requestPointerLock();
+    });
+
+    // Trailer mode button
+    document.getElementById('trailer-btn').addEventListener('click', () => {
+      document.getElementById('start-screen').style.display = 'none';
+      this.trailerMode = new TrailerMode(this);
+      this.onTrailerEnd = () => {
+        this.state.started = false;
+        this.trailerMode.dispose();
+        this.trailerMode = null;
+      };
+      this.trailerMode.start();
+      this.state.started = true;
     });
 
     // Survival victory restart
@@ -944,6 +958,11 @@ export class Game {
       // Play killcam replay when dead
       if (this.replayPlaying) {
         this.updateKillcam(deltaTime);
+      }
+
+      // Trailer mode update
+      if (this.trailerMode && this.trailerMode.active) {
+        this.trailerMode.update(deltaTime);
       }
 
       this.scene.render();

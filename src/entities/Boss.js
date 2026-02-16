@@ -171,6 +171,11 @@ export class Boss {
       this.scene
     );
 
+    // Visual container — offset up so body sits above ground properly
+    this.visualRoot = new BABYLON.TransformNode('bossVisual', this.scene);
+    this.visualRoot.parent = this.mesh;
+    this.visualRoot.position.y = 0.5;
+
     // --- KINGLY BODY ---
     const bc = this.config.bodyColor;
 
@@ -203,7 +208,7 @@ export class Boss {
       width: 0.9 * s, height: 1.1 * s, depth: 0.55 * s
     }, this.scene);
     body.position.y = 0.2 * s;
-    body.parent = this.mesh;
+    body.parent = this.visualRoot;
     body.material = mat;
 
     // Royal chest plate with gold trim
@@ -211,7 +216,7 @@ export class Boss {
       width: 0.95 * s, height: 0.7 * s, depth: 0.35 * s
     }, this.scene);
     chestPlate.position.set(0, 0.4 * s, 0.12 * s);
-    chestPlate.parent = this.mesh;
+    chestPlate.parent = this.visualRoot;
     chestPlate.material = bossArmorMat;
 
     // Gold chest emblem (diamond shape)
@@ -220,7 +225,7 @@ export class Boss {
     }, this.scene);
     emblem.position.set(0, 0.45 * s, 0.32 * s);
     emblem.rotation.z = Math.PI / 4;
-    emblem.parent = this.mesh;
+    emblem.parent = this.visualRoot;
     emblem.material = goldMat;
 
     // Royal robe / skirt (flowing below waist)
@@ -228,7 +233,7 @@ export class Boss {
       height: 0.6 * s, diameterTop: 0.85 * s, diameterBottom: 1.1 * s, tessellation: 8
     }, this.scene);
     robe.position.y = -0.25 * s;
-    robe.parent = this.mesh;
+    robe.parent = this.visualRoot;
     robe.material = robeMat;
 
     // Gold belt
@@ -236,7 +241,7 @@ export class Boss {
       width: 0.92 * s, height: 0.1 * s, depth: 0.56 * s
     }, this.scene);
     belt.position.set(0, -0.0 * s, 0);
-    belt.parent = this.mesh;
+    belt.parent = this.visualRoot;
     belt.material = goldMat;
 
     // Head
@@ -244,7 +249,7 @@ export class Boss {
       diameter: 0.65 * s
     }, this.scene);
     head.position.y = 1.05 * s;
-    head.parent = this.mesh;
+    head.parent = this.visualRoot;
     head.material = mat;
 
     // CROWN — gold with jewel points
@@ -252,7 +257,7 @@ export class Boss {
       height: 0.12 * s, diameter: 0.55 * s, tessellation: 16
     }, this.scene);
     crownBase.position.y = 1.38 * s;
-    crownBase.parent = this.mesh;
+    crownBase.parent = this.visualRoot;
     crownBase.material = goldMat;
 
     // Crown points (5 spikes around the top)
@@ -266,7 +271,7 @@ export class Boss {
         1.52 * s,
         Math.sin(angle) * 0.22 * s
       );
-      point.parent = this.mesh;
+      point.parent = this.visualRoot;
       point.material = goldMat;
 
       // Jewel on each point
@@ -278,7 +283,7 @@ export class Boss {
         1.62 * s,
         Math.sin(angle) * 0.22 * s
       );
-      jewel.parent = this.mesh;
+      jewel.parent = this.visualRoot;
       const jewelMat = new BABYLON.StandardMaterial('jewelMat', this.scene);
       jewelMat.diffuseColor = this.config.eyeColor;
       jewelMat.emissiveColor = new BABYLON.Color3(
@@ -297,7 +302,7 @@ export class Boss {
       width: 0.5 * s, height: 0.1 * s, depth: 0.08 * s
     }, this.scene);
     visor.position.set(0, 1.07 * s, 0.3 * s);
-    visor.parent = this.mesh;
+    visor.parent = this.visualRoot;
     visor.material = visorMat;
 
     // Glowing eyes (bigger for king)
@@ -311,12 +316,12 @@ export class Boss {
 
     const eyeL = BABYLON.MeshBuilder.CreateSphere('bossEyeL', { diameter: 0.12 * s }, this.scene);
     eyeL.position.set(-0.15 * s, 1.08 * s, 0.3 * s);
-    eyeL.parent = this.mesh;
+    eyeL.parent = this.visualRoot;
     eyeL.material = eyeMat;
 
     const eyeR = BABYLON.MeshBuilder.CreateSphere('bossEyeR', { diameter: 0.12 * s }, this.scene);
     eyeR.position.set(0.15 * s, 1.08 * s, 0.3 * s);
-    eyeR.parent = this.mesh;
+    eyeR.parent = this.visualRoot;
     eyeR.material = eyeMat;
 
     // Eye glow light
@@ -324,7 +329,7 @@ export class Boss {
     bossEyeLight.diffuse = this.config.eyeColor;
     bossEyeLight.intensity = 0.6;
     bossEyeLight.range = 5 * s;
-    bossEyeLight.parent = this.mesh;
+    bossEyeLight.parent = this.visualRoot;
 
     // Big spiked shoulder pads
     for (let side = -1; side <= 1; side += 2) {
@@ -333,7 +338,7 @@ export class Boss {
       }, this.scene);
       shoulder.position.set(side * 0.6 * s, 0.75 * s, 0);
       shoulder.scaling = new BABYLON.Vector3(1, 0.7, 1);
-      shoulder.parent = this.mesh;
+      shoulder.parent = this.visualRoot;
       shoulder.material = bossArmorMat;
 
       // Shoulder spike
@@ -341,7 +346,7 @@ export class Boss {
         height: 0.3 * s, diameterTop: 0, diameterBottom: 0.1 * s
       }, this.scene);
       sSp.position.set(side * 0.65 * s, 0.98 * s, 0);
-      sSp.parent = this.mesh;
+      sSp.parent = this.visualRoot;
       sSp.material = goldMat;
     }
 
@@ -350,14 +355,14 @@ export class Boss {
       width: 0.32 * s, height: 0.9 * s, depth: 0.32 * s
     }, this.scene);
     bArmL.position.set(-0.58 * s, 0.15 * s, 0);
-    bArmL.parent = this.mesh;
+    bArmL.parent = this.visualRoot;
     bArmL.material = bossArmorMat;
 
     const bArmR = BABYLON.MeshBuilder.CreateBox('bArmR', {
       width: 0.32 * s, height: 0.9 * s, depth: 0.32 * s
     }, this.scene);
     bArmR.position.set(0.58 * s, 0.15 * s, 0);
-    bArmR.parent = this.mesh;
+    bArmR.parent = this.visualRoot;
     bArmR.material = bossArmorMat;
 
     // Royal scepter in right hand
@@ -365,7 +370,7 @@ export class Boss {
       height: 1.2 * s, diameter: 0.06 * s
     }, this.scene);
     scepterPole.position.set(0.65 * s, 0.1 * s, 0.15 * s);
-    scepterPole.parent = this.mesh;
+    scepterPole.parent = this.visualRoot;
     scepterPole.material = goldMat;
 
     // Scepter orb on top
@@ -373,7 +378,7 @@ export class Boss {
       diameter: 0.18 * s
     }, this.scene);
     scepterOrb.position.set(0.65 * s, 0.72 * s, 0.15 * s);
-    scepterOrb.parent = this.mesh;
+    scepterOrb.parent = this.visualRoot;
     scepterOrb.material = eyeMat;
 
     // Scepter orb glow
@@ -381,21 +386,21 @@ export class Boss {
     scepterLight.diffuse = this.config.eyeColor;
     scepterLight.intensity = 0.5;
     scepterLight.range = 4 * s;
-    scepterLight.parent = this.mesh;
+    scepterLight.parent = this.visualRoot;
 
     // Legs (armored boots)
     const bLegL = BABYLON.MeshBuilder.CreateBox('bLegL', {
       width: 0.36 * s, height: 0.8 * s, depth: 0.36 * s
     }, this.scene);
     bLegL.position.set(-0.22 * s, -0.6 * s, 0);
-    bLegL.parent = this.mesh;
+    bLegL.parent = this.visualRoot;
     bLegL.material = bossArmorMat;
 
     const bLegR = BABYLON.MeshBuilder.CreateBox('bLegR', {
       width: 0.36 * s, height: 0.8 * s, depth: 0.36 * s
     }, this.scene);
     bLegR.position.set(0.22 * s, -0.6 * s, 0);
-    bLegR.parent = this.mesh;
+    bLegR.parent = this.visualRoot;
     bLegR.material = bossArmorMat;
 
     // Cape (flat plane behind the body)
@@ -403,7 +408,7 @@ export class Boss {
       width: 1.0 * s, height: 1.6 * s
     }, this.scene);
     cape.position.set(0, 0.1 * s, -0.3 * s);
-    cape.parent = this.mesh;
+    cape.parent = this.visualRoot;
     const capeMat = new BABYLON.StandardMaterial('bossCapeMat', this.scene);
     capeMat.diffuseColor = new BABYLON.Color3(bc.r * 0.6, bc.g * 0.6, bc.b * 0.6);
     capeMat.emissiveColor = new BABYLON.Color3(bc.r * 0.1, bc.g * 0.1, bc.b * 0.1);
@@ -417,7 +422,7 @@ export class Boss {
         diameter: 0.6 * s, thickness: 0.08 * s, tessellation: 16
       }, this.scene);
       crown.position.y = 1.35 * s;
-      crown.parent = this.mesh;
+      crown.parent = this.visualRoot;
       const crownMat = new BABYLON.StandardMaterial('crownMat', this.scene);
       crownMat.diffuseColor = new BABYLON.Color3(0.6, 0, 1);
       crownMat.emissiveColor = new BABYLON.Color3(0.15, 0, 0.25);
@@ -430,7 +435,7 @@ export class Boss {
         }, this.scene);
         horn.position.set(side * 0.25 * s, 1.4 * s, 0);
         horn.rotation.z = side * -0.4;
-        horn.parent = this.mesh;
+        horn.parent = this.visualRoot;
         const hornMat = new BABYLON.StandardMaterial('hornMat', this.scene);
         hornMat.diffuseColor = new BABYLON.Color3(0.7, 0.9, 1);
         hornMat.emissiveColor = new BABYLON.Color3(0.14, 0.18, 0.2);
@@ -444,7 +449,7 @@ export class Boss {
         }, this.scene);
         wing.position.set(side * 0.8 * s, 0.6 * s, -0.2 * s);
         wing.rotation.y = side * 0.5;
-        wing.parent = this.mesh;
+        wing.parent = this.visualRoot;
         const wingMat = new BABYLON.StandardMaterial('wingMat', this.scene);
         wingMat.diffuseColor = new BABYLON.Color3(0.6, 0.1, 0);
         wingMat.emissiveColor = new BABYLON.Color3(0.12, 0.02, 0);
@@ -457,7 +462,7 @@ export class Boss {
         diameter: 0.7 * s, thickness: 0.1 * s, tessellation: 16
       }, this.scene);
       crown.position.y = 1.4 * s;
-      crown.parent = this.mesh;
+      crown.parent = this.visualRoot;
       const crownMat = new BABYLON.StandardMaterial('flameCrownMat', this.scene);
       crownMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
       crownMat.emissiveColor = new BABYLON.Color3(0.5, 0.2, 0);
@@ -467,7 +472,7 @@ export class Boss {
           diameter: 0.35 * s
         }, this.scene);
         flame.position.set(side * 0.65 * s, 0.8 * s, 0);
-        flame.parent = this.mesh;
+        flame.parent = this.visualRoot;
         const fMat = new BABYLON.StandardMaterial('sfMat', this.scene);
         fMat.diffuseColor = new BABYLON.Color3(1, 0.4, 0);
         fMat.emissiveColor = new BABYLON.Color3(0.4, 0.15, 0);
@@ -481,7 +486,7 @@ export class Boss {
         }, this.scene);
         spike.position.set(side * 0.5 * s, 1.2 * s, 0);
         spike.rotation.z = side * -0.3;
-        spike.parent = this.mesh;
+        spike.parent = this.visualRoot;
         const spkMat = new BABYLON.StandardMaterial('iceSpkMat', this.scene);
         spkMat.diffuseColor = new BABYLON.Color3(0.7, 0.9, 1);
         spkMat.emissiveColor = new BABYLON.Color3(0.2, 0.3, 0.4);
@@ -492,7 +497,7 @@ export class Boss {
         diameter: 1.2 * s, thickness: 0.06 * s, tessellation: 24
       }, this.scene);
       aura.position.y = 0.1 * s;
-      aura.parent = this.mesh;
+      aura.parent = this.visualRoot;
       const auraMat = new BABYLON.StandardMaterial('iceAuraMat', this.scene);
       auraMat.diffuseColor = new BABYLON.Color3(0.5, 0.8, 1);
       auraMat.emissiveColor = new BABYLON.Color3(0.15, 0.25, 0.4);
@@ -506,7 +511,7 @@ export class Boss {
         }, this.scene);
         wing.position.set(side * 0.9 * s, 0.5 * s, -0.2 * s);
         wing.rotation.y = side * 0.6;
-        wing.parent = this.mesh;
+        wing.parent = this.visualRoot;
         const wMat = new BABYLON.StandardMaterial('sWingMat', this.scene);
         wMat.diffuseColor = new BABYLON.Color3(0.2, 0, 0.3);
         wMat.emissiveColor = new BABYLON.Color3(0.08, 0, 0.12);
@@ -518,7 +523,7 @@ export class Boss {
         diameter: 1.5 * s, thickness: 0.05 * s, tessellation: 32
       }, this.scene);
       rune.position.y = -0.8 * s;
-      rune.parent = this.mesh;
+      rune.parent = this.visualRoot;
       const runeMat = new BABYLON.StandardMaterial('runeMat', this.scene);
       runeMat.diffuseColor = new BABYLON.Color3(0.8, 0, 0.5);
       runeMat.emissiveColor = new BABYLON.Color3(0.4, 0, 0.25);
@@ -531,7 +536,7 @@ export class Boss {
         }, this.scene);
         horn.position.set(side * 0.3 * s, 1.5 * s, 0);
         horn.rotation.z = side * -0.5;
-        horn.parent = this.mesh;
+        horn.parent = this.visualRoot;
         const hMat = new BABYLON.StandardMaterial('stHornMat', this.scene);
         hMat.diffuseColor = new BABYLON.Color3(0.4, 0.7, 1);
         hMat.emissiveColor = new BABYLON.Color3(0.2, 0.35, 0.5);
@@ -541,7 +546,7 @@ export class Boss {
         diameter: 1.8 * s, thickness: 0.08 * s, tessellation: 24
       }, this.scene);
       stormAura.position.y = 0.5 * s;
-      stormAura.parent = this.mesh;
+      stormAura.parent = this.visualRoot;
       const saMat = new BABYLON.StandardMaterial('stormAuraMat', this.scene);
       saMat.diffuseColor = new BABYLON.Color3(0.3, 0.6, 1);
       saMat.emissiveColor = new BABYLON.Color3(0.15, 0.3, 0.5);
@@ -553,7 +558,7 @@ export class Boss {
         diameter: 0.65 * s, thickness: 0.09 * s, tessellation: 16
       }, this.scene);
       crown.position.y = 1.35 * s;
-      crown.parent = this.mesh;
+      crown.parent = this.visualRoot;
       const pcMat = new BABYLON.StandardMaterial('plagueCrownMat', this.scene);
       pcMat.diffuseColor = new BABYLON.Color3(0.3, 0.8, 0.1);
       pcMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.03);
@@ -562,7 +567,7 @@ export class Boss {
         const angle = (i / 4) * Math.PI * 2;
         const drip = BABYLON.MeshBuilder.CreateSphere('poisonDrip', { diameter: 0.2 * s }, this.scene);
         drip.position.set(Math.cos(angle) * 0.5 * s, -0.4 * s, Math.sin(angle) * 0.5 * s);
-        drip.parent = this.mesh;
+        drip.parent = this.visualRoot;
         const dMat = new BABYLON.StandardMaterial('dripMat', this.scene);
         dMat.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.05);
         dMat.emissiveColor = new BABYLON.Color3(0.08, 0.25, 0.02);
@@ -577,7 +582,7 @@ export class Boss {
         }, this.scene);
         spike.position.set(side * 0.6 * s, 1.0 * s, 0);
         spike.rotation.z = side * -0.4;
-        spike.parent = this.mesh;
+        spike.parent = this.visualRoot;
         const csMat = new BABYLON.StandardMaterial('crystSpkMat', this.scene);
         csMat.diffuseColor = new BABYLON.Color3(0.7, 0.4, 1);
         csMat.emissiveColor = new BABYLON.Color3(0.25, 0.12, 0.4);
@@ -588,7 +593,7 @@ export class Boss {
         height: 0.5 * s, diameterTop: 0, diameterBottom: 0.15 * s, tessellation: 6
       }, this.scene);
       headCrystal.position.set(0, 1.5 * s, 0);
-      headCrystal.parent = this.mesh;
+      headCrystal.parent = this.visualRoot;
       const hcMat = new BABYLON.StandardMaterial('hcMat', this.scene);
       hcMat.diffuseColor = new BABYLON.Color3(0.9, 0.5, 1);
       hcMat.emissiveColor = new BABYLON.Color3(0.35, 0.2, 0.5);
@@ -601,7 +606,7 @@ export class Boss {
         }, this.scene);
         wing.position.set(side * 1.0 * s, 0.6 * s, -0.3 * s);
         wing.rotation.y = side * 0.7;
-        wing.parent = this.mesh;
+        wing.parent = this.visualRoot;
         const vwMat = new BABYLON.StandardMaterial('voidWingMat', this.scene);
         vwMat.diffuseColor = new BABYLON.Color3(0.1, 0, 0.15);
         vwMat.emissiveColor = new BABYLON.Color3(0.05, 0, 0.08);
@@ -614,7 +619,7 @@ export class Boss {
           diameter: (1.2 + i * 0.6) * s, thickness: 0.04 * s, tessellation: 32
         }, this.scene);
         rune.position.y = (-0.7 + i * 0.3) * s;
-        rune.parent = this.mesh;
+        rune.parent = this.visualRoot;
         const vrMat = new BABYLON.StandardMaterial('vrMat', this.scene);
         vrMat.diffuseColor = new BABYLON.Color3(1, 0.1, 0.2);
         vrMat.emissiveColor = new BABYLON.Color3(0.5, 0.05, 0.1);
@@ -624,7 +629,7 @@ export class Boss {
         diameter: 0.7 * s, thickness: 0.1 * s, tessellation: 16
       }, this.scene);
       crown.position.y = 1.4 * s;
-      crown.parent = this.mesh;
+      crown.parent = this.visualRoot;
       const vcMat = new BABYLON.StandardMaterial('voidCrownMat', this.scene);
       vcMat.diffuseColor = new BABYLON.Color3(1, 0, 0.2);
       vcMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0.1);

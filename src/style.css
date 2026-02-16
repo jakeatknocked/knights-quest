@@ -776,3 +776,63 @@ body {
   transition: transform 0.15s;
 }
 #achievements-btn:hover { transform: scale(1.05); }
+
+/* ==================== TRAILER MODE ==================== */
+#trailer-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 200; pointer-events: none;
+}
+
+.trailer-letterbox {
+  position: absolute; left: 0; width: 100%; height: 50px;
+  background: #000;
+}
+.trailer-letterbox.top { top: 0; }
+.trailer-letterbox.bottom { bottom: 0; }
+
+.trailer-text-container {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; width: 90%;
+}
+
+.trailer-text {
+  color: #fff; font-family: 'Georgia', serif;
+  text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 60px rgba(0,0,0,0.5),
+               0 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 3px;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.trailer-text.show {
+  opacity: 1;
+  transform: scale(1);
+}
+.trailer-text.huge {
+  font-size: 64px; font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+}
+.trailer-text.big {
+  font-size: 42px; font-weight: bold;
+}
+.trailer-text.medium {
+  font-size: 28px; font-weight: normal;
+  color: #ddeeff;
+}
+
+.trailer-skip {
+  position: absolute; bottom: 60px; right: 20px;
+  color: rgba(255,255,255,0.4); font-size: 14px;
+  font-family: Arial, sans-serif;
+}
+
+#trailer-btn {
+  padding: 14px 36px; font-size: 20px;
+  background: linear-gradient(to bottom, #ff8844, #cc5500);
+  border: none; border-radius: 10px; cursor: pointer;
+  color: #fff; font-weight: bold;
+  transition: transform 0.15s;
+}
+#trailer-btn:hover { transform: scale(1.05); }
