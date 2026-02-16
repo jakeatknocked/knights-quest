@@ -53,149 +53,267 @@ export class Enemy {
       this.scene
     );
 
-    // Red enemy material — vibrant crimson
+    // Dark blood-red material
     const material = new BABYLON.StandardMaterial('enemyMat', this.scene);
-    material.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
-
-    material.emissiveColor = new BABYLON.Color3(0.25, 0.03, 0.03);
+    material.diffuseColor = new BABYLON.Color3(0.7, 0.05, 0.05);
+    material.emissiveColor = new BABYLON.Color3(0.2, 0.02, 0.02);
     material.specularColor = new BABYLON.Color3(0.3, 0.1, 0.1);
 
-    // Dark limb material
+    // Dark flesh/skin
     const limbMat = new BABYLON.StandardMaterial('enemyLimbMat', this.scene);
-    limbMat.diffuseColor = new BABYLON.Color3(0.5, 0.1, 0.1);
+    limbMat.diffuseColor = new BABYLON.Color3(0.35, 0.08, 0.08);
+    limbMat.emissiveColor = new BABYLON.Color3(0.1, 0.02, 0.02);
 
-    limbMat.emissiveColor = new BABYLON.Color3(0.15, 0.03, 0.03);
-
-    // Enemy armor material (dark metal)
+    // Black spiked armor
     const armorMat = new BABYLON.StandardMaterial('enemyArmorMat', this.scene);
-    armorMat.diffuseColor = new BABYLON.Color3(0.3, 0.08, 0.08);
-
-    armorMat.emissiveColor = new BABYLON.Color3(0.1, 0.03, 0.03);
-    armorMat.specularColor = new BABYLON.Color3(0.4, 0.2, 0.2);
+    armorMat.diffuseColor = new BABYLON.Color3(0.15, 0.05, 0.05);
+    armorMat.emissiveColor = new BABYLON.Color3(0.08, 0.02, 0.02);
+    armorMat.specularColor = new BABYLON.Color3(0.5, 0.2, 0.2);
     armorMat.specularPower = 64;
 
-    // Body
+    // Glowing evil material (for eyes, runes)
+    const glowMat = new BABYLON.StandardMaterial('eGlowMat', this.scene);
+    glowMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    glowMat.emissiveColor = new BABYLON.Color3(0.8, 0, 0);
+
+    // Body (wider, more intimidating)
     const body = BABYLON.MeshBuilder.CreateBox('enemyBody', {
-      width: 0.8, height: 1.0, depth: 0.5
+      width: 0.9, height: 1.1, depth: 0.55
     }, this.scene);
     body.position.y = 0.2;
     body.parent = this.mesh;
     body.material = material;
 
-    // Chest plate
+    // Spiked chest plate
     const chestPlate = BABYLON.MeshBuilder.CreateBox('eChest', {
-      width: 0.85, height: 0.6, depth: 0.3
+      width: 0.95, height: 0.65, depth: 0.35
     }, this.scene);
     chestPlate.position.set(0, 0.4, 0.12);
     chestPlate.parent = this.mesh;
     chestPlate.material = armorMat;
 
-    // Head (helmet)
-    const head = BABYLON.MeshBuilder.CreateSphere('enemyHead', { diameter: 0.6 }, this.scene);
-    head.position.y = 1.0;
+    // Chest spikes (3 spikes sticking out)
+    for (let i = -1; i <= 1; i++) {
+      const spike = BABYLON.MeshBuilder.CreateCylinder('eChestSpike', {
+        height: 0.2, diameterTop: 0, diameterBottom: 0.08
+      }, this.scene);
+      spike.position.set(i * 0.2, 0.45, 0.35);
+      spike.rotation.x = -Math.PI / 4;
+      spike.parent = this.mesh;
+      spike.material = armorMat;
+    }
+
+    // Head — skull-like (slightly squashed sphere)
+    const head = BABYLON.MeshBuilder.CreateSphere('enemyHead', { diameter: 0.65 }, this.scene);
+    head.position.y = 1.05;
+    head.scaling = new BABYLON.Vector3(1, 0.9, 1);
     head.parent = this.mesh;
     head.material = armorMat;
 
-    // Helmet top spike
-    const helmetSpike = BABYLON.MeshBuilder.CreateCylinder('eHelmetSpike', {
-      height: 0.25, diameterTop: 0, diameterBottom: 0.15
-    }, this.scene);
-    helmetSpike.position.y = 1.4;
-    helmetSpike.parent = this.mesh;
-    helmetSpike.material = armorMat;
+    // HORNS — two curved horns on the helmet
+    const hornMat = new BABYLON.StandardMaterial('eHornMat', this.scene);
+    hornMat.diffuseColor = new BABYLON.Color3(0.2, 0.05, 0.02);
+    hornMat.emissiveColor = new BABYLON.Color3(0.06, 0.02, 0.01);
 
-    // Visor (dark slit with glowing eyes behind)
-    const visorMat = new BABYLON.StandardMaterial('eVisorMat', this.scene);
-    visorMat.diffuseColor = new BABYLON.Color3(0.05, 0.02, 0.02);
-    visorMat.emissiveColor = new BABYLON.Color3(0.02, 0, 0);
-    const visor = BABYLON.MeshBuilder.CreateBox('eVisor', {
-      width: 0.45, height: 0.1, depth: 0.08
+    const hornL = BABYLON.MeshBuilder.CreateCylinder('eHornL', {
+      height: 0.4, diameterTop: 0, diameterBottom: 0.12, tessellation: 8
     }, this.scene);
-    visor.position.set(0, 1.02, 0.28);
+    hornL.position.set(-0.22, 1.35, -0.05);
+    hornL.rotation.z = 0.5;
+    hornL.rotation.x = -0.3;
+    hornL.parent = this.mesh;
+    hornL.material = hornMat;
+
+    const hornR = BABYLON.MeshBuilder.CreateCylinder('eHornR', {
+      height: 0.4, diameterTop: 0, diameterBottom: 0.12, tessellation: 8
+    }, this.scene);
+    hornR.position.set(0.22, 1.35, -0.05);
+    hornR.rotation.z = -0.5;
+    hornR.rotation.x = -0.3;
+    hornR.parent = this.mesh;
+    hornR.material = hornMat;
+
+    // Helmet ridge (central spine on top)
+    const ridge = BABYLON.MeshBuilder.CreateBox('eRidge', {
+      width: 0.06, height: 0.15, depth: 0.4
+    }, this.scene);
+    ridge.position.set(0, 1.38, 0);
+    ridge.parent = this.mesh;
+    ridge.material = armorMat;
+
+    // Visor — angry V-shaped slit
+    const visorMat = new BABYLON.StandardMaterial('eVisorMat', this.scene);
+    visorMat.diffuseColor = new BABYLON.Color3(0.02, 0.01, 0.01);
+    visorMat.emissiveColor = new BABYLON.Color3(0.01, 0, 0);
+    const visor = BABYLON.MeshBuilder.CreateBox('eVisor', {
+      width: 0.5, height: 0.08, depth: 0.08
+    }, this.scene);
+    visor.position.set(0, 1.05, 0.3);
     visor.parent = this.mesh;
     visor.material = visorMat;
 
-    // Glowing red eyes (behind visor)
-    const eyeMat = new BABYLON.StandardMaterial('eyeMat', this.scene);
-    eyeMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
-    eyeMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
-
-    const eyeL = BABYLON.MeshBuilder.CreateSphere('eyeL', { diameter: 0.08 }, this.scene);
-    eyeL.position.set(-0.12, 1.03, 0.3);
+    // Glowing evil eyes (bigger, brighter)
+    const eyeL = BABYLON.MeshBuilder.CreateSphere('eyeL', { diameter: 0.1 }, this.scene);
+    eyeL.position.set(-0.13, 1.06, 0.31);
     eyeL.parent = this.mesh;
-    eyeL.material = eyeMat;
+    eyeL.material = glowMat;
 
-    const eyeR = BABYLON.MeshBuilder.CreateSphere('eyeR', { diameter: 0.08 }, this.scene);
-    eyeR.position.set(0.12, 1.03, 0.3);
+    const eyeR = BABYLON.MeshBuilder.CreateSphere('eyeR', { diameter: 0.1 }, this.scene);
+    eyeR.position.set(0.13, 1.06, 0.31);
     eyeR.parent = this.mesh;
-    eyeR.material = eyeMat;
+    eyeR.material = glowMat;
 
-    // Shoulder pads
-    const shoulderL = BABYLON.MeshBuilder.CreateSphere('eShoulderL', { diameter: 0.3 }, this.scene);
-    shoulderL.position.set(-0.5, 0.65, 0);
+    // Eye glow light
+    this.eyeLight = new BABYLON.PointLight('eEyeGlow', new BABYLON.Vector3(0, 1.06, 0.35), this.scene);
+    this.eyeLight.diffuse = new BABYLON.Color3(1, 0, 0);
+    this.eyeLight.intensity = 0.4;
+    this.eyeLight.range = 3;
+    this.eyeLight.parent = this.mesh;
+
+    // Spiked shoulder pads (bigger, with spikes)
+    const shoulderL = BABYLON.MeshBuilder.CreateSphere('eShoulderL', { diameter: 0.4 }, this.scene);
+    shoulderL.position.set(-0.55, 0.7, 0);
     shoulderL.scaling = new BABYLON.Vector3(1, 0.7, 1);
     shoulderL.parent = this.mesh;
     shoulderL.material = armorMat;
 
-    const shoulderR = BABYLON.MeshBuilder.CreateSphere('eShoulderR', { diameter: 0.3 }, this.scene);
-    shoulderR.position.set(0.5, 0.65, 0);
+    // Shoulder spikes
+    const spikeLS = BABYLON.MeshBuilder.CreateCylinder('eSpkLS', {
+      height: 0.25, diameterTop: 0, diameterBottom: 0.08
+    }, this.scene);
+    spikeLS.position.set(-0.6, 0.9, 0);
+    spikeLS.parent = this.mesh;
+    spikeLS.material = armorMat;
+
+    const shoulderR = BABYLON.MeshBuilder.CreateSphere('eShoulderR', { diameter: 0.4 }, this.scene);
+    shoulderR.position.set(0.55, 0.7, 0);
     shoulderR.scaling = new BABYLON.Vector3(1, 0.7, 1);
     shoulderR.parent = this.mesh;
     shoulderR.material = armorMat;
 
-    // Left arm (armored)
-    const armL = BABYLON.MeshBuilder.CreateBox('eArmL', {
-      width: 0.25, height: 0.8, depth: 0.25
+    const spikeRS = BABYLON.MeshBuilder.CreateCylinder('eSpkRS', {
+      height: 0.25, diameterTop: 0, diameterBottom: 0.08
     }, this.scene);
-    armL.position.set(-0.525, 0.2, 0);
+    spikeRS.position.set(0.6, 0.9, 0);
+    spikeRS.parent = this.mesh;
+    spikeRS.material = armorMat;
+
+    // Left arm (bulkier)
+    const armL = BABYLON.MeshBuilder.CreateBox('eArmL', {
+      width: 0.28, height: 0.85, depth: 0.28
+    }, this.scene);
+    armL.position.set(-0.55, 0.15, 0);
     armL.parent = this.mesh;
     armL.material = armorMat;
 
-    // Right arm (armored)
+    // Claw on left hand
+    for (let i = -1; i <= 1; i++) {
+      const claw = BABYLON.MeshBuilder.CreateCylinder('eClawL', {
+        height: 0.15, diameterTop: 0, diameterBottom: 0.04
+      }, this.scene);
+      claw.position.set(-0.55 + i * 0.06, -0.18, 0.1);
+      claw.rotation.x = -Math.PI / 3;
+      claw.parent = this.mesh;
+      claw.material = hornMat;
+    }
+
+    // Right arm (bulkier)
     const armR = BABYLON.MeshBuilder.CreateBox('eArmR', {
-      width: 0.25, height: 0.8, depth: 0.25
+      width: 0.28, height: 0.85, depth: 0.28
     }, this.scene);
-    armR.position.set(0.525, 0.2, 0);
+    armR.position.set(0.55, 0.15, 0);
     armR.parent = this.mesh;
     armR.material = armorMat;
 
-    // Left leg (armored)
+    // Claw on right hand
+    for (let i = -1; i <= 1; i++) {
+      const claw = BABYLON.MeshBuilder.CreateCylinder('eClawR', {
+        height: 0.15, diameterTop: 0, diameterBottom: 0.04
+      }, this.scene);
+      claw.position.set(0.55 + i * 0.06, -0.18, 0.1);
+      claw.rotation.x = -Math.PI / 3;
+      claw.parent = this.mesh;
+      claw.material = hornMat;
+    }
+
+    // Left leg (armored, thicker)
     const legL = BABYLON.MeshBuilder.CreateBox('eLegL', {
-      width: 0.3, height: 0.7, depth: 0.3
+      width: 0.32, height: 0.75, depth: 0.32
     }, this.scene);
     legL.position.set(-0.2, -0.55, 0);
     legL.parent = this.mesh;
     legL.material = armorMat;
 
-    // Right leg (armored)
+    // Knee spikes
+    const kneeL = BABYLON.MeshBuilder.CreateCylinder('eKneeL', {
+      height: 0.12, diameterTop: 0, diameterBottom: 0.06
+    }, this.scene);
+    kneeL.position.set(-0.2, -0.4, 0.18);
+    kneeL.rotation.x = -Math.PI / 4;
+    kneeL.parent = this.mesh;
+    kneeL.material = armorMat;
+
+    // Right leg
     const legR = BABYLON.MeshBuilder.CreateBox('eLegR', {
-      width: 0.3, height: 0.7, depth: 0.3
+      width: 0.32, height: 0.75, depth: 0.32
     }, this.scene);
     legR.position.set(0.2, -0.55, 0);
     legR.parent = this.mesh;
     legR.material = armorMat;
 
-    // Shield on left arm (non-gun enemies)
+    const kneeR = BABYLON.MeshBuilder.CreateCylinder('eKneeR', {
+      height: 0.12, diameterTop: 0, diameterBottom: 0.06
+    }, this.scene);
+    kneeR.position.set(0.2, -0.4, 0.18);
+    kneeR.rotation.x = -Math.PI / 4;
+    kneeR.parent = this.mesh;
+    kneeR.material = armorMat;
+
+    // Glowing rune on chest (scary symbol)
+    const rune = BABYLON.MeshBuilder.CreateBox('eRune', {
+      width: 0.15, height: 0.15, depth: 0.01
+    }, this.scene);
+    rune.position.set(0, 0.45, 0.32);
+    rune.rotation.z = Math.PI / 4; // diamond shape
+    rune.parent = this.mesh;
+    rune.material = glowMat;
+
+    // Shield on left arm (non-gun enemies) — spiked shield
     if (!this.hasGun) {
       const shield = BABYLON.MeshBuilder.CreateBox('eShield', {
-        width: 0.05, height: 0.5, depth: 0.4
+        width: 0.06, height: 0.55, depth: 0.45
       }, this.scene);
-      shield.position.set(-0.65, 0.25, 0.1);
+      shield.position.set(-0.7, 0.25, 0.1);
       shield.parent = this.mesh;
       shield.material = material;
+
+      // Shield spike
+      const shieldSpike = BABYLON.MeshBuilder.CreateCylinder('eShieldSpk', {
+        height: 0.25, diameterTop: 0, diameterBottom: 0.1
+      }, this.scene);
+      shieldSpike.position.set(-0.78, 0.25, 0.1);
+      shieldSpike.rotation.z = Math.PI / 2;
+      shieldSpike.parent = this.mesh;
+      shieldSpike.material = armorMat;
     }
 
-    // Gun mesh (if this enemy has a gun)
+    // Gun mesh (if this enemy has a gun) — bigger, meaner
     if (this.hasGun) {
       const gun = BABYLON.MeshBuilder.CreateBox('eGun', {
-        width: 0.12, height: 0.12, depth: 0.5
+        width: 0.14, height: 0.14, depth: 0.55
       }, this.scene);
-      gun.position.set(0.45, 0.2, 0.2);
+      gun.position.set(0.5, 0.2, 0.25);
       gun.parent = this.mesh;
       const gunMat = new BABYLON.StandardMaterial('eGunMat', this.scene);
-      gunMat.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+      gunMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15);
       gunMat.emissiveColor = new BABYLON.Color3(0.04, 0.04, 0.04);
       gun.material = gunMat;
+
+      // Gun barrel glow
+      const gunTip = BABYLON.MeshBuilder.CreateSphere('eGunTip', { diameter: 0.08 }, this.scene);
+      gunTip.position.set(0.5, 0.2, 0.55);
+      gunTip.parent = this.mesh;
+      gunTip.material = glowMat;
     }
 
     // Position enemy
@@ -572,6 +690,10 @@ export class Enemy {
         }
       });
       this.projectiles = [];
+    }
+    if (this.eyeLight) {
+      this.eyeLight.dispose();
+      this.eyeLight = null;
     }
     if (this.mesh) {
       this.deathPosition = this.mesh.position.clone();

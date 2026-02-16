@@ -90,6 +90,13 @@ export class World {
     this.materials.ice.specularPower = 128;
     this.materials.ice.alpha = 0.85;
     this.materials.darkStone = makeMat('darkStoneMat', 0.25, 0.22, 0.3);
+    // House furniture materials
+    this.materials.wood = makeMat('woodMat', 0.45, 0.3, 0.15);
+    this.materials.fabric = makeMat('fabricMat', 0.5, 0.15, 0.15);
+    this.materials.gold = makeMat('goldMat', 0.85, 0.7, 0.2);
+    this.materials.gold.specularColor = new BABYLON.Color3(1, 0.9, 0.4);
+    this.materials.metal = makeMat('metalMat', 0.35, 0.35, 0.4);
+    this.materials.metal.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
   }
 
   // --- Ground ---
@@ -109,7 +116,7 @@ export class World {
     const c = groundColors[levelIndex] || groundColors[0];
 
     const ground = this._track(BABYLON.MeshBuilder.CreateBox('ground', {
-      width: 200, height: 0.1, depth: 200
+      width: 300, height: 0.1, depth: 300
     }, this.scene));
     ground.position.y = 0;
 
@@ -127,9 +134,9 @@ export class World {
 
   // --- Borders ---
   _buildBorders() {
-    const borderSize = 95;
-    for (let i = 0; i < 24; i++) {
-      const angle = (i / 24) * Math.PI * 2;
+    const borderSize = 140;
+    for (let i = 0; i < 36; i++) {
+      const angle = (i / 36) * Math.PI * 2;
       const x = Math.cos(angle) * borderSize;
       const z = Math.sin(angle) * borderSize;
       const height = 15 + Math.random() * 20;
@@ -141,94 +148,100 @@ export class World {
     }
     // Invisible walls
     const wh = 30;
-    this._createWall(0, 0, -100, 200, wh, 2).isVisible = false;
-    this._createWall(0, 0, 100, 200, wh, 2).isVisible = false;
-    this._createWall(100, 0, 0, 2, wh, 200).isVisible = false;
-    this._createWall(-100, 0, 0, 2, wh, 200).isVisible = false;
+    this._createWall(0, 0, -150, 300, wh, 2).isVisible = false;
+    this._createWall(0, 0, 150, 300, wh, 2).isVisible = false;
+    this._createWall(150, 0, 0, 2, wh, 300).isVisible = false;
+    this._createWall(-150, 0, 0, 2, wh, 300).isVisible = false;
   }
 
   // ============================================
-  // LEVEL 1: Castle Siege — Castle + Village
+  // LEVEL 1: Castle Siege -- Castle + Village
   // ============================================
   _buildCastleMap() {
     // Castle
-    this._buildCastle(0, -20);
-    // Village huts
-    [[10, 5], [15, 8], [-10, 3], [-14, 7], [8, 15], [-8, 18]].forEach(([x, z]) => {
+    this._buildCastle(0, -26);
+    // Village huts (scaled 1.3x outward)
+    [[13, 6.5], [19.5, 10.4], [-13, 3.9], [-18.2, 9.1], [10.4, 19.5], [-10.4, 23.4]].forEach(([x, z]) => {
       this._createHut(x, z);
     });
-    // Some trees around village
+    // Some trees around village (scaled spread)
     for (let i = 0; i < 15; i++) {
-      const x = -30 + Math.random() * 60;
-      const z = 20 + Math.random() * 40;
+      const x = -39 + Math.random() * 78;
+      const z = 26 + Math.random() * 52;
       this._createTree(x, z, 3 + Math.random() * 3);
     }
     // Torches at castle entrance
     this._addTorches([
-      new BABYLON.Vector3(2, 0, -13.5),
-      new BABYLON.Vector3(-2, 0, -13.5),
+      new BABYLON.Vector3(2, 0, -19.5),
+      new BABYLON.Vector3(-2, 0, -19.5),
     ]);
-    // Training dummies (decorative boxes)
-    [[-20, -10], [22, -5]].forEach(([x, z]) => {
+    // Training dummies (decorative boxes) (scaled 1.3x)
+    [[-26, -13], [28.6, -6.5]].forEach(([x, z]) => {
       const dummy = this._track(BABYLON.MeshBuilder.CreateBox('dummy', {
         width: 0.6, height: 1.8, depth: 0.4
       }, this.scene));
       dummy.position = new BABYLON.Vector3(x, 0.9, z);
       dummy.material = this.materials.hut;
     });
-    // Well in village center
+    // Well in village center (scaled 1.3x)
     const well = this._track(BABYLON.MeshBuilder.CreateCylinder('well', {
       height: 1.2, diameter: 2, tessellation: 12
     }, this.scene));
-    well.position = new BABYLON.Vector3(0, 0.6, 8);
+    well.position = new BABYLON.Vector3(0, 0.6, 10.4);
     well.material = this.materials.stone;
     well.physicsImpostor = new BABYLON.PhysicsImpostor(
       well, BABYLON.PhysicsImpostor.CylinderImpostor,
       { mass: 0, friction: 0.5 }, this.scene
     );
+
+    // Enterable houses
+    this._createHouse(20, 20, 'tavern', 'large');
+    this._createHouse(-20, 20, 'armory', 'medium');
+    this._createHouse(30, -30, 'bedroom', 'small');
+    this._createHouse(-25, -35, 'library', 'medium');
   }
 
   // ============================================
-  // LEVEL 2: Forest Hunt — Dense forest + Ruins + River
+  // LEVEL 2: Forest Hunt -- Dense forest + Ruins + River
   // ============================================
   _buildForestMap() {
-    // Dense forest — 60 trees
+    // Dense forest -- 60 trees (scaled 1.3x spread)
     for (let i = 0; i < 60; i++) {
-      const x = -60 + Math.random() * 120;
-      const z = -60 + Math.random() * 120;
+      const x = -78 + Math.random() * 156;
+      const z = -78 + Math.random() * 156;
       this._createTree(x, z, 4 + Math.random() * 6);
     }
-    // Ancient ruins complex
+    // Ancient ruins complex (scaled 1.3x)
     this._createRuins(0, 0);
-    this._createRuins(-30, 25);
-    // Glowing crystals scattered
+    this._createRuins(-39, 32.5);
+    // Glowing crystals scattered (scaled 1.3x)
     [
-      [15, -20], [-25, 10], [35, 30], [-40, -35], [50, -10], [-10, 45]
+      [19.5, -26], [-32.5, 13], [45.5, 39], [-52, -45.5], [65, -13], [-13, 58.5]
     ].forEach(([x, z]) => {
       this._createCrystal(new BABYLON.Vector3(x, 0, z));
     });
-    // River (long flat blue box)
+    // River (long flat blue box) (scaled 1.3x)
     const river = this._track(BABYLON.MeshBuilder.CreateBox('river', {
-      width: 6, height: 0.05, depth: 160
+      width: 6, height: 0.05, depth: 208
     }, this.scene));
-    river.position = new BABYLON.Vector3(20, 0.06, 0);
+    river.position = new BABYLON.Vector3(26, 0.06, 0);
     river.material = this.materials.ice;
-    // Bridges over river
-    [[-15, 0], [0, 30], [0, -30]].forEach(([xOff, z]) => {
+    // Bridges over river (scaled 1.3x)
+    [[-15, 0], [0, 39], [0, -39]].forEach(([xOff, z]) => {
       const b = this._track(BABYLON.MeshBuilder.CreateBox('rivBridge', {
         width: 10, height: 0.4, depth: 3
       }, this.scene));
-      b.position = new BABYLON.Vector3(20 + xOff, 0.3, z);
+      b.position = new BABYLON.Vector3(26 + xOff, 0.3, z);
       b.material = this.materials.bridge;
       b.physicsImpostor = new BABYLON.PhysicsImpostor(
         b, BABYLON.PhysicsImpostor.BoxImpostor,
         { mass: 0, friction: 0.8 }, this.scene
       );
     });
-    // Fallen logs (obstacles)
+    // Fallen logs (obstacles) (scaled 1.3x)
     for (let i = 0; i < 8; i++) {
-      const x = -50 + Math.random() * 100;
-      const z = -50 + Math.random() * 100;
+      const x = -65 + Math.random() * 130;
+      const z = -65 + Math.random() * 130;
       const log = this._track(BABYLON.MeshBuilder.CreateCylinder('log', {
         height: 4 + Math.random() * 3, diameter: 0.6
       }, this.scene));
@@ -237,10 +250,10 @@ export class World {
       log.rotation.y = Math.random() * Math.PI;
       log.material = this.materials.trunk;
     }
-    // Mushroom rocks
+    // Mushroom rocks (scaled 1.3x)
     for (let i = 0; i < 5; i++) {
-      const x = -40 + Math.random() * 80;
-      const z = -40 + Math.random() * 80;
+      const x = -52 + Math.random() * 104;
+      const z = -52 + Math.random() * 104;
       const stem = this._track(BABYLON.MeshBuilder.CreateCylinder('mStem', {
         height: 2, diameter: 0.8
       }, this.scene));
@@ -252,44 +265,49 @@ export class World {
       cap.position = new BABYLON.Vector3(x, 2.3, z);
       cap.material = this.materials.leaves;
     }
+
+    // Enterable houses
+    this._createHouse(-40, -40, 'library', 'small');
+    this._createHouse(40, 40, 'bedroom', 'large');
+    this._createHouse(-35, 35, 'kitchen', 'medium');
   }
 
   // ============================================
-  // LEVEL 3: Sky Battle — Floating islands + Lava below + Dark towers
+  // LEVEL 3: Sky Battle -- Floating islands + Lava below + Dark towers
   // ============================================
   _buildSkyMap() {
     // Lava floor instead of grass (below the islands)
     const lavaFloor = this._track(BABYLON.MeshBuilder.CreateBox('lava', {
-      width: 200, height: 0.1, depth: 200
+      width: 300, height: 0.1, depth: 300
     }, this.scene));
     lavaFloor.position.y = -5;
     lavaFloor.material = this.materials.lava;
 
-    // Main islands
+    // Main islands (scaled 1.3x positions)
     const islands = [
-      { x: 0, y: 8, z: 0, size: 16 },      // Center spawn island
-      { x: -25, y: 12, z: -20, size: 10 },  // Left high
-      { x: 25, y: 10, z: -15, size: 12 },   // Right mid
-      { x: 0, y: 16, z: -40, size: 8 },     // Far center high
-      { x: -30, y: 6, z: 20, size: 10 },    // Left low
-      { x: 30, y: 14, z: 25, size: 8 },     // Right high
-      { x: 0, y: 22, z: -60, size: 6 },     // Boss arena (highest)
+      { x: 0, y: 8, z: 0, size: 16 },
+      { x: -32.5, y: 12, z: -26, size: 10 },
+      { x: 32.5, y: 10, z: -19.5, size: 12 },
+      { x: 0, y: 16, z: -52, size: 8 },
+      { x: -39, y: 6, z: 26, size: 10 },
+      { x: 39, y: 14, z: 32.5, size: 8 },
+      { x: 0, y: 22, z: -78, size: 6 },
     ];
     islands.forEach((island, i) => {
       this._createFloatingIsland(island.x, island.y, island.z, island.size, i);
     });
 
     // Bridges between islands
-    this._createBridge(0, 8, 0, -25, 12, -20);
-    this._createBridge(0, 8, 0, 25, 10, -15);
-    this._createBridge(-25, 12, -20, 0, 16, -40);
-    this._createBridge(25, 10, -15, 0, 16, -40);
-    this._createBridge(0, 8, 0, -30, 6, 20);
-    this._createBridge(0, 8, 0, 30, 14, 25);
-    this._createBridge(0, 16, -40, 0, 22, -60);
+    this._createBridge(0, 8, 0, -32.5, 12, -26);
+    this._createBridge(0, 8, 0, 32.5, 10, -19.5);
+    this._createBridge(-32.5, 12, -26, 0, 16, -52);
+    this._createBridge(32.5, 10, -19.5, 0, 16, -52);
+    this._createBridge(0, 8, 0, -39, 6, 26);
+    this._createBridge(0, 8, 0, 39, 14, 32.5);
+    this._createBridge(0, 16, -52, 0, 22, -78);
 
     // Dark towers on some islands
-    [[-25, 12, -20], [25, 10, -15], [0, 22, -60]].forEach(([x, y, z]) => {
+    [[-32.5, 12, -26], [32.5, 10, -19.5], [0, 22, -78]].forEach(([x, y, z]) => {
       const tower = this._track(BABYLON.MeshBuilder.CreateCylinder('dTower', {
         height: 8, diameter: 2
       }, this.scene));
@@ -303,9 +321,11 @@ export class World {
     });
 
     // Crystals on islands
-    [[0, 9, 0], [-25, 13, -20], [30, 15, 25]].forEach(([x, y, z]) => {
+    [[0, 9, 0], [-32.5, 13, -26], [39, 15, 32.5]].forEach(([x, y, z]) => {
       this._createCrystal(new BABYLON.Vector3(x, y, z));
     });
+
+    // No houses on sky map
   }
 
   // ============================================
@@ -372,6 +392,442 @@ export class World {
     roof.position = new BABYLON.Vector3(x, 3.5, z);
     roof.rotation.y = Math.PI / 4;
     roof.material = this.materials.hutRoof;
+  }
+
+  // ============================================
+  // Enterable House helper
+  // ============================================
+  _createHouse(x, z, theme, size) {
+    // Size presets: 'small', 'medium', 'large' (default medium)
+    const sizes = {
+      small:  { W: 6,  H: 3,  doorW: 1.6, doorH: 2.6 },
+      medium: { W: 8,  H: 4,  doorW: 2,   doorH: 3   },
+      large:  { W: 12, H: 5,  doorW: 2.5, doorH: 3.5 },
+    };
+    const s = sizes[size] || sizes.medium;
+    const W = s.W;
+    const H = s.H;
+    const T = 0.3;   // wall thickness
+    const doorW = s.doorW;
+    const doorH = s.doorH;
+
+    // Floor
+    const floor = this._track(BABYLON.MeshBuilder.CreateBox('houseFloor', {
+      width: W, height: 0.1, depth: W
+    }, this.scene));
+    floor.position = new BABYLON.Vector3(x, 0.05, z);
+    floor.material = this.materials.stone;
+
+    // Back wall (solid)
+    const backWall = this._track(BABYLON.MeshBuilder.CreateBox('houseBackWall', {
+      width: W, height: H, depth: T
+    }, this.scene));
+    backWall.position = new BABYLON.Vector3(x, H / 2, z - W / 2);
+    backWall.material = this.materials.hut;
+    backWall.physicsImpostor = new BABYLON.PhysicsImpostor(
+      backWall, BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: 0, friction: 0.5 }, this.scene
+    );
+
+    // Left wall (solid)
+    const leftWall = this._track(BABYLON.MeshBuilder.CreateBox('houseLeftWall', {
+      width: T, height: H, depth: W
+    }, this.scene));
+    leftWall.position = new BABYLON.Vector3(x - W / 2, H / 2, z);
+    leftWall.material = this.materials.hut;
+    leftWall.physicsImpostor = new BABYLON.PhysicsImpostor(
+      leftWall, BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: 0, friction: 0.5 }, this.scene
+    );
+
+    // Right wall (solid)
+    const rightWall = this._track(BABYLON.MeshBuilder.CreateBox('houseRightWall', {
+      width: T, height: H, depth: W
+    }, this.scene));
+    rightWall.position = new BABYLON.Vector3(x + W / 2, H / 2, z);
+    rightWall.material = this.materials.hut;
+    rightWall.physicsImpostor = new BABYLON.PhysicsImpostor(
+      rightWall, BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: 0, friction: 0.5 }, this.scene
+    );
+
+    // Front wall -- split into two pieces with door opening in center
+    // Left piece of front wall
+    const frontLeftW = (W - doorW) / 2;
+    const frontLeft = this._track(BABYLON.MeshBuilder.CreateBox('houseFrontL', {
+      width: frontLeftW, height: H, depth: T
+    }, this.scene));
+    frontLeft.position = new BABYLON.Vector3(x - W / 2 + frontLeftW / 2, H / 2, z + W / 2);
+    frontLeft.material = this.materials.hut;
+    frontLeft.physicsImpostor = new BABYLON.PhysicsImpostor(
+      frontLeft, BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: 0, friction: 0.5 }, this.scene
+    );
+
+    // Right piece of front wall
+    const frontRight = this._track(BABYLON.MeshBuilder.CreateBox('houseFrontR', {
+      width: frontLeftW, height: H, depth: T
+    }, this.scene));
+    frontRight.position = new BABYLON.Vector3(x + W / 2 - frontLeftW / 2, H / 2, z + W / 2);
+    frontRight.material = this.materials.hut;
+    frontRight.physicsImpostor = new BABYLON.PhysicsImpostor(
+      frontRight, BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: 0, friction: 0.5 }, this.scene
+    );
+
+    // Top piece above door (lintel)
+    const lintelH = H - doorH;
+    if (lintelH > 0) {
+      const lintel = this._track(BABYLON.MeshBuilder.CreateBox('houseLintel', {
+        width: doorW, height: lintelH, depth: T
+      }, this.scene));
+      lintel.position = new BABYLON.Vector3(x, doorH + lintelH / 2, z + W / 2);
+      lintel.material = this.materials.hut;
+      lintel.physicsImpostor = new BABYLON.PhysicsImpostor(
+        lintel, BABYLON.PhysicsImpostor.BoxImpostor,
+        { mass: 0, friction: 0.5 }, this.scene
+      );
+    }
+
+    // Roof (pyramid shape using tessellation 4 cylinder)
+    const roofH = W * 0.375;  // proportional roof height
+    const roof = this._track(BABYLON.MeshBuilder.CreateCylinder('houseRoof', {
+      height: roofH, diameterTop: 0, diameterBottom: W * 1.3, tessellation: 4
+    }, this.scene));
+    roof.position = new BABYLON.Vector3(x, H + roofH / 2, z);
+    roof.rotation.y = Math.PI / 4;
+    roof.material = this.materials.hutRoof;
+
+    // Interior warm point light
+    const light = this._trackLight(new BABYLON.PointLight('houseLight',
+      new BABYLON.Vector3(x, H - 0.5, z), this.scene));
+    light.diffuse = new BABYLON.Color3(1, 0.85, 0.6);
+    light.intensity = 0.8;
+    light.range = W * 1.5;
+
+    // Add furniture based on theme (scale factor relative to default W=8)
+    const furnScale = W / 8;
+    this._addHouseFurniture(x, z, theme, furnScale);
+  }
+
+  _addHouseFurniture(x, z, theme, sc) {
+    // sc = scale factor (0.75 for small, 1.0 for medium, 1.5 for large)
+    sc = sc || 1;
+    switch (theme) {
+      case 'tavern': {
+        // Table in center
+        const table = this._track(BABYLON.MeshBuilder.CreateBox('tavernTable', {
+          width: 2.5 * sc, height: 0.15, depth: 1.5 * sc
+        }, this.scene));
+        table.position = new BABYLON.Vector3(x, 1.0, z - 0.5 * sc);
+        table.material = this.materials.wood;
+        // Table legs
+        [[-1, -0.5], [1, -0.5], [-1, 0.5], [1, 0.5]].forEach(([lx, lz]) => {
+          const leg = this._track(BABYLON.MeshBuilder.CreateBox('tableLeg', {
+            width: 0.15, height: 0.9, depth: 0.15
+          }, this.scene));
+          leg.position = new BABYLON.Vector3(x + lx * sc, 0.45, z - 0.5 * sc + lz * sc);
+          leg.material = this.materials.wood;
+        });
+        // Chairs around table
+        [[-1.8, -0.5], [1.8, -0.5], [0, -1.5], [0, 0.5]].forEach(([cx, cz]) => {
+          const chair = this._track(BABYLON.MeshBuilder.CreateBox('chair', {
+            width: 0.5, height: 0.7, depth: 0.5
+          }, this.scene));
+          chair.position = new BABYLON.Vector3(x + cx * sc, 0.35, z - 0.5 * sc + cz * sc);
+          chair.material = this.materials.wood;
+          const back = this._track(BABYLON.MeshBuilder.CreateBox('chairBack', {
+            width: 0.5, height: 0.5, depth: 0.08
+          }, this.scene));
+          back.position = new BABYLON.Vector3(x + cx * sc, 0.95, z - 0.5 * sc + cz * sc + (cz >= 0 ? 0.21 : -0.21));
+          back.material = this.materials.wood;
+        });
+        // Barrel in corner
+        const barrel = this._track(BABYLON.MeshBuilder.CreateCylinder('barrel', {
+          height: 1.4, diameter: 0.9, tessellation: 12
+        }, this.scene));
+        barrel.position = new BABYLON.Vector3(x - 3 * sc, 0.7, z - 3 * sc);
+        barrel.material = this.materials.trunk;
+        const barrel2 = this._track(BABYLON.MeshBuilder.CreateCylinder('barrel2', {
+          height: 1.4, diameter: 0.9, tessellation: 12
+        }, this.scene));
+        barrel2.position = new BABYLON.Vector3(x - 2.2 * sc, 0.7, z - 3.2 * sc);
+        barrel2.material = this.materials.trunk;
+        // Extra barrels in large houses
+        if (sc > 1.2) {
+          const barrel3 = this._track(BABYLON.MeshBuilder.CreateCylinder('barrel3', {
+            height: 1.4, diameter: 0.9, tessellation: 12
+          }, this.scene));
+          barrel3.position = new BABYLON.Vector3(x + 3 * sc, 0.7, z - 3 * sc);
+          barrel3.material = this.materials.trunk;
+        }
+        // Mugs on table
+        [[-0.6, -0.3], [0.5, 0.2], [-0.2, 0.4]].forEach(([mx, mz]) => {
+          const mug = this._track(BABYLON.MeshBuilder.CreateCylinder('mug', {
+            height: 0.2, diameter: 0.15, tessellation: 8
+          }, this.scene));
+          mug.position = new BABYLON.Vector3(x + mx * sc, 1.2, z - 0.5 * sc + mz * sc);
+          mug.material = this.materials.wood;
+        });
+        break;
+      }
+      case 'armory': {
+        // Weapon rack against back wall
+        const rack = this._track(BABYLON.MeshBuilder.CreateBox('weaponRack', {
+          width: 2.5 * sc, height: 3, depth: 0.3
+        }, this.scene));
+        rack.position = new BABYLON.Vector3(x, 1.5, z - 3.5 * sc);
+        rack.material = this.materials.wood;
+        // Weapons on rack
+        const weaponCount = sc > 1.2 ? 6 : 4;
+        for (let i = 0; i < weaponCount; i++) {
+          const weapon = this._track(BABYLON.MeshBuilder.CreateCylinder('weapon', {
+            height: 2.2, diameter: 0.08, tessellation: 6
+          }, this.scene));
+          weapon.position = new BABYLON.Vector3(x - 0.8 * sc + i * 0.55 * sc, 1.8, z - 3.3 * sc);
+          weapon.material = this.materials.metal;
+        }
+        // Armor stands
+        const armorBody = this._track(BABYLON.MeshBuilder.CreateCylinder('armorStand', {
+          height: 1.8, diameter: 0.6, tessellation: 8
+        }, this.scene));
+        armorBody.position = new BABYLON.Vector3(x + 2.5 * sc, 0.9, z - 1 * sc);
+        armorBody.material = this.materials.metal;
+        const armorHead = this._track(BABYLON.MeshBuilder.CreateSphere('armorHead', {
+          diameter: 0.5
+        }, this.scene));
+        armorHead.position = new BABYLON.Vector3(x + 2.5 * sc, 2.1, z - 1 * sc);
+        armorHead.material = this.materials.metal;
+        const armorBody2 = this._track(BABYLON.MeshBuilder.CreateCylinder('armorStand2', {
+          height: 1.8, diameter: 0.6, tessellation: 8
+        }, this.scene));
+        armorBody2.position = new BABYLON.Vector3(x - 2.5 * sc, 0.9, z - 1 * sc);
+        armorBody2.material = this.materials.metal;
+        const armorHead2 = this._track(BABYLON.MeshBuilder.CreateSphere('armorHead2', {
+          diameter: 0.5
+        }, this.scene));
+        armorHead2.position = new BABYLON.Vector3(x - 2.5 * sc, 2.1, z - 1 * sc);
+        armorHead2.material = this.materials.metal;
+        // Extra armor stand in large houses
+        if (sc > 1.2) {
+          const armorBody3 = this._track(BABYLON.MeshBuilder.CreateCylinder('armorStand3', {
+            height: 1.8, diameter: 0.6, tessellation: 8
+          }, this.scene));
+          armorBody3.position = new BABYLON.Vector3(x, 0.9, z + 2 * sc);
+          armorBody3.material = this.materials.metal;
+          const armorHead3 = this._track(BABYLON.MeshBuilder.CreateSphere('armorHead3', {
+            diameter: 0.5
+          }, this.scene));
+          armorHead3.position = new BABYLON.Vector3(x, 2.1, z + 2 * sc);
+          armorHead3.material = this.materials.metal;
+        }
+        // Chest with gold trim
+        const chest = this._track(BABYLON.MeshBuilder.CreateBox('chest', {
+          width: 1.2, height: 0.8, depth: 0.8
+        }, this.scene));
+        chest.position = new BABYLON.Vector3(x, 0.4, z + 2 * sc);
+        chest.material = this.materials.wood;
+        const chestTrim = this._track(BABYLON.MeshBuilder.CreateBox('chestTrim', {
+          width: 1.3, height: 0.1, depth: 0.85
+        }, this.scene));
+        chestTrim.position = new BABYLON.Vector3(x, 0.8, z + 2 * sc);
+        chestTrim.material = this.materials.gold;
+        break;
+      }
+      case 'library': {
+        // Bookshelves along back wall
+        const shelfPositions = sc > 1.2
+          ? [[-4, -3.5], [-1.5, -3.5], [1.5, -3.5], [4, -3.5]]
+          : [[-2.5, -3.5], [0, -3.5], [2.5, -3.5]];
+        shelfPositions.forEach(([bx, bz]) => {
+          const shelf = this._track(BABYLON.MeshBuilder.CreateBox('bookshelf', {
+            width: 2, height: 3.2, depth: 0.6
+          }, this.scene));
+          shelf.position = new BABYLON.Vector3(x + bx * sc, 1.6, z + bz * sc);
+          shelf.material = this.materials.wood;
+          for (let row = 0; row < 3; row++) {
+            const bookBlock = this._track(BABYLON.MeshBuilder.CreateBox('books', {
+              width: 1.6, height: 0.3, depth: 0.4
+            }, this.scene));
+            bookBlock.position = new BABYLON.Vector3(x + bx * sc, 0.5 + row * 1.0, z + bz * sc + 0.05);
+            const bookMat = new BABYLON.StandardMaterial('bookMat', this.scene);
+            const colors = [[0.5, 0.15, 0.1], [0.1, 0.3, 0.5], [0.15, 0.4, 0.15]];
+            const c = colors[row];
+            bookMat.diffuseColor = new BABYLON.Color3(c[0], c[1], c[2]);
+            bookMat.emissiveColor = new BABYLON.Color3(c[0] * 0.15, c[1] * 0.15, c[2] * 0.15);
+            bookBlock.material = bookMat;
+          }
+        });
+        // Bookshelf along left wall
+        const sideShelf = this._track(BABYLON.MeshBuilder.CreateBox('sideBookshelf', {
+          width: 0.6, height: 3.2, depth: 3 * sc
+        }, this.scene));
+        sideShelf.position = new BABYLON.Vector3(x - 3.5 * sc, 1.6, z);
+        sideShelf.material = this.materials.wood;
+        // Desk in center
+        const desk = this._track(BABYLON.MeshBuilder.CreateBox('desk', {
+          width: 2 * sc, height: 0.12, depth: 1.2 * sc
+        }, this.scene));
+        desk.position = new BABYLON.Vector3(x + 0.5 * sc, 1.0, z + 1 * sc);
+        desk.material = this.materials.wood;
+        [[-0.8, -0.4], [0.8, -0.4], [-0.8, 0.4], [0.8, 0.4]].forEach(([lx, lz]) => {
+          const leg = this._track(BABYLON.MeshBuilder.CreateBox('deskLeg', {
+            width: 0.1, height: 0.9, depth: 0.1
+          }, this.scene));
+          leg.position = new BABYLON.Vector3(x + 0.5 * sc + lx * sc, 0.45, z + 1 * sc + lz * sc);
+          leg.material = this.materials.wood;
+        });
+        // Candle on desk
+        const candle = this._track(BABYLON.MeshBuilder.CreateCylinder('candle', {
+          height: 0.3, diameter: 0.1, tessellation: 8
+        }, this.scene));
+        candle.position = new BABYLON.Vector3(x + 0.5 * sc, 1.25, z + 1 * sc);
+        candle.material = this.materials.sand;
+        const candleFlame = this._track(BABYLON.MeshBuilder.CreateSphere('candleFlame', {
+          diameter: 0.12
+        }, this.scene));
+        candleFlame.position = new BABYLON.Vector3(x + 0.5 * sc, 1.46, z + 1 * sc);
+        const flameMat = new BABYLON.StandardMaterial('candleFlameMat', this.scene);
+        flameMat.diffuseColor = new BABYLON.Color3(1, 0.8, 0.2);
+        flameMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0.1);
+        candleFlame.material = flameMat;
+        const candleLight = this._trackLight(new BABYLON.PointLight('candleLight',
+          new BABYLON.Vector3(x + 0.5 * sc, 1.6, z + 1 * sc), this.scene));
+        candleLight.diffuse = new BABYLON.Color3(1, 0.85, 0.5);
+        candleLight.intensity = 0.4;
+        candleLight.range = 5 * sc;
+        break;
+      }
+      case 'bedroom': {
+        // Bed
+        const bed = this._track(BABYLON.MeshBuilder.CreateBox('bed', {
+          width: 2, height: 0.5, depth: 3.5
+        }, this.scene));
+        bed.position = new BABYLON.Vector3(x - 2.5 * sc, 0.35, z - 1.5 * sc);
+        bed.material = this.materials.fabric;
+        const bedFrame = this._track(BABYLON.MeshBuilder.CreateBox('bedFrame', {
+          width: 2.2, height: 0.2, depth: 3.7
+        }, this.scene));
+        bedFrame.position = new BABYLON.Vector3(x - 2.5 * sc, 0.1, z - 1.5 * sc);
+        bedFrame.material = this.materials.wood;
+        const pillow = this._track(BABYLON.MeshBuilder.CreateSphere('pillow', {
+          diameter: 0.6
+        }, this.scene));
+        pillow.position = new BABYLON.Vector3(x - 2.5 * sc, 0.7, z - 2.8 * sc);
+        pillow.scaling = new BABYLON.Vector3(1.2, 0.5, 0.8);
+        const pillowMat = new BABYLON.StandardMaterial('pillowMat', this.scene);
+        pillowMat.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.85);
+        pillowMat.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.12);
+        pillow.material = pillowMat;
+        const blanket = this._track(BABYLON.MeshBuilder.CreateBox('blanket', {
+          width: 1.8, height: 0.08, depth: 2.2
+        }, this.scene));
+        blanket.position = new BABYLON.Vector3(x - 2.5 * sc, 0.65, z - 0.8 * sc);
+        const blanketMat = new BABYLON.StandardMaterial('blanketMat', this.scene);
+        blanketMat.diffuseColor = new BABYLON.Color3(0.2, 0.3, 0.5);
+        blanketMat.emissiveColor = new BABYLON.Color3(0.04, 0.06, 0.1);
+        blanket.material = blanketMat;
+        // Wardrobe
+        const wardrobe = this._track(BABYLON.MeshBuilder.CreateBox('wardrobe', {
+          width: 1.5, height: 3, depth: 0.8
+        }, this.scene));
+        wardrobe.position = new BABYLON.Vector3(x + 3 * sc, 1.5, z - 3 * sc);
+        wardrobe.material = this.materials.wood;
+        // Nightstand
+        const nightstand = this._track(BABYLON.MeshBuilder.CreateBox('nightstand', {
+          width: 0.7, height: 0.6, depth: 0.7
+        }, this.scene));
+        nightstand.position = new BABYLON.Vector3(x - 0.8 * sc, 0.3, z - 2.5 * sc);
+        nightstand.material = this.materials.wood;
+        const candle = this._track(BABYLON.MeshBuilder.CreateCylinder('bedroomCandle', {
+          height: 0.25, diameter: 0.08, tessellation: 8
+        }, this.scene));
+        candle.position = new BABYLON.Vector3(x - 0.8 * sc, 0.75, z - 2.5 * sc);
+        candle.material = this.materials.sand;
+        // Second bed in large bedrooms
+        if (sc > 1.2) {
+          const bed2 = this._track(BABYLON.MeshBuilder.CreateBox('bed2', {
+            width: 2, height: 0.5, depth: 3.5
+          }, this.scene));
+          bed2.position = new BABYLON.Vector3(x + 2.5 * sc, 0.35, z - 1.5 * sc);
+          bed2.material = this.materials.fabric;
+          const bedFrame2 = this._track(BABYLON.MeshBuilder.CreateBox('bedFrame2', {
+            width: 2.2, height: 0.2, depth: 3.7
+          }, this.scene));
+          bedFrame2.position = new BABYLON.Vector3(x + 2.5 * sc, 0.1, z - 1.5 * sc);
+          bedFrame2.material = this.materials.wood;
+        }
+        break;
+      }
+      case 'kitchen': {
+        // Oven against back wall
+        const oven = this._track(BABYLON.MeshBuilder.CreateBox('oven', {
+          width: 1.5, height: 1.5, depth: 1.5
+        }, this.scene));
+        oven.position = new BABYLON.Vector3(x + 2.5 * sc, 0.75, z - 3 * sc);
+        oven.material = this.materials.stone;
+        const ovenHole = this._track(BABYLON.MeshBuilder.CreateBox('ovenHole', {
+          width: 0.8, height: 0.6, depth: 0.05
+        }, this.scene));
+        ovenHole.position = new BABYLON.Vector3(x + 2.5 * sc, 0.6, z - 2.24 * sc);
+        ovenHole.material = this.materials.darkStone;
+        const ovenGlow = this._trackLight(new BABYLON.PointLight('ovenGlow',
+          new BABYLON.Vector3(x + 2.5 * sc, 0.6, z - 2.8 * sc), this.scene));
+        ovenGlow.diffuse = new BABYLON.Color3(1, 0.4, 0.1);
+        ovenGlow.intensity = 0.3;
+        ovenGlow.range = 3;
+        // Counter along left wall
+        const counter = this._track(BABYLON.MeshBuilder.CreateBox('counter', {
+          width: 0.8, height: 1.0, depth: 4 * sc
+        }, this.scene));
+        counter.position = new BABYLON.Vector3(x - 3.2 * sc, 0.5, z - 0.5 * sc);
+        counter.material = this.materials.stone;
+        const counterTop = this._track(BABYLON.MeshBuilder.CreateBox('counterTop', {
+          width: 1.0, height: 0.08, depth: 4.2 * sc
+        }, this.scene));
+        counterTop.position = new BABYLON.Vector3(x - 3.2 * sc, 1.04, z - 0.5 * sc);
+        counterTop.material = this.materials.wood;
+        // Pots on counter
+        [[-1.2], [0], [1.0]].forEach(([pz]) => {
+          const pot = this._track(BABYLON.MeshBuilder.CreateCylinder('pot', {
+            height: 0.3, diameter: 0.35, tessellation: 10
+          }, this.scene));
+          pot.position = new BABYLON.Vector3(x - 3.2 * sc, 1.23, z - 0.5 * sc + pz * sc);
+          pot.material = this.materials.metal;
+        });
+        // Table in center
+        const table = this._track(BABYLON.MeshBuilder.CreateBox('kitchenTable', {
+          width: 1.8 * sc, height: 0.1, depth: 1.2 * sc
+        }, this.scene));
+        table.position = new BABYLON.Vector3(x + 0.5 * sc, 0.9, z + 1 * sc);
+        table.material = this.materials.wood;
+        [[-0.7, -0.4], [0.7, -0.4], [-0.7, 0.4], [0.7, 0.4]].forEach(([lx, lz]) => {
+          const leg = this._track(BABYLON.MeshBuilder.CreateBox('tLeg', {
+            width: 0.1, height: 0.85, depth: 0.1
+          }, this.scene));
+          leg.position = new BABYLON.Vector3(x + 0.5 * sc + lx * sc, 0.42, z + 1 * sc + lz * sc);
+          leg.material = this.materials.wood;
+        });
+        // Hanging pot rack
+        const rack = this._track(BABYLON.MeshBuilder.CreateCylinder('potRack', {
+          height: 2.5 * sc, diameter: 0.06, tessellation: 6
+        }, this.scene));
+        rack.position = new BABYLON.Vector3(x + 0.5 * sc, 3.2, z + 1 * sc);
+        rack.rotation.z = Math.PI / 2;
+        rack.material = this.materials.metal;
+        // Second oven in large kitchens
+        if (sc > 1.2) {
+          const oven2 = this._track(BABYLON.MeshBuilder.CreateBox('oven2', {
+            width: 1.5, height: 1.5, depth: 1.5
+          }, this.scene));
+          oven2.position = new BABYLON.Vector3(x - 2.5 * sc, 0.75, z - 3 * sc);
+          oven2.material = this.materials.stone;
+        }
+        break;
+      }
+      default:
+        break;
+    }
   }
 
   _createTree(x, z, height) {
@@ -491,25 +947,25 @@ export class World {
   }
 
   // ============================================
-  // LEVEL 4: Lava Fortress — Volcanic fortress with lava rivers
+  // LEVEL 4: Lava Fortress -- Volcanic fortress with lava rivers
   // ============================================
   _buildLavaFortressMap() {
     // Central obsidian fortress
     this._buildObsidianFortress(0, 0);
 
-    // Lava rivers (glowing strips)
-    [[-30, 0], [30, 0], [0, -30], [0, 30]].forEach(([x, z]) => {
+    // Lava rivers (glowing strips) (scaled 1.3x)
+    [[-39, 0], [39, 0], [0, -39], [0, 39]].forEach(([x, z]) => {
       const lava = this._track(BABYLON.MeshBuilder.CreateBox('lavaRiver', {
-        width: x === 0 ? 5 : 80, height: 0.08, depth: z === 0 ? 5 : 80
+        width: x === 0 ? 5 : 104, height: 0.08, depth: z === 0 ? 5 : 104
       }, this.scene));
       lava.position = new BABYLON.Vector3(x, 0.06, z);
       lava.material = this.materials.lava;
     });
 
-    // Obsidian pillars scattered
+    // Obsidian pillars scattered (scaled 1.3x)
     for (let i = 0; i < 20; i++) {
-      const x = -60 + Math.random() * 120;
-      const z = -60 + Math.random() * 120;
+      const x = -78 + Math.random() * 156;
+      const z = -78 + Math.random() * 156;
       const h = 3 + Math.random() * 8;
       const pillar = this._track(BABYLON.MeshBuilder.CreateCylinder('obsPillar', {
         height: h, diameter: 1.2 + Math.random()
@@ -522,10 +978,10 @@ export class World {
       );
     }
 
-    // Fire pits (glowing circles)
+    // Fire pits (glowing circles) (scaled 1.3x)
     for (let i = 0; i < 10; i++) {
-      const x = -50 + Math.random() * 100;
-      const z = -50 + Math.random() * 100;
+      const x = -65 + Math.random() * 130;
+      const z = -65 + Math.random() * 130;
       const pit = this._track(BABYLON.MeshBuilder.CreateCylinder('firePit', {
         height: 0.3, diameter: 3 + Math.random() * 2, tessellation: 12
       }, this.scene));
@@ -537,10 +993,10 @@ export class World {
       light.range = 8;
     }
 
-    // Volcanic rocks
+    // Volcanic rocks (scaled 1.3x)
     for (let i = 0; i < 15; i++) {
-      const x = -55 + Math.random() * 110;
-      const z = -55 + Math.random() * 110;
+      const x = -71.5 + Math.random() * 143;
+      const z = -71.5 + Math.random() * 143;
       const rock = this._track(BABYLON.MeshBuilder.CreateSphere('volRock', {
         diameter: 2 + Math.random() * 3
       }, this.scene));
@@ -549,11 +1005,16 @@ export class World {
       rock.material = this.materials.darkStone;
     }
 
-    // Torches around fortress
+    // Torches around fortress (scaled 1.3x)
     this._addTorches([
-      new BABYLON.Vector3(8, 0, 8), new BABYLON.Vector3(-8, 0, 8),
-      new BABYLON.Vector3(8, 0, -8), new BABYLON.Vector3(-8, 0, -8),
+      new BABYLON.Vector3(10.4, 0, 10.4), new BABYLON.Vector3(-10.4, 0, 10.4),
+      new BABYLON.Vector3(10.4, 0, -10.4), new BABYLON.Vector3(-10.4, 0, -10.4),
     ]);
+
+    // Enterable houses
+    this._createHouse(30, 30, 'armory', 'large');
+    this._createHouse(-35, 25, 'tavern', 'small');
+    this._createHouse(40, -40, 'armory', 'medium');
   }
 
   _buildObsidianFortress(x, z) {
@@ -591,13 +1052,13 @@ export class World {
   }
 
   // ============================================
-  // LEVEL 5: Frozen Depths — Ice cavern with frozen structures
+  // LEVEL 5: Frozen Depths -- Ice cavern with frozen structures
   // ============================================
   _buildFrozenDepthsMap() {
-    // Ice pillars (tall translucent columns)
+    // Ice pillars (tall translucent columns) (scaled 1.3x)
     for (let i = 0; i < 30; i++) {
-      const x = -65 + Math.random() * 130;
-      const z = -65 + Math.random() * 130;
+      const x = -84.5 + Math.random() * 169;
+      const z = -84.5 + Math.random() * 169;
       const h = 5 + Math.random() * 12;
       const pillar = this._track(BABYLON.MeshBuilder.CreateCylinder('icePillar', {
         height: h, diameter: 1 + Math.random() * 2
@@ -610,17 +1071,17 @@ export class World {
       );
     }
 
-    // Frozen lake in center
+    // Frozen lake in center (scaled 1.3x)
     const lake = this._track(BABYLON.MeshBuilder.CreateBox('frozenLake', {
-      width: 30, height: 0.1, depth: 30
+      width: 39, height: 0.1, depth: 39
     }, this.scene));
     lake.position = new BABYLON.Vector3(0, 0.06, 0);
     lake.material = this.materials.ice;
 
-    // Snow mounds
+    // Snow mounds (scaled 1.3x)
     for (let i = 0; i < 20; i++) {
-      const x = -55 + Math.random() * 110;
-      const z = -55 + Math.random() * 110;
+      const x = -71.5 + Math.random() * 143;
+      const z = -71.5 + Math.random() * 143;
       const mound = this._track(BABYLON.MeshBuilder.CreateSphere('snowMound', {
         diameter: 3 + Math.random() * 4
       }, this.scene));
@@ -632,23 +1093,23 @@ export class World {
       mound.material = snowMat;
     }
 
-    // Ice crystal formations
+    // Ice crystal formations (scaled 1.3x)
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      const r = 20 + Math.random() * 15;
+      const r = 26 + Math.random() * 19.5;
       this._createCrystal(new BABYLON.Vector3(
         Math.cos(angle) * r, 0, Math.sin(angle) * r
       ));
     }
 
-    // Frozen ruins
-    this._createRuins(25, -25);
-    this._createRuins(-30, 20);
+    // Frozen ruins (scaled 1.3x)
+    this._createRuins(32.5, -32.5);
+    this._createRuins(-39, 26);
 
-    // Ice walls (cave-like boundaries)
+    // Ice walls (cave-like boundaries) (scaled 1.3x)
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2;
-      const r = 60 + Math.random() * 10;
+      const r = 78 + Math.random() * 13;
       const h = 10 + Math.random() * 10;
       const iceWall = this._track(BABYLON.MeshBuilder.CreateBox('iceWall', {
         width: 8 + Math.random() * 4, height: h, depth: 3
@@ -660,29 +1121,34 @@ export class World {
       iceWall.material = this.materials.ice;
     }
 
-    // Frozen trees (white trunks, ice-blue leaves)
+    // Frozen trees (white trunks, ice-blue leaves) (scaled 1.3x)
     for (let i = 0; i < 12; i++) {
-      const x = -45 + Math.random() * 90;
-      const z = -45 + Math.random() * 90;
+      const x = -58.5 + Math.random() * 117;
+      const z = -58.5 + Math.random() * 117;
       this._createTree(x, z, 4 + Math.random() * 3);
     }
+
+    // Enterable houses
+    this._createHouse(-35, -35, 'bedroom', 'small');
+    this._createHouse(35, 30, 'kitchen', 'large');
+    this._createHouse(-30, 35, 'library', 'medium');
   }
 
   // ============================================
-  // LEVEL 6: Shadow Realm — Dark void with glowing platforms
+  // LEVEL 6: Shadow Realm -- Dark void with glowing platforms
   // ============================================
   _buildShadowRealmMap() {
-    // Floating dark platforms at ground level
+    // Floating dark platforms at ground level (scaled 1.3x)
     const platforms = [
-      { x: 0, z: 0, size: 20 },
-      { x: 25, z: -20, size: 12 },
-      { x: -25, z: -15, size: 14 },
-      { x: 30, z: 20, size: 10 },
-      { x: -30, z: 25, size: 10 },
-      { x: 0, z: -40, size: 16 },
-      { x: 0, z: 35, size: 12 },
-      { x: 45, z: 0, size: 8 },
-      { x: -45, z: -5, size: 8 },
+      { x: 0, z: 0, size: 26 },
+      { x: 32.5, z: -26, size: 15.6 },
+      { x: -32.5, z: -19.5, size: 18.2 },
+      { x: 39, z: 26, size: 13 },
+      { x: -39, z: 32.5, size: 13 },
+      { x: 0, z: -52, size: 20.8 },
+      { x: 0, z: 45.5, size: 15.6 },
+      { x: 58.5, z: 0, size: 10.4 },
+      { x: -58.5, z: -6.5, size: 10.4 },
     ];
 
     platforms.forEach((p, i) => {
@@ -707,10 +1173,10 @@ export class World {
       ring.material = ringMat;
     });
 
-    // Shadow obelisks
+    // Shadow obelisks (scaled 1.3x)
     for (let i = 0; i < 12; i++) {
       const angle = (i / 12) * Math.PI * 2;
-      const r = 35 + Math.random() * 15;
+      const r = 45.5 + Math.random() * 19.5;
       const h = 8 + Math.random() * 10;
       const obelisk = this._track(BABYLON.MeshBuilder.CreateBox('obelisk', {
         width: 1.5, height: h, depth: 1.5
@@ -742,8 +1208,8 @@ export class World {
       l.range = 8;
     }
 
-    // Dark portals (torus gates)
-    [[20, 0], [-20, -30], [0, 30]].forEach(([x, z], i) => {
+    // Dark portals (torus gates) (scaled 1.3x)
+    [[26, 0], [-26, -39], [0, 39]].forEach(([x, z], i) => {
       const portal = this._track(BABYLON.MeshBuilder.CreateTorus('portal', {
         diameter: 6, thickness: 0.4, tessellation: 24
       }, this.scene));
@@ -761,7 +1227,7 @@ export class World {
 
     // Void fog floor (dark translucent plane below ground)
     const fog = this._track(BABYLON.MeshBuilder.CreateBox('voidFog', {
-      width: 200, height: 0.1, depth: 200
+      width: 300, height: 0.1, depth: 300
     }, this.scene));
     fog.position.y = -3;
     const fogMat = new BABYLON.StandardMaterial('fogMat', this.scene);
@@ -769,24 +1235,28 @@ export class World {
     fogMat.emissiveColor = new BABYLON.Color3(0.05, 0, 0.08);
     fogMat.alpha = 0.6;
     fog.material = fogMat;
+
+    // Enterable houses
+    this._createHouse(-35, -30, 'library', 'large');
+    this._createHouse(35, 25, 'armory', 'small');
   }
 
   // ============================================
-  // LEVEL 7: Storm Peaks — Mountain peaks with lightning
+  // LEVEL 7: Storm Peaks -- Mountain peaks with lightning
   // ============================================
   _buildStormPeaksMap() {
-    // Jagged mountain peaks
+    // Jagged mountain peaks (scaled 1.3x)
     const peakPositions = [
       { x: 0, z: 0, h: 15, d: 12 },
-      { x: -30, z: -20, h: 20, d: 10 },
-      { x: 30, z: -15, h: 18, d: 11 },
-      { x: -20, z: 25, h: 12, d: 14 },
-      { x: 25, z: 30, h: 22, d: 9 },
-      { x: 0, z: -45, h: 25, d: 8 },
-      { x: -45, z: 0, h: 16, d: 10 },
-      { x: 45, z: 10, h: 14, d: 12 },
-      { x: -15, z: -40, h: 18, d: 10 },
-      { x: 35, z: -35, h: 20, d: 9 },
+      { x: -39, z: -26, h: 20, d: 10 },
+      { x: 39, z: -19.5, h: 18, d: 11 },
+      { x: -26, z: 32.5, h: 12, d: 14 },
+      { x: 32.5, z: 39, h: 22, d: 9 },
+      { x: 0, z: -58.5, h: 25, d: 8 },
+      { x: -58.5, z: 0, h: 16, d: 10 },
+      { x: 58.5, z: 13, h: 14, d: 12 },
+      { x: -19.5, z: -52, h: 18, d: 10 },
+      { x: 45.5, z: -45.5, h: 20, d: 9 },
     ];
     peakPositions.forEach(p => {
       const peak = this._track(BABYLON.MeshBuilder.CreateCylinder('stormPeak', {
@@ -822,13 +1292,13 @@ export class World {
     this._createBridge(peakPositions[2].x, peakPositions[2].h, peakPositions[2].z,
       peakPositions[4].x, peakPositions[4].h, peakPositions[4].z);
 
-    // Lightning rods (tall metal poles with glowing tips)
+    // Lightning rods (tall metal poles with glowing tips) (scaled 1.3x)
     const stormMat = new BABYLON.StandardMaterial('stormMat', this.scene);
     stormMat.diffuseColor = new BABYLON.Color3(0.4, 0.6, 0.9);
     stormMat.emissiveColor = new BABYLON.Color3(0.15, 0.25, 0.4);
     for (let i = 0; i < 12; i++) {
-      const x = -55 + Math.random() * 110;
-      const z = -55 + Math.random() * 110;
+      const x = -71.5 + Math.random() * 143;
+      const z = -71.5 + Math.random() * 143;
       const rod = this._track(BABYLON.MeshBuilder.CreateCylinder('lightRod', {
         height: 12, diameter: 0.3
       }, this.scene));
@@ -843,13 +1313,13 @@ export class World {
       l.range = 10;
     }
 
-    // Dark storm clouds (flat dark planes above)
+    // Dark storm clouds (flat dark planes above) (scaled 1.3x)
     for (let i = 0; i < 8; i++) {
       const cloud = this._track(BABYLON.MeshBuilder.CreateBox('stormCloud', {
         width: 15 + Math.random() * 20, height: 1, depth: 15 + Math.random() * 20
       }, this.scene));
       cloud.position = new BABYLON.Vector3(
-        -50 + Math.random() * 100, 30 + Math.random() * 10, -50 + Math.random() * 100
+        -65 + Math.random() * 130, 30 + Math.random() * 10, -65 + Math.random() * 130
       );
       const cMat = new BABYLON.StandardMaterial('cloudMat', this.scene);
       cMat.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.3);
@@ -857,10 +1327,12 @@ export class World {
       cMat.alpha = 0.6;
       cloud.material = cMat;
     }
+
+    // No houses on storm peaks map
   }
 
   // ============================================
-  // LEVEL 8: Poison Swamp — Toxic marshland
+  // LEVEL 8: Poison Swamp -- Toxic marshland
   // ============================================
   _buildPoisonSwampMap() {
     // Poison lakes (green glowing pools)
@@ -869,9 +1341,10 @@ export class World {
     poisonMat.emissiveColor = new BABYLON.Color3(0.08, 0.25, 0.04);
     poisonMat.alpha = 0.85;
 
+    // (scaled 1.3x)
     for (let i = 0; i < 15; i++) {
-      const x = -60 + Math.random() * 120;
-      const z = -60 + Math.random() * 120;
+      const x = -78 + Math.random() * 156;
+      const z = -78 + Math.random() * 156;
       const pool = this._track(BABYLON.MeshBuilder.CreateCylinder('poisonPool', {
         height: 0.1, diameter: 5 + Math.random() * 8, tessellation: 12
       }, this.scene));
@@ -883,10 +1356,10 @@ export class World {
       l.range = 6;
     }
 
-    // Dead trees (no leaves, gnarled trunks)
+    // Dead trees (no leaves, gnarled trunks) (scaled 1.3x)
     for (let i = 0; i < 40; i++) {
-      const x = -65 + Math.random() * 130;
-      const z = -65 + Math.random() * 130;
+      const x = -84.5 + Math.random() * 169;
+      const z = -84.5 + Math.random() * 169;
       const h = 3 + Math.random() * 5;
       const trunk = this._track(BABYLON.MeshBuilder.CreateCylinder('deadTree', {
         height: h, diameterTop: 0.1, diameterBottom: 0.6
@@ -900,13 +1373,13 @@ export class World {
       );
     }
 
-    // Mushroom clusters (toxic)
+    // Mushroom clusters (toxic) (scaled 1.3x)
     const mushMat = new BABYLON.StandardMaterial('mushMat', this.scene);
     mushMat.diffuseColor = new BABYLON.Color3(0.4, 0.7, 0.1);
     mushMat.emissiveColor = new BABYLON.Color3(0.12, 0.2, 0.03);
     for (let i = 0; i < 25; i++) {
-      const x = -55 + Math.random() * 110;
-      const z = -55 + Math.random() * 110;
+      const x = -71.5 + Math.random() * 143;
+      const z = -71.5 + Math.random() * 143;
       const stem = this._track(BABYLON.MeshBuilder.CreateCylinder('mushStem', {
         height: 1.5, diameter: 0.5
       }, this.scene));
@@ -919,10 +1392,10 @@ export class World {
       cap.material = mushMat;
     }
 
-    // Bog mounds (raised earth)
+    // Bog mounds (raised earth) (scaled 1.3x)
     for (let i = 0; i < 12; i++) {
-      const x = -50 + Math.random() * 100;
-      const z = -50 + Math.random() * 100;
+      const x = -65 + Math.random() * 130;
+      const z = -65 + Math.random() * 130;
       const mound = this._track(BABYLON.MeshBuilder.CreateSphere('bogMound', {
         diameter: 6 + Math.random() * 6
       }, this.scene));
@@ -935,10 +1408,10 @@ export class World {
       );
     }
 
-    // Hanging vines (vertical cylinders from above)
+    // Hanging vines (vertical cylinders from above) (scaled 1.3x)
     for (let i = 0; i < 20; i++) {
-      const x = -50 + Math.random() * 100;
-      const z = -50 + Math.random() * 100;
+      const x = -65 + Math.random() * 130;
+      const z = -65 + Math.random() * 130;
       const vine = this._track(BABYLON.MeshBuilder.CreateCylinder('vine', {
         height: 8 + Math.random() * 6, diameter: 0.1
       }, this.scene));
@@ -948,7 +1421,7 @@ export class World {
 
     // Fog layer
     const swampFog = this._track(BABYLON.MeshBuilder.CreateBox('swampFog', {
-      width: 200, height: 0.1, depth: 200
+      width: 300, height: 0.1, depth: 300
     }, this.scene));
     swampFog.position.y = 1.5;
     const sfMat = new BABYLON.StandardMaterial('swampFogMat', this.scene);
@@ -956,10 +1429,15 @@ export class World {
     sfMat.emissiveColor = new BABYLON.Color3(0.05, 0.1, 0.03);
     sfMat.alpha = 0.25;
     swampFog.material = sfMat;
+
+    // Enterable houses
+    this._createHouse(35, 35, 'kitchen', 'medium');
+    this._createHouse(-40, -30, 'tavern', 'large');
+    this._createHouse(30, -35, 'bedroom', 'small');
   }
 
   // ============================================
-  // LEVEL 9: Crystal Caverns — Underground crystal cave
+  // LEVEL 9: Crystal Caverns -- Underground crystal cave
   // ============================================
   _buildCrystalCavernsMap() {
     // Crystal material (shared for efficiency)
@@ -970,10 +1448,10 @@ export class World {
     crystMat.specularPower = 128;
     crystMat.alpha = 0.85;
 
-    // Giant crystal formations
+    // Giant crystal formations (scaled 1.3x)
     for (let i = 0; i < 40; i++) {
-      const x = -65 + Math.random() * 130;
-      const z = -65 + Math.random() * 130;
+      const x = -84.5 + Math.random() * 169;
+      const z = -84.5 + Math.random() * 169;
       const h = 4 + Math.random() * 12;
       const crystal = this._track(BABYLON.MeshBuilder.CreateCylinder('caveCrystal', {
         height: h, diameterTop: 0, diameterBottom: 1 + Math.random() * 2, tessellation: 6
@@ -988,10 +1466,10 @@ export class World {
       );
     }
 
-    // Glowing crystal clusters with lights
+    // Glowing crystal clusters with lights (scaled 1.3x)
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2;
-      const r = 15 + Math.random() * 30;
+      const r = 19.5 + Math.random() * 39;
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
       // Cluster of 3 crystals
@@ -1014,15 +1492,15 @@ export class World {
 
     // Cave ceiling (dark rock above)
     const ceiling = this._track(BABYLON.MeshBuilder.CreateBox('caveCeiling', {
-      width: 200, height: 2, depth: 200
+      width: 300, height: 2, depth: 300
     }, this.scene));
     ceiling.position.y = 25;
     ceiling.material = this.materials.darkStone;
 
-    // Stalactites hanging from ceiling
+    // Stalactites hanging from ceiling (scaled 1.3x)
     for (let i = 0; i < 30; i++) {
-      const x = -60 + Math.random() * 120;
-      const z = -60 + Math.random() * 120;
+      const x = -78 + Math.random() * 156;
+      const z = -78 + Math.random() * 156;
       const h = 3 + Math.random() * 6;
       const stal = this._track(BABYLON.MeshBuilder.CreateCylinder('stalactite', {
         height: h, diameterTop: 1 + Math.random(), diameterBottom: 0, tessellation: 6
@@ -1031,9 +1509,9 @@ export class World {
       stal.material = this.materials.stone;
     }
 
-    // Underground lake
+    // Underground lake (scaled 1.3x)
     const lake = this._track(BABYLON.MeshBuilder.CreateBox('crystLake', {
-      width: 25, height: 0.08, depth: 25
+      width: 32.5, height: 0.08, depth: 32.5
     }, this.scene));
     lake.position = new BABYLON.Vector3(0, 0.05, 0);
     const lakeMat = new BABYLON.StandardMaterial('crystLakeMat', this.scene);
@@ -1042,10 +1520,10 @@ export class World {
     lakeMat.alpha = 0.7;
     lake.material = lakeMat;
 
-    // Stone platforms
+    // Stone platforms (scaled 1.3x)
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      const r = 25 + Math.random() * 20;
+      const r = 32.5 + Math.random() * 26;
       const plat = this._track(BABYLON.MeshBuilder.CreateCylinder('cavePlat', {
         height: 1, diameter: 8 + Math.random() * 6, tessellation: 8
       }, this.scene));
@@ -1058,15 +1536,19 @@ export class World {
         { mass: 0, friction: 0.8 }, this.scene
       );
     }
+
+    // Enterable houses
+    this._createHouse(-35, 25, 'library', 'small');
+    this._createHouse(30, -30, 'armory', 'large');
   }
 
   // ============================================
-  // LEVEL 10: The Void — Final arena in nothingness
+  // LEVEL 10: The Void -- Final arena in nothingness
   // ============================================
   _buildTheVoidMap() {
-    // Central massive arena platform
+    // Central massive arena platform (scaled 1.3x)
     const arena = this._track(BABYLON.MeshBuilder.CreateCylinder('voidArena', {
-      height: 2, diameter: 50, tessellation: 16
+      height: 2, diameter: 65, tessellation: 16
     }, this.scene));
     arena.position = new BABYLON.Vector3(0, -0.5, 0);
     arena.material = this.materials.darkStone;
@@ -1075,12 +1557,12 @@ export class World {
       { mass: 0, friction: 0.8 }, this.scene
     );
 
-    // Outer ring platforms
+    // Outer ring platforms (scaled 1.3x)
     for (let i = 0; i < 12; i++) {
       const angle = (i / 12) * Math.PI * 2;
-      const r = 45;
+      const r = 58.5;
       const plat = this._track(BABYLON.MeshBuilder.CreateCylinder('voidPlat', {
-        height: 1.5, diameter: 10, tessellation: 8
+        height: 1.5, diameter: 13, tessellation: 8
       }, this.scene));
       plat.position = new BABYLON.Vector3(
         Math.cos(angle) * r, -0.5, Math.sin(angle) * r
@@ -1092,18 +1574,18 @@ export class World {
       );
     }
 
-    // Bridges connecting outer to center
+    // Bridges connecting outer to center (scaled 1.3x)
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
       this._createBridge(0, 0, 0,
-        Math.cos(angle) * 45, 0, Math.sin(angle) * 45
+        Math.cos(angle) * 58.5, 0, Math.sin(angle) * 58.5
       );
     }
 
-    // Void pillars — tall ominous columns
+    // Void pillars -- tall ominous columns (scaled 1.3x)
     for (let i = 0; i < 20; i++) {
       const angle = (i / 20) * Math.PI * 2;
-      const r = 55 + Math.random() * 15;
+      const r = 71.5 + Math.random() * 19.5;
       const h = 15 + Math.random() * 20;
       const pillar = this._track(BABYLON.MeshBuilder.CreateBox('voidPillar', {
         width: 2, height: h, depth: 2
@@ -1114,10 +1596,10 @@ export class World {
       pillar.material = this.materials.darkStone;
     }
 
-    // Glowing red rune circles on the ground
+    // Glowing red rune circles on the ground (scaled 1.3x)
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      const r = 15;
+      const r = 19.5;
       const rune = this._track(BABYLON.MeshBuilder.CreateTorus('voidRune', {
         diameter: 6, thickness: 0.12, tessellation: 24
       }, this.scene));
@@ -1148,10 +1630,10 @@ export class World {
     eyeLight.intensity = 2.0;
     eyeLight.range = 50;
 
-    // Dark portals around the edges
+    // Dark portals around the edges (scaled 1.3x)
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
-      const r = 60;
+      const r = 78;
       const portal = this._track(BABYLON.MeshBuilder.CreateTorus('voidPortal', {
         diameter: 8, thickness: 0.5, tessellation: 24
       }, this.scene));
@@ -1168,12 +1650,14 @@ export class World {
 
     // Void abyss below
     const abyss = this._track(BABYLON.MeshBuilder.CreateBox('voidAbyss', {
-      width: 200, height: 0.1, depth: 200
+      width: 300, height: 0.1, depth: 300
     }, this.scene));
     abyss.position.y = -10;
     const abyssMat = new BABYLON.StandardMaterial('voidAbyssMat', this.scene);
     abyssMat.diffuseColor = new BABYLON.Color3(0.02, 0, 0.04);
     abyssMat.emissiveColor = new BABYLON.Color3(0.01, 0, 0.02);
     abyss.material = abyssMat;
+
+    // No houses on void map
   }
 }

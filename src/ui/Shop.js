@@ -1,54 +1,63 @@
 export class Shop {
+  // Weapon power ranking (higher = better)
+  static WEAPON_TIER = {
+    pistol: 0,
+    shotgun: 1,
+    rocket: 2,
+    minigun: 3,
+    laser: 4,
+  };
+
   constructor() {
     this.coins = parseInt(localStorage.getItem('totalCoins') || '0');
     this.purchases = JSON.parse(localStorage.getItem('shopPurchases') || '{}');
 
     this.items = {
       weapons: [
-        { id: 'shotgun', name: 'Shotgun', desc: 'Shoots 5 bullets at once! Wide spread.', cost: 200 },
-        { id: 'rocket', name: 'Rocket Launcher', desc: 'Huge explosion, big damage!', cost: 350 },
-        { id: 'laser', name: 'Laser Beam', desc: 'Instant hit, no travel time!', cost: 500 },
-        { id: 'minigun', name: 'Minigun', desc: 'Super fast fire rate!', cost: 400 },
+        { id: 'shotgun', name: 'Shotgun', desc: '5 pellets per shot! Great close range.', cost: 150, icon: '<div style="font-size:36px">&#x1F52B;</div>' },
+        { id: 'rocket', name: 'Rocket Launcher', desc: 'Huge explosion damage! Uses 5 ammo.', cost: 300, icon: '<div style="font-size:36px">&#x1F680;</div>' },
+        { id: 'minigun', name: 'Minigun', desc: 'Rapid fire! 5 shots per second.', cost: 400, icon: '<div style="font-size:36px">&#x2699;&#xFE0F;</div>' },
+        { id: 'laser', name: 'Laser Beam', desc: 'Instant hit laser! Best weapon.', cost: 500, icon: '<div style="font-size:36px">&#x1F4A0;</div>' },
       ],
       powers: [
-        { id: 'doublejump', name: 'Double Jump', desc: 'Jump again in mid-air!', cost: 150 },
-        { id: 'invisible', name: 'Invisibility Cloak', desc: 'Enemies cant see you for 10s. Press V to activate.', cost: 300 },
-        { id: 'magnet', name: 'Coin Magnet', desc: 'Coins fly to you from further away!', cost: 100 },
-        { id: 'firetrail', name: 'Fire Trail', desc: 'Leave fire behind you that burns enemies!', cost: 250 },
-        { id: 'vampiric', name: 'Vampiric Strike', desc: 'Sword hits heal you for 10 HP!', cost: 200 },
-        { id: 'explosiveammo', name: 'Explosive Ammo', desc: 'Bullets explode on impact!', cost: 300 },
+        { id: 'doublejump', name: 'Double Jump', desc: 'Jump again in mid-air!', cost: 150, icon: '<div style="font-size:36px">&#x1F998;</div>' },
+        { id: 'invisible', name: 'Invisibility Cloak', desc: 'Enemies cant see you for 10s. Press V to activate.', cost: 300, icon: '<div style="font-size:36px">&#x1F47B;</div>' },
+        { id: 'magnet', name: 'Coin Magnet', desc: 'Coins fly to you from further away!', cost: 100, icon: '<div style="font-size:36px">&#x1F9F2;</div>' },
+        { id: 'firetrail', name: 'Fire Trail', desc: 'Leave fire behind you that burns enemies!', cost: 250, icon: '<div style="font-size:36px">&#x1F525;</div>' },
+        { id: 'vampiric', name: 'Vampiric Strike', desc: 'Sword hits heal you for 10 HP!', cost: 200, icon: '<div style="font-size:36px">&#x1F9DB;</div>' },
+        { id: 'explosiveammo', name: 'Explosive Ammo', desc: 'Bullets explode on impact!', cost: 300, icon: '<div style="font-size:36px">&#x1F4A3;</div>' },
       ],
       pets: [
-        { id: 'pet_wolf', name: 'Wolf Pup', desc: 'Attacks nearby enemies for you!', cost: 250 },
-        { id: 'pet_dragon', name: 'Baby Dragon', desc: 'Flies around and breathes fire!', cost: 500 },
-        { id: 'pet_fairy', name: 'Healing Fairy', desc: 'Slowly heals you over time!', cost: 200 },
-        { id: 'pet_ghost', name: 'Ghost Buddy', desc: 'Scares enemies, making them run away!', cost: 300 },
+        { id: 'pet_wolf', name: 'Wolf Pup', desc: 'Attacks nearby enemies for you!', cost: 250, icon: '<div style="font-size:36px">&#x1F43A;</div>' },
+        { id: 'pet_dragon', name: 'Baby Dragon', desc: 'Flies around and breathes fire!', cost: 500, icon: '<div style="font-size:36px">&#x1F409;</div>' },
+        { id: 'pet_fairy', name: 'Healing Fairy', desc: 'Slowly heals you over time!', cost: 200, icon: '<div style="font-size:36px">&#x1F9DA;</div>' },
+        { id: 'pet_ghost', name: 'Ghost Buddy', desc: 'Scares enemies, making them run away!', cost: 300, icon: '<div style="font-size:36px">&#x1F47B;</div>' },
       ],
       upgrades: [
-        { id: 'dmg1', name: 'Damage Boost I', desc: '+25% damage', cost: 50 },
-        { id: 'dmg2', name: 'Damage Boost II', desc: '+50% damage', cost: 150 },
-        { id: 'dmg3', name: 'Damage Boost III', desc: '+100% damage!', cost: 400 },
-        { id: 'hp1', name: 'Max Health Up I', desc: '+25 max HP', cost: 75 },
-        { id: 'hp2', name: 'Max Health Up II', desc: '+50 max HP', cost: 200 },
-        { id: 'hp3', name: 'Max Health Up III', desc: '+100 max HP!', cost: 450 },
-        { id: 'speed', name: 'Speed Boost', desc: '+20% speed', cost: 100 },
-        { id: 'speed2', name: 'Speed Boost II', desc: '+40% speed!', cost: 250 },
-        { id: 'shield', name: 'Shield Upgrade', desc: 'Halved cooldown', cost: 125 },
-        { id: 'ammo', name: 'Ammo Boost', desc: '+50% starting ammo each level', cost: 175 },
+        { id: 'dmg1', name: 'Damage Boost I', desc: '+25% damage', cost: 50, icon: '<div style="font-size:36px">&#x2694;&#xFE0F;</div>' },
+        { id: 'dmg2', name: 'Damage Boost II', desc: '+50% damage', cost: 150, icon: '<div style="font-size:36px">&#x2694;&#xFE0F;&#x2694;&#xFE0F;</div>' },
+        { id: 'dmg3', name: 'Damage Boost III', desc: '+100% damage!', cost: 400, icon: '<div style="font-size:36px">&#x2694;&#xFE0F;&#x2694;&#xFE0F;&#x2694;&#xFE0F;</div>' },
+        { id: 'hp1', name: 'Max Health Up I', desc: '+25 max HP', cost: 75, icon: '<div style="font-size:36px">&#x2764;&#xFE0F;</div>' },
+        { id: 'hp2', name: 'Max Health Up II', desc: '+50 max HP', cost: 200, icon: '<div style="font-size:36px">&#x2764;&#xFE0F;&#x2764;&#xFE0F;</div>' },
+        { id: 'hp3', name: 'Max Health Up III', desc: '+100 max HP!', cost: 450, icon: '<div style="font-size:36px">&#x2764;&#xFE0F;&#x2764;&#xFE0F;&#x2764;&#xFE0F;</div>' },
+        { id: 'speed', name: 'Speed Boost', desc: '+20% speed', cost: 100, icon: '<div style="font-size:36px">&#x1F3C3;</div>' },
+        { id: 'speed2', name: 'Speed Boost II', desc: '+40% speed!', cost: 250, icon: '<div style="font-size:36px">&#x1F3C3;&#x1F4A8;</div>' },
+        { id: 'shield', name: 'Shield Upgrade', desc: 'Halved cooldown', cost: 125, icon: '<div style="font-size:36px">&#x1F6E1;&#xFE0F;</div>' },
+        { id: 'ammo', name: 'Ammo Boost', desc: '+50% starting ammo each level', cost: 175, icon: '<div style="font-size:36px">&#x1F4E6;</div>' },
       ],
       potions: [
-        { id: 'potion', name: 'Health Potion', desc: 'Start with +50 HP', cost: 20, consumable: true },
-        { id: 'jump', name: 'Super Jump', desc: '+50% jump force', cost: 30, consumable: true },
-        { id: 'megapotion', name: 'Mega Potion', desc: 'Start with +100 HP!', cost: 50, consumable: true },
-        { id: 'ammopack', name: 'Ammo Pack', desc: 'Double ammo this round!', cost: 40, consumable: true },
+        { id: 'potion', name: 'Health Potion', desc: 'Start with +50 HP', cost: 20, consumable: true, icon: '<div style="font-size:36px">&#x1F9EA;</div>' },
+        { id: 'jump', name: 'Super Jump', desc: '+50% jump force', cost: 30, consumable: true, icon: '<div style="font-size:36px">&#x1F680;</div>' },
+        { id: 'megapotion', name: 'Mega Potion', desc: 'Start with +100 HP!', cost: 50, consumable: true, icon: '<div style="font-size:36px">&#x1F48A;</div>' },
+        { id: 'ammopack', name: 'Ammo Pack', desc: 'Double ammo this round!', cost: 40, consumable: true, icon: '<div style="font-size:36px">&#x1F4E6;&#x1F525;</div>' },
       ],
       skins: [
-        { id: 'skin_gold', name: 'Gold Knight', desc: 'Golden armor', cost: 100 },
-        { id: 'skin_dark', name: 'Dark Knight', desc: 'Shadow armor', cost: 150 },
-        { id: 'skin_crystal', name: 'Crystal Knight', desc: 'Crystal armor', cost: 200 },
-        { id: 'skin_rainbow', name: 'Rainbow Knight', desc: 'Color-shifting armor', cost: 500 },
-        { id: 'skin_lava', name: 'Lava Knight', desc: 'Glowing red-hot armor!', cost: 350 },
-        { id: 'skin_ice', name: 'Frost Knight', desc: 'Icy blue frozen armor!', cost: 350 },
+        { id: 'skin_gold', name: 'Gold Knight', desc: 'Golden armor', cost: 100, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#ffd700,#aa8800);border-radius:4px;border:2px solid #ffee88;position:relative"><div style="width:20px;height:20px;background:#ffd700;border-radius:50%;margin:-12px auto 0;border:2px solid #ffee88"></div></div>' },
+        { id: 'skin_dark', name: 'Dark Knight', desc: 'Shadow armor', cost: 150, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#443366,#221133);border-radius:4px;border:2px solid #665599;position:relative"><div style="width:20px;height:20px;background:#332255;border-radius:50%;margin:-12px auto 0;border:2px solid #665599"></div></div>' },
+        { id: 'skin_crystal', name: 'Crystal Knight', desc: 'Crystal armor', cost: 200, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#33eedd,#11aa99);border-radius:4px;border:2px solid #66ffee;position:relative"><div style="width:20px;height:20px;background:#22ccbb;border-radius:50%;margin:-12px auto 0;border:2px solid #66ffee"></div></div>' },
+        { id: 'skin_rainbow', name: 'Rainbow Knight', desc: 'Color-shifting armor', cost: 500, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(90deg,red,orange,yellow,green,blue,violet);border-radius:4px;border:2px solid #fff;position:relative"><div style="width:20px;height:20px;background:linear-gradient(90deg,red,blue);border-radius:50%;margin:-12px auto 0;border:2px solid #fff"></div></div>' },
+        { id: 'skin_lava', name: 'Lava Knight', desc: 'Glowing red-hot armor!', cost: 350, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#ff4400,#aa2200);border-radius:4px;border:2px solid #ff8844;position:relative"><div style="width:20px;height:20px;background:#ff3300;border-radius:50%;margin:-12px auto 0;border:2px solid #ff8844"></div></div>' },
+        { id: 'skin_ice', name: 'Frost Knight', desc: 'Icy blue frozen armor!', cost: 350, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#66bbff,#3388cc);border-radius:4px;border:2px solid #99ddff;position:relative"><div style="width:20px;height:20px;background:#55aaee;border-radius:50%;margin:-12px auto 0;border:2px solid #99ddff"></div></div>' },
       ],
     };
 
@@ -92,26 +101,45 @@ export class Shop {
     container.innerHTML = '';
 
     const items = this.items[this.currentTab] || [];
+    const equippedWeapon = localStorage.getItem('equippedWeapon') || 'pistol';
+
     items.forEach(item => {
       const owned = !!this.purchases[item.id];
       const canAfford = this.coins >= item.cost;
+      const isWeapon = this.currentTab === 'weapons';
+      const isEquipped = isWeapon && equippedWeapon === item.id;
 
       const div = document.createElement('div');
       div.className = 'shop-item';
+
+      let btnHtml;
+      if (item.info) {
+        btnHtml = '';
+      } else if (owned && !item.consumable) {
+        btnHtml = `<button class="buy-btn owned">OWNED</button>`;
+      } else {
+        btnHtml = `<button class="buy-btn ${!canAfford ? 'cant-afford' : ''}">${item.cost} coins</button>`;
+      }
+
       div.innerHTML = `
+        ${item.icon ? `<div class="item-icon">${item.icon}</div>` : ''}
         <div class="item-name">${item.name}</div>
         <div class="item-desc">${item.desc}</div>
-        <div class="item-cost">${item.cost} coins</div>
-        <button class="buy-btn ${owned ? 'owned' : (!canAfford ? 'cant-afford' : '')}">${owned ? 'OWNED' : 'BUY'}</button>
+        ${btnHtml}
       `;
 
       const btn = div.querySelector('.buy-btn');
-      if (!owned && canAfford) {
+      if (btn && !owned && canAfford && !item.info) {
         btn.addEventListener('click', () => this.buy(item));
       }
 
       container.appendChild(div);
     });
+  }
+
+  equipWeapon(weaponId) {
+    localStorage.setItem('equippedWeapon', weaponId);
+    this.render();
   }
 
   buy(item) {
@@ -122,6 +150,21 @@ export class Shop {
     localStorage.setItem('totalCoins', this.coins.toString());
     this.purchases[item.id] = true;
     localStorage.setItem('shopPurchases', JSON.stringify(this.purchases));
+
+    // Notify listeners (achievements)
+    if (this.onPurchase) this.onPurchase(item);
+
+    // Auto-equip weapon if it's better than current
+    const isWeapon = this.items.weapons.some(w => w.id === item.id);
+    if (isWeapon) {
+      const currentWeapon = localStorage.getItem('equippedWeapon') || 'pistol';
+      const currentTier = Shop.WEAPON_TIER[currentWeapon] || 0;
+      const newTier = Shop.WEAPON_TIER[item.id] || 0;
+      if (newTier > currentTier) {
+        localStorage.setItem('equippedWeapon', item.id);
+      }
+    }
+
     this.render();
   }
 
@@ -175,6 +218,14 @@ export class Shop {
     if (p.rocket) state.hasRocket = true;
     if (p.laser) state.hasLaser = true;
     if (p.minigun) state.hasMinigun = true;
+
+    // Equip saved weapon (only if owned)
+    const equipped = localStorage.getItem('equippedWeapon') || 'pistol';
+    if (equipped === 'pistol' || p[equipped]) {
+      state.selectedWeapon = equipped;
+    } else {
+      state.selectedWeapon = 'pistol';
+    }
 
     // Pets
     if (p.pet_wolf) state.pet = 'wolf';

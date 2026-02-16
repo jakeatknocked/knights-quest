@@ -629,6 +629,13 @@ body {
   padding: 16px;
   text-align: center;
 }
+.shop-item .item-icon {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
 .shop-item .item-name {
   font-size: 16px; font-weight: bold;
   color: #ffd700; margin-bottom: 6px;
@@ -655,10 +662,117 @@ body {
 .buy-btn.cant-afford {
   background: #662222; color: #aa6666; cursor: default;
 }
-#shop-back-btn {
+.buy-btn.equip-btn {
+  background: linear-gradient(to bottom, #4488ff, #2244aa);
+  color: #fff; cursor: pointer;
+}
+.buy-btn.equip-btn:hover { transform: scale(1.05); }
+.buy-btn.equipped {
+  background: linear-gradient(to bottom, #ffd700, #aa8800);
+  color: #222; cursor: default; font-weight: bold;
+}
+#shop-back-btn, #achievements-back-btn {
   padding: 12px 36px; font-size: 18px;
   background: linear-gradient(to bottom, #ff6644, #cc2200);
   border: none; border-radius: 8px; cursor: pointer;
   color: #fff; font-weight: bold;
   pointer-events: all;
 }
+
+/* ---- ACHIEVEMENTS SCREEN ---- */
+#achievements-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a15 100%);
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; z-index: 100; padding: 20px;
+  overflow-y: auto;
+}
+#achievements-screen h1 {
+  color: #ffd700; font-size: 42px; margin-bottom: 20px;
+  text-shadow: 0 0 20px rgba(255,215,0,0.4);
+}
+#achievements-list {
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 500px; width: 100%; margin-bottom: 20px;
+}
+.ach-progress {
+  color: #aaccff; font-size: 18px; text-align: center;
+  margin-bottom: 10px; font-weight: bold;
+}
+.ach-item {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(255,255,255,0.08); border-radius: 10px;
+  padding: 14px 18px; border: 2px solid transparent;
+  transition: all 0.2s;
+}
+.ach-item.earned {
+  border-color: #ffd700;
+  background: rgba(255,215,0,0.08);
+}
+.ach-item.locked {
+  opacity: 0.5;
+}
+.ach-icon { font-size: 36px; min-width: 45px; text-align: center; }
+.ach-info { flex: 1; }
+.ach-name { color: #fff; font-size: 18px; font-weight: bold; }
+.ach-desc { color: #aaa; font-size: 14px; margin-top: 2px; }
+.ach-check { color: #ffd700; font-size: 24px; font-weight: bold; }
+
+/* ---- ACHIEVEMENT POPUP ---- */
+#achievement-popup {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-120px);
+  display: flex; align-items: center; gap: 14px;
+  background: linear-gradient(135deg, #1a1a2e, #2a1a3e);
+  border: 2px solid #ffd700; border-radius: 12px;
+  padding: 14px 24px; z-index: 200;
+  box-shadow: 0 0 30px rgba(255,215,0,0.3);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+#achievement-popup.show {
+  transform: translateX(-50%) translateY(0);
+}
+.ach-popup-icon { font-size: 36px; }
+.ach-popup-title { color: #ffd700; font-size: 14px; font-weight: bold; }
+.ach-popup-name { color: #fff; font-size: 18px; font-weight: bold; }
+
+/* ---- KILLCAM ---- */
+#killcam-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 50; display: none;
+  border: 4px solid #ff2222;
+  box-shadow: inset 0 0 60px rgba(255,0,0,0.3);
+}
+.killcam-text {
+  position: absolute; top: 30px; left: 50%;
+  transform: translateX(-50%);
+  color: #ff2222; font-size: 36px; font-weight: bold;
+  text-shadow: 0 0 20px rgba(255,0,0,0.6), 2px 2px 4px #000;
+  letter-spacing: 8px;
+  animation: killcam-pulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes killcam-pulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+.killcam-bar {
+  position: absolute; bottom: 40px; left: 50%;
+  transform: translateX(-50%);
+  width: 300px; height: 6px;
+  background: rgba(255,255,255,0.2); border-radius: 3px;
+  overflow: hidden;
+}
+.killcam-progress {
+  height: 100%; width: 0%;
+  background: #ff2222; border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+#achievements-btn {
+  padding: 14px 36px; font-size: 20px;
+  background: linear-gradient(to bottom, #aa88ff, #6644bb);
+  border: none; border-radius: 10px; cursor: pointer;
+  color: #fff; font-weight: bold;
+  transition: transform 0.15s;
+}
+#achievements-btn:hover { transform: scale(1.05); }

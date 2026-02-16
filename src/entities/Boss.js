@@ -171,91 +171,244 @@ export class Boss {
       this.scene
     );
 
-    // Body
+    // --- KINGLY BODY ---
+    const bc = this.config.bodyColor;
+
+    // Main body material
+    const mat = new BABYLON.StandardMaterial('bossMat', this.scene);
+    mat.diffuseColor = bc;
+    mat.emissiveColor = new BABYLON.Color3(bc.r * 0.2, bc.g * 0.2, bc.b * 0.2);
+
+    // Royal robe material (rich fabric look)
+    const robeMat = new BABYLON.StandardMaterial('bossRobeMat', this.scene);
+    robeMat.diffuseColor = new BABYLON.Color3(bc.r * 0.8, bc.g * 0.8, bc.b * 0.8);
+    robeMat.emissiveColor = new BABYLON.Color3(bc.r * 0.15, bc.g * 0.15, bc.b * 0.15);
+
+    // Gold trim material (for crown, scepter, details)
+    const goldMat = new BABYLON.StandardMaterial('bossGoldMat', this.scene);
+    goldMat.diffuseColor = new BABYLON.Color3(1, 0.78, 0.1);
+    goldMat.emissiveColor = new BABYLON.Color3(0.3, 0.22, 0.03);
+    goldMat.specularColor = new BABYLON.Color3(1, 1, 0.5);
+    goldMat.specularPower = 64;
+
+    // Armor material (darker, metallic)
+    const bossArmorMat = new BABYLON.StandardMaterial('bossArmorMat', this.scene);
+    bossArmorMat.diffuseColor = new BABYLON.Color3(bc.r * 0.4, bc.g * 0.4, bc.b * 0.4);
+    bossArmorMat.emissiveColor = new BABYLON.Color3(bc.r * 0.08, bc.g * 0.08, bc.b * 0.08);
+    bossArmorMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+    bossArmorMat.specularPower = 64;
+
+    // Body (wider, more imposing)
     const body = BABYLON.MeshBuilder.CreateBox('bossBody', {
-      width: 0.8 * s, height: 1.0 * s, depth: 0.5 * s
+      width: 0.9 * s, height: 1.1 * s, depth: 0.55 * s
     }, this.scene);
     body.position.y = 0.2 * s;
     body.parent = this.mesh;
+    body.material = mat;
+
+    // Royal chest plate with gold trim
+    const chestPlate = BABYLON.MeshBuilder.CreateBox('bossChest', {
+      width: 0.95 * s, height: 0.7 * s, depth: 0.35 * s
+    }, this.scene);
+    chestPlate.position.set(0, 0.4 * s, 0.12 * s);
+    chestPlate.parent = this.mesh;
+    chestPlate.material = bossArmorMat;
+
+    // Gold chest emblem (diamond shape)
+    const emblem = BABYLON.MeshBuilder.CreateBox('bossEmblem', {
+      width: 0.2 * s, height: 0.2 * s, depth: 0.02 * s
+    }, this.scene);
+    emblem.position.set(0, 0.45 * s, 0.32 * s);
+    emblem.rotation.z = Math.PI / 4;
+    emblem.parent = this.mesh;
+    emblem.material = goldMat;
+
+    // Royal robe / skirt (flowing below waist)
+    const robe = BABYLON.MeshBuilder.CreateCylinder('bossRobe', {
+      height: 0.6 * s, diameterTop: 0.85 * s, diameterBottom: 1.1 * s, tessellation: 8
+    }, this.scene);
+    robe.position.y = -0.25 * s;
+    robe.parent = this.mesh;
+    robe.material = robeMat;
+
+    // Gold belt
+    const belt = BABYLON.MeshBuilder.CreateBox('bossBelt', {
+      width: 0.92 * s, height: 0.1 * s, depth: 0.56 * s
+    }, this.scene);
+    belt.position.set(0, -0.0 * s, 0);
+    belt.parent = this.mesh;
+    belt.material = goldMat;
 
     // Head
     const head = BABYLON.MeshBuilder.CreateSphere('bossHead', {
-      diameter: 0.6 * s
+      diameter: 0.65 * s
     }, this.scene);
-    head.position.y = 1.0 * s;
+    head.position.y = 1.05 * s;
     head.parent = this.mesh;
-
-    const mat = new BABYLON.StandardMaterial('bossMat', this.scene);
-    mat.diffuseColor = this.config.bodyColor;
-    mat.emissiveColor = new BABYLON.Color3(
-      this.config.bodyColor.r * 0.2,
-      this.config.bodyColor.g * 0.2,
-      this.config.bodyColor.b * 0.2
-    );
-    body.material = mat;
     head.material = mat;
 
-    // Boss limbs
-    const bossLimbMat = new BABYLON.StandardMaterial('bossLimbMat', this.scene);
-    bossLimbMat.diffuseColor = new BABYLON.Color3(
-      this.config.bodyColor.r * 0.7,
-      this.config.bodyColor.g * 0.7,
-      this.config.bodyColor.b * 0.7
-    );
-    bossLimbMat.emissiveColor = new BABYLON.Color3(
-      this.config.bodyColor.r * 0.1,
-      this.config.bodyColor.g * 0.1,
-      this.config.bodyColor.b * 0.1
-    );
-
-    // Arms
-    const bArmL = BABYLON.MeshBuilder.CreateBox('bArmL', {
-      width: 0.3 * s, height: 0.9 * s, depth: 0.3 * s
+    // CROWN — gold with jewel points
+    const crownBase = BABYLON.MeshBuilder.CreateCylinder('bossCrownBase', {
+      height: 0.12 * s, diameter: 0.55 * s, tessellation: 16
     }, this.scene);
-    bArmL.position.set(-0.55 * s, 0.2 * s, 0);
-    bArmL.parent = this.mesh;
-    bArmL.material = bossLimbMat;
+    crownBase.position.y = 1.38 * s;
+    crownBase.parent = this.mesh;
+    crownBase.material = goldMat;
 
-    const bArmR = BABYLON.MeshBuilder.CreateBox('bArmR', {
-      width: 0.3 * s, height: 0.9 * s, depth: 0.3 * s
+    // Crown points (5 spikes around the top)
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2;
+      const point = BABYLON.MeshBuilder.CreateCylinder('crownPoint', {
+        height: 0.2 * s, diameterTop: 0, diameterBottom: 0.08 * s
+      }, this.scene);
+      point.position.set(
+        Math.cos(angle) * 0.22 * s,
+        1.52 * s,
+        Math.sin(angle) * 0.22 * s
+      );
+      point.parent = this.mesh;
+      point.material = goldMat;
+
+      // Jewel on each point
+      const jewel = BABYLON.MeshBuilder.CreateSphere('crownJewel', {
+        diameter: 0.06 * s
+      }, this.scene);
+      jewel.position.set(
+        Math.cos(angle) * 0.22 * s,
+        1.62 * s,
+        Math.sin(angle) * 0.22 * s
+      );
+      jewel.parent = this.mesh;
+      const jewelMat = new BABYLON.StandardMaterial('jewelMat', this.scene);
+      jewelMat.diffuseColor = this.config.eyeColor;
+      jewelMat.emissiveColor = new BABYLON.Color3(
+        this.config.eyeColor.r * 0.5,
+        this.config.eyeColor.g * 0.5,
+        this.config.eyeColor.b * 0.5
+      );
+      jewel.material = jewelMat;
+    }
+
+    // Visor / face shadow
+    const visorMat = new BABYLON.StandardMaterial('bVisorMat', this.scene);
+    visorMat.diffuseColor = new BABYLON.Color3(0.03, 0.02, 0.02);
+    visorMat.emissiveColor = new BABYLON.Color3(0.01, 0, 0);
+    const visor = BABYLON.MeshBuilder.CreateBox('bossVisor', {
+      width: 0.5 * s, height: 0.1 * s, depth: 0.08 * s
     }, this.scene);
-    bArmR.position.set(0.55 * s, 0.2 * s, 0);
-    bArmR.parent = this.mesh;
-    bArmR.material = bossLimbMat;
+    visor.position.set(0, 1.07 * s, 0.3 * s);
+    visor.parent = this.mesh;
+    visor.material = visorMat;
 
-    // Legs
-    const bLegL = BABYLON.MeshBuilder.CreateBox('bLegL', {
-      width: 0.35 * s, height: 0.8 * s, depth: 0.35 * s
-    }, this.scene);
-    bLegL.position.set(-0.2 * s, -0.6 * s, 0);
-    bLegL.parent = this.mesh;
-    bLegL.material = bossLimbMat;
-
-    const bLegR = BABYLON.MeshBuilder.CreateBox('bLegR', {
-      width: 0.35 * s, height: 0.8 * s, depth: 0.35 * s
-    }, this.scene);
-    bLegR.position.set(0.2 * s, -0.6 * s, 0);
-    bLegR.parent = this.mesh;
-    bLegR.material = bossLimbMat;
-
-    // Eyes
+    // Glowing eyes (bigger for king)
     const eyeMat = new BABYLON.StandardMaterial('bossEyeMat', this.scene);
     eyeMat.diffuseColor = this.config.eyeColor;
     eyeMat.emissiveColor = new BABYLON.Color3(
-      this.config.eyeColor.r * 0.4,
-      this.config.eyeColor.g * 0.4,
-      this.config.eyeColor.b * 0.4
+      this.config.eyeColor.r * 0.6,
+      this.config.eyeColor.g * 0.6,
+      this.config.eyeColor.b * 0.6
     );
 
-    const eyeL = BABYLON.MeshBuilder.CreateSphere('bossEyeL', { diameter: 0.1 * s }, this.scene);
-    eyeL.position.set(-0.15 * s, 1.05 * s, 0.25 * s);
+    const eyeL = BABYLON.MeshBuilder.CreateSphere('bossEyeL', { diameter: 0.12 * s }, this.scene);
+    eyeL.position.set(-0.15 * s, 1.08 * s, 0.3 * s);
     eyeL.parent = this.mesh;
     eyeL.material = eyeMat;
 
-    const eyeR = BABYLON.MeshBuilder.CreateSphere('bossEyeR', { diameter: 0.1 * s }, this.scene);
-    eyeR.position.set(0.15 * s, 1.05 * s, 0.25 * s);
+    const eyeR = BABYLON.MeshBuilder.CreateSphere('bossEyeR', { diameter: 0.12 * s }, this.scene);
+    eyeR.position.set(0.15 * s, 1.08 * s, 0.3 * s);
     eyeR.parent = this.mesh;
     eyeR.material = eyeMat;
+
+    // Eye glow light
+    const bossEyeLight = new BABYLON.PointLight('bossEyeGlow', new BABYLON.Vector3(0, 1.08 * s, 0.35 * s), this.scene);
+    bossEyeLight.diffuse = this.config.eyeColor;
+    bossEyeLight.intensity = 0.6;
+    bossEyeLight.range = 5 * s;
+    bossEyeLight.parent = this.mesh;
+
+    // Big spiked shoulder pads
+    for (let side = -1; side <= 1; side += 2) {
+      const shoulder = BABYLON.MeshBuilder.CreateSphere('bossShoulder', {
+        diameter: 0.45 * s
+      }, this.scene);
+      shoulder.position.set(side * 0.6 * s, 0.75 * s, 0);
+      shoulder.scaling = new BABYLON.Vector3(1, 0.7, 1);
+      shoulder.parent = this.mesh;
+      shoulder.material = bossArmorMat;
+
+      // Shoulder spike
+      const sSp = BABYLON.MeshBuilder.CreateCylinder('bossShSpk', {
+        height: 0.3 * s, diameterTop: 0, diameterBottom: 0.1 * s
+      }, this.scene);
+      sSp.position.set(side * 0.65 * s, 0.98 * s, 0);
+      sSp.parent = this.mesh;
+      sSp.material = goldMat;
+    }
+
+    // Arms (armored gauntlets)
+    const bArmL = BABYLON.MeshBuilder.CreateBox('bArmL', {
+      width: 0.32 * s, height: 0.9 * s, depth: 0.32 * s
+    }, this.scene);
+    bArmL.position.set(-0.58 * s, 0.15 * s, 0);
+    bArmL.parent = this.mesh;
+    bArmL.material = bossArmorMat;
+
+    const bArmR = BABYLON.MeshBuilder.CreateBox('bArmR', {
+      width: 0.32 * s, height: 0.9 * s, depth: 0.32 * s
+    }, this.scene);
+    bArmR.position.set(0.58 * s, 0.15 * s, 0);
+    bArmR.parent = this.mesh;
+    bArmR.material = bossArmorMat;
+
+    // Royal scepter in right hand
+    const scepterPole = BABYLON.MeshBuilder.CreateCylinder('bossScepter', {
+      height: 1.2 * s, diameter: 0.06 * s
+    }, this.scene);
+    scepterPole.position.set(0.65 * s, 0.1 * s, 0.15 * s);
+    scepterPole.parent = this.mesh;
+    scepterPole.material = goldMat;
+
+    // Scepter orb on top
+    const scepterOrb = BABYLON.MeshBuilder.CreateSphere('bossScepterOrb', {
+      diameter: 0.18 * s
+    }, this.scene);
+    scepterOrb.position.set(0.65 * s, 0.72 * s, 0.15 * s);
+    scepterOrb.parent = this.mesh;
+    scepterOrb.material = eyeMat;
+
+    // Scepter orb glow
+    const scepterLight = new BABYLON.PointLight('scepterGlow', new BABYLON.Vector3(0.65 * s, 0.72 * s, 0.15 * s), this.scene);
+    scepterLight.diffuse = this.config.eyeColor;
+    scepterLight.intensity = 0.5;
+    scepterLight.range = 4 * s;
+    scepterLight.parent = this.mesh;
+
+    // Legs (armored boots)
+    const bLegL = BABYLON.MeshBuilder.CreateBox('bLegL', {
+      width: 0.36 * s, height: 0.8 * s, depth: 0.36 * s
+    }, this.scene);
+    bLegL.position.set(-0.22 * s, -0.6 * s, 0);
+    bLegL.parent = this.mesh;
+    bLegL.material = bossArmorMat;
+
+    const bLegR = BABYLON.MeshBuilder.CreateBox('bLegR', {
+      width: 0.36 * s, height: 0.8 * s, depth: 0.36 * s
+    }, this.scene);
+    bLegR.position.set(0.22 * s, -0.6 * s, 0);
+    bLegR.parent = this.mesh;
+    bLegR.material = bossArmorMat;
+
+    // Cape (flat plane behind the body)
+    const cape = BABYLON.MeshBuilder.CreatePlane('bossCape', {
+      width: 1.0 * s, height: 1.6 * s
+    }, this.scene);
+    cape.position.set(0, 0.1 * s, -0.3 * s);
+    cape.parent = this.mesh;
+    const capeMat = new BABYLON.StandardMaterial('bossCapeMat', this.scene);
+    capeMat.diffuseColor = new BABYLON.Color3(bc.r * 0.6, bc.g * 0.6, bc.b * 0.6);
+    capeMat.emissiveColor = new BABYLON.Color3(bc.r * 0.1, bc.g * 0.1, bc.b * 0.1);
+    capeMat.backFaceCulling = false;
+    cape.material = capeMat;
 
     // Boss-specific decorations
     if (this.bossType === 'darkKnight') {
@@ -699,11 +852,17 @@ export class Boss {
 
   fireProjectile(targetPos) {
     const proj = BABYLON.MeshBuilder.CreateSphere('bossProj', { diameter: 0.6 }, this.scene);
-    proj.position = this.mesh.position.clone();
-    proj.position.y += 1.5;
+    const spawnPos = this.mesh.position.clone();
+    spawnPos.y += 1.5;
+    proj.position = spawnPos;
 
     const mat = new BABYLON.StandardMaterial('bossProjMat', this.scene);
     mat.diffuseColor = this.config.projectileColor;
+    mat.emissiveColor = new BABYLON.Color3(
+      this.config.projectileColor.r * 0.4,
+      this.config.projectileColor.g * 0.4,
+      this.config.projectileColor.b * 0.4
+    );
     proj.material = mat;
 
     const light = new BABYLON.PointLight('bossProjLight', proj.position.clone(), this.scene);
@@ -711,8 +870,10 @@ export class Boss {
     light.intensity = 0.8;
     light.range = 6;
 
-    const direction = targetPos.subtract(this.mesh.position);
-    direction.y = 0;
+    // Aim from spawn point directly at the player's body (y=1.0)
+    const aimTarget = targetPos.clone();
+    aimTarget.y = 1.0; // player body height
+    const direction = aimTarget.subtract(spawnPos);
     if (direction.length() > 0.01) direction.normalize();
     else return;
 

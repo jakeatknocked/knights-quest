@@ -32,6 +32,7 @@ export class ChatSystem {
         const text = this.input.value.trim();
         if (text) {
           this.addMessage(this.username, text, 'player');
+          if (this.onPlayerMessage) this.onPlayerMessage(text);
         }
         this.closeInput();
       }

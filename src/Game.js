@@ -13,6 +13,7 @@ import { FriendManager } from './systems/FriendManager.js';
 import { SoundManager } from './systems/SoundManager.js';
 import { Shop } from './ui/Shop.js';
 import { ChatSystem } from './ui/ChatSystem.js';
+import { Achievements } from './ui/Achievements.js';
 
 // Make CANNON available globally for Babylon.js
 window.CANNON = CANNON;
@@ -64,7 +65,7 @@ export class Game {
       maxHealth: isAdmin ? 150 : 100,
       score: savedScore,
       totalCoins: parseInt(localStorage.getItem('totalCoins') || '0'),
-      ammo: { fire: 30, ice: 20, lightning: 15 },
+      ammo: { fire: 0, ice: 0, lightning: 0 },
       selectedElement: 'fire',
       selectedWeapon: 'pistol',
       shieldActive: false,
@@ -123,6 +124,37 @@ export class Game {
     // Chat system
     this.chat = new ChatSystem();
 
+    // Achievements
+    this.achievements = new Achievements();
+
+    // Hook chat message achievement
+    this.chat.onPlayerMessage = () => {
+      this.achievements.unlock('chat_msg', this.hud);
+    };
+
+    // Hook shop purchase achievement
+    this.shopPurchaseCount = parseInt(localStorage.getItem('shopPurchaseCount') || '0');
+    this.shop.onPurchase = () => {
+      this.achievements.unlock('buy_item', this.hud);
+      this.shopPurchaseCount++;
+      localStorage.setItem('shopPurchaseCount', this.shopPurchaseCount.toString());
+      if (this.shopPurchaseCount >= 5) this.achievements.unlock('buy_5', this.hud);
+    };
+
+    // Achievement tracking per level
+    this.gunUsedThisLevel = false;
+    this.damageTakenThisLevel = false;
+    this.swordKillsTotal = parseInt(localStorage.getItem('swordKills') || '0');
+    this.headshotsTotal = parseInt(localStorage.getItem('headshots') || '0');
+    this.bossKillsTotal = parseInt(localStorage.getItem('bossKills') || '0');
+    this.chestsOpened = parseInt(localStorage.getItem('chestsOpened') || '0');
+    this.deathCount = parseInt(localStorage.getItem('deathCount') || '0');
+    this.totalPlayTime = parseFloat(localStorage.getItem('totalPlayTime') || '0');
+    this.levelStartTime = 0;
+
+    // Kill streak tracking
+    this.recentKillTimes = [];
+
     // Setup camera to follow player
     this.setupCamera();
 
@@ -148,6 +180,13 @@ export class Game {
     this.survivalMode = false;
     this.survivalTimer = 0;
     this.survivalTimerEl = document.getElementById('survival-timer');
+
+    // Death replay (killcam) recording
+    this.replayBuffer = [];       // stores { px, py, pz, yaw, pitch, time }
+    this.replayMaxTime = 5;       // keep last 5 seconds
+    this.replayPlaying = false;
+    this.replayIndex = 0;
+    this.replayTimer = 0;
 
     // Emote wheel state
     this.emoteWheelOpen = false;
@@ -212,6 +251,7 @@ export class Game {
       this.chat.setUsername(this.state.username);
       this.chat.show();
       this.chat.systemMsg(`${this.state.username} has joined the quest!`);
+      this.achievements.unlock('welcome', this.hud);
       this.startLevel(this.state.currentLevel);
       this.hud.update();
       this.canvas.requestPointerLock();
@@ -374,6 +414,9 @@ export class Game {
   startLevel(levelIndex) {
     this.state.currentLevel = levelIndex;
     this.state.levelComplete = false;
+    this.gunUsedThisLevel = false;
+    this.damageTakenThisLevel = false;
+    this.levelStartTime = performance.now() / 1000;
 
     // Build the map for this level
     this.world.buildLevel(levelIndex);
@@ -398,6 +441,7 @@ export class Game {
     }
 
     this.enemyManager.startLevel(levelIndex);
+    this.pickupManager.spawnWorldPickups(levelIndex);
     const config = this.enemyManager.getLevelConfig();
     if (config) {
       this.state.levelName = config.name;
@@ -408,13 +452,7 @@ export class Game {
     // Start level music
     this.soundManager.startMusic(levelIndex);
 
-    // Refill ammo each level — more ammo on harder levels
-    const ammoScale = 1 + levelIndex * 0.3;
-    this.state.ammo = {
-      fire: Math.round(30 * ammoScale),
-      ice: Math.round(20 * ammoScale),
-      lightning: Math.round(15 * ammoScale)
-    };
+    // No free ammo — find elemental pistols in chests!
     // Heal player
     this.state.health = this.state.maxHealth;
     // Save progress
@@ -482,6 +520,29 @@ export class Game {
     localStorage.setItem('totalKills', this.state.totalKills.toString());
     this.updateLeaderboard();
     this.chat.killMsg(this.state.username, 'an enemy');
+
+    // Kill milestone achievements
+    this.achievements.unlock('first_kill', this.hud);
+    if (this.state.totalKills >= 25) this.achievements.unlock('kills_25', this.hud);
+    if (this.state.totalKills >= 50) this.achievements.unlock('kills_50', this.hud);
+    if (this.state.totalKills >= 100) this.achievements.unlock('kills_100', this.hud);
+    if (this.state.totalKills >= 250) this.achievements.unlock('kills_250', this.hud);
+    if (this.state.totalKills >= 500) this.achievements.unlock('kills_500', this.hud);
+
+    // Kill streak tracking
+    const now = performance.now() / 1000;
+    this.recentKillTimes.push(now);
+    this.recentKillTimes = this.recentKillTimes.filter(t => now - t < 20);
+    const killsIn10s = this.recentKillTimes.filter(t => now - t < 10).length;
+    if (killsIn10s >= 5) this.achievements.unlock('kill_streak_5', this.hud);
+    if (this.recentKillTimes.length >= 10) this.achievements.unlock('kill_streak_10', this.hud);
+
+    // Coin achievements
+    const coins = parseInt(localStorage.getItem('totalCoins') || '0');
+    if (coins >= 100) this.achievements.unlock('coins_100', this.hud);
+    if (coins >= 500) this.achievements.unlock('coins_500', this.hud);
+    if (coins >= 1000) this.achievements.unlock('coins_1000', this.hud);
+    if (coins >= 2500) this.achievements.unlock('coins_2500', this.hud);
   }
 
   updateLeaderboard() {
@@ -550,6 +611,7 @@ export class Game {
   useEmote(emote) {
     // Post to chat
     this.chat.addMessage(this.state.username, emote, 'emote');
+    this.achievements.unlock('emote_use', this.hud);
 
     // Show 3D bubble above player
     this.showEmoteBubble(emote);
@@ -614,9 +676,54 @@ export class Game {
 
     this.state.levelComplete = true;
     this.saveProgress();
+
+    // Sword-only achievement: beat a level without firing the gun
+    if (!this.gunUsedThisLevel) {
+      this.achievements.unlock('sword_only', this.hud);
+    }
+
+    // No damage achievement
+    if (!this.damageTakenThisLevel) {
+      this.achievements.unlock('no_damage', this.hud);
+    }
+
+    // Speed run achievement (under 90 seconds)
+    const levelTime = (performance.now() / 1000) - this.levelStartTime;
+    if (levelTime < 90) {
+      this.achievements.unlock('quick_clear', this.hud);
+    }
+
+    // Close call — beat level with under 10 HP
+    if (this.state.health > 0 && this.state.health < 10) {
+      this.achievements.unlock('low_health_win', this.hud);
+    }
+
+    // Level progress achievements
+    if (this.state.currentLevel >= 2) this.achievements.unlock('level_3', this.hud);
+    if (this.state.currentLevel >= 4) this.achievements.unlock('level_5', this.hud);
+
+    // Per-level achievements
+    const levelAchievements = [
+      'beat_castle', 'beat_forest', 'beat_sky', 'beat_lava', 'beat_ice',
+      'beat_shadow', 'beat_storm', 'beat_swamp', 'beat_crystal', 'beat_void'
+    ];
+    if (levelAchievements[this.state.currentLevel]) {
+      this.achievements.unlock(levelAchievements[this.state.currentLevel], this.hud);
+    }
+
+    // Boss kill tracking (each level has a boss)
+    this.bossKillsTotal++;
+    localStorage.setItem('bossKills', this.bossKillsTotal.toString());
+    this.achievements.unlock('boss_kill', this.hud);
+    if (this.bossKillsTotal >= 3) this.achievements.unlock('boss_3', this.hud);
+    if (this.bossKillsTotal >= 5) this.achievements.unlock('boss_5', this.hud);
+    if (this.bossKillsTotal >= 10) this.achievements.unlock('boss_10', this.hud);
+
     const totalLevels = this.enemyManager.getTotalLevels();
 
     if (this.state.currentLevel >= totalLevels - 1) {
+      // Beat the whole game!
+      this.achievements.unlock('beat_game', this.hud);
       // All levels beaten — victory!
       this.soundManager.stopMusic();
       document.getElementById('victory-score').textContent = this.state.score;
@@ -637,21 +744,109 @@ export class Game {
     if (this.state.dead) return;
 
     if (this.state.shieldActive) {
+      this.achievements.unlock('shield_block', this.hud);
       return;
     }
 
+    this.damageTakenThisLevel = true;
     this.state.health = Math.max(0, this.state.health - amount);
     this.soundManager.play('playerHurt');
     this.hud.update();
 
     if (this.state.health <= 0) {
       this.state.dead = true;
+      this.deathCount++;
+      localStorage.setItem('deathCount', this.deathCount.toString());
+      this.achievements.unlock('died_first', this.hud);
+      if (this.deathCount >= 10) this.achievements.unlock('died_10', this.hud);
       this.soundManager.stopMusic();
       if (this.survivalTimerEl) this.survivalTimerEl.style.display = 'none';
-      document.getElementById('final-score').textContent = this.state.score;
-      document.getElementById('game-over').style.display = 'flex';
-      this.hud.hide();
       document.exitPointerLock();
+
+      // Start killcam replay if we have recorded frames
+      if (this.replayBuffer.length > 10) {
+        this.startKillcam();
+      } else {
+        this.showGameOver();
+      }
+    }
+  }
+
+  showGameOver() {
+    document.getElementById('final-score').textContent = this.state.score;
+    document.getElementById('game-over').style.display = 'flex';
+    this.hud.hide();
+    // Hide killcam overlay
+    const overlay = document.getElementById('killcam-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  startKillcam() {
+    this.replayPlaying = true;
+    this.replayIndex = 0;
+    this.replayTimer = 0;
+    this.replayStartTime = this.replayBuffer[0].time;
+    this.replayDuration = this.replayBuffer[this.replayBuffer.length - 1].time - this.replayStartTime;
+
+    // Show killcam overlay
+    let overlay = document.getElementById('killcam-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'killcam-overlay';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = '<div class="killcam-text">KILLCAM</div><div class="killcam-bar"><div class="killcam-progress"></div></div>';
+    overlay.style.display = 'block';
+
+    // Make player mesh visible during replay so you can see yourself
+    this.player.mesh.getChildMeshes().forEach(child => {
+      child.isVisible = true;
+    });
+  }
+
+  updateKillcam(deltaTime) {
+    if (!this.replayPlaying) return;
+
+    this.replayTimer += deltaTime;
+    const progress = this.replayTimer / this.replayDuration;
+
+    // Update progress bar
+    const bar = document.querySelector('.killcam-progress');
+    if (bar) bar.style.width = (Math.min(progress, 1) * 100) + '%';
+
+    // Find current frame
+    const targetTime = this.replayStartTime + this.replayTimer;
+    while (this.replayIndex < this.replayBuffer.length - 1 &&
+           this.replayBuffer[this.replayIndex + 1].time <= targetTime) {
+      this.replayIndex++;
+    }
+
+    const frame = this.replayBuffer[this.replayIndex];
+    if (frame) {
+      // Position camera behind and above where the player was (3rd person view)
+      const behindDist = 6;
+      const aboveHeight = 3;
+      const camX = frame.px - Math.sin(frame.yaw) * behindDist;
+      const camZ = frame.pz - Math.cos(frame.yaw) * behindDist;
+      const camY = frame.py + 1.5 + aboveHeight;
+
+      this.camera.position.set(camX, camY, camZ);
+      this.camera.setTarget(new BABYLON.Vector3(frame.px, frame.py + 1.0, frame.pz));
+
+      // Move the player mesh to the recorded position
+      this.player.mesh.position.set(frame.px, frame.py, frame.pz);
+      this.player.mesh.rotation.y = frame.yaw;
+    }
+
+    // Replay finished
+    if (this.replayTimer >= this.replayDuration) {
+      this.replayPlaying = false;
+      // Hide player mesh again
+      this.player.mesh.getChildMeshes().forEach(child => {
+        child.isVisible = false;
+      });
+      // Short pause then show game over
+      setTimeout(() => this.showGameOver(), 500);
     }
   }
 
@@ -746,6 +941,11 @@ export class Game {
         this.update(deltaTime);
       }
 
+      // Play killcam replay when dead
+      if (this.replayPlaying) {
+        this.updateKillcam(deltaTime);
+      }
+
       this.scene.render();
     });
   }
@@ -795,8 +995,36 @@ export class Game {
     const blockAttacks = this.state.shieldActive || this.survivalMode;
     this.combatSystem.update(deltaTime, this.inputManager, blockAttacks);
 
+    // Track gun usage for sword-only achievement
+    if (this.combatSystem.gunFiredThisFrame) {
+      this.gunUsedThisLevel = true;
+      this.combatSystem.gunFiredThisFrame = false;
+    }
+
+    // Check sword kill achievement
+    if (this.combatSystem.swordKilledThisFrame) {
+      this.swordKillsTotal++;
+      localStorage.setItem('swordKills', this.swordKillsTotal.toString());
+      this.achievements.unlock('sword_kill', this.hud);
+      if (this.swordKillsTotal >= 10) this.achievements.unlock('sword_10', this.hud);
+      if (this.swordKillsTotal >= 25) this.achievements.unlock('sword_25', this.hud);
+      if (this.swordKillsTotal >= 50) this.achievements.unlock('sword_50', this.hud);
+      this.combatSystem.swordKilledThisFrame = false;
+    }
+
+    // Check headshot achievement
+    if (this.combatSystem.headshotThisFrame) {
+      this.headshotsTotal++;
+      localStorage.setItem('headshots', this.headshotsTotal.toString());
+      this.achievements.unlock('headshot', this.hud);
+      if (this.headshotsTotal >= 10) this.achievements.unlock('headshot_10', this.hud);
+      if (this.headshotsTotal >= 25) this.achievements.unlock('headshot_25', this.hud);
+      if (this.headshotsTotal >= 50) this.achievements.unlock('headshot_50', this.hud);
+      this.combatSystem.headshotThisFrame = false;
+    }
+
     // Update pickups
-    this.pickupManager.update(deltaTime, this);
+    this.pickupManager.update(deltaTime, this, this.inputManager);
 
     // Update friends
     this.friendManager.update(deltaTime, this);
@@ -831,6 +1059,7 @@ export class Game {
         document.getElementById('survival-score').textContent = this.state.score;
         document.getElementById('survival-victory').style.display = 'flex';
         this.state.levelComplete = true;
+        this.achievements.unlock('survive', this.hud);
         this.hud.hide();
         document.exitPointerLock();
       }
@@ -891,6 +1120,35 @@ export class Game {
         }
       }
     }
+
+    // Record frame for death replay (killcam)
+    this._replayTime = (this._replayTime || 0) + deltaTime;
+    this.replayBuffer.push({
+      px: playerPos.x, py: playerPos.y, pz: playerPos.z,
+      yaw: this._cameraYaw, pitch: this._cameraPitch,
+      time: this._replayTime
+    });
+    // Trim old frames beyond 5 seconds
+    const cutoff = this._replayTime - this.replayMaxTime;
+    while (this.replayBuffer.length > 0 && this.replayBuffer[0].time < cutoff) {
+      this.replayBuffer.shift();
+    }
+
+    // Play time tracking
+    this.totalPlayTime += deltaTime;
+    this._playTimeSaveTimer = (this._playTimeSaveTimer || 0) + deltaTime;
+    if (this._playTimeSaveTimer >= 10) {
+      this._playTimeSaveTimer = 0;
+      localStorage.setItem('totalPlayTime', this.totalPlayTime.toString());
+    }
+    if (this.totalPlayTime >= 1800) this.achievements.unlock('play_time_30', this.hud);
+    if (this.totalPlayTime >= 3600) this.achievements.unlock('play_time_60', this.hud);
+
+    // Friend rescue achievements
+    const rescued = this.friendManager.getRescuedCount();
+    if (rescued >= 1) this.achievements.unlock('rescue_friend', this.hud);
+    if (rescued >= 3) this.achievements.unlock('rescue_3', this.hud);
+    if (rescued >= 6) this.achievements.unlock('rescue_all', this.hud);
 
     // Update HUD
     this.hud.update();

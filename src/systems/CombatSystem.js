@@ -13,12 +13,463 @@ export class CombatSystem {
     // Cooldowns
     this.swordCooldown = 0;
     this.gunCooldown = 0;
+    this.gunFiredThisFrame = false;
+    this.swordKilledThisFrame = false;
+    this.headshotThisFrame = false;
+
+    // First-person weapon models
+    this.swordMesh = null;
+    this.gunMesh = null;
+    this.swordAnim = 0;   // 0 = idle, >0 = swinging
+    this.gunAnim = 0;     // 0 = idle, >0 = recoiling
+  }
+
+  createWeaponModels() {
+    if (!this.camera) return;
+
+    // Get skin color for weapon tinting
+    const skinColor = localStorage.getItem('knightSkin') || 'silver';
+    const skinColors = {
+      silver: { r: 0.3, g: 0.5, b: 0.8 },
+      gold: { r: 1, g: 0.75, b: 0.1 },
+      dark: { r: 0.25, g: 0.2, b: 0.4 },
+      crystal: { r: 0.2, g: 0.9, b: 0.9 },
+      rainbow: { r: 1, g: 0.4, b: 0.4 },
+      lava: { r: 1, g: 0.2, b: 0 },
+      ice: { r: 0.4, g: 0.7, b: 1 },
+    };
+    const sc = skinColors[skinColor] || skinColors.silver;
+
+    // --- SWORD (right side, lower) ---
+    this.swordMesh = new BABYLON.TransformNode('swordRoot', this.scene);
+    this.swordMesh.parent = this.camera;
+    this.swordMesh.position = new BABYLON.Vector3(0.35, -0.3, 0.6);
+
+    // Blade (tinted by skin)
+    const blade = BABYLON.MeshBuilder.CreateBox('blade', {
+      width: 0.04, height: 0.6, depth: 0.08
+    }, this.scene);
+    blade.position.y = 0.35;
+    blade.parent = this.swordMesh;
+    const bladeMat = new BABYLON.StandardMaterial('bladeMat', this.scene);
+    bladeMat.diffuseColor = new BABYLON.Color3(
+      0.6 + sc.r * 0.3, 0.65 + sc.g * 0.3, 0.7 + sc.b * 0.3
+    );
+    bladeMat.emissiveColor = new BABYLON.Color3(sc.r * 0.15, sc.g * 0.15, sc.b * 0.15);
+    bladeMat.specularColor = new BABYLON.Color3(1, 1, 1);
+    bladeMat.specularPower = 128;
+    blade.material = bladeMat;
+
+    // Blade tip
+    const tip = BABYLON.MeshBuilder.CreateBox('bladeTip', {
+      width: 0.04, height: 0.1, depth: 0.06
+    }, this.scene);
+    tip.position.y = 0.7;
+    tip.parent = this.swordMesh;
+    tip.material = bladeMat;
+
+    // Guard (crosspiece — skin colored)
+    const guard = BABYLON.MeshBuilder.CreateBox('guard', {
+      width: 0.15, height: 0.03, depth: 0.1
+    }, this.scene);
+    guard.position.y = 0.05;
+    guard.parent = this.swordMesh;
+    const guardMat = new BABYLON.StandardMaterial('guardMat', this.scene);
+    guardMat.diffuseColor = new BABYLON.Color3(sc.r * 0.8, sc.g * 0.8, sc.b * 0.8);
+    guardMat.emissiveColor = new BABYLON.Color3(sc.r * 0.15, sc.g * 0.15, sc.b * 0.15);
+    guardMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+    guard.material = guardMat;
+
+    // Handle
+    const handle = BABYLON.MeshBuilder.CreateCylinder('swordHandle', {
+      height: 0.15, diameter: 0.04
+    }, this.scene);
+    handle.position.y = -0.05;
+    handle.parent = this.swordMesh;
+    const handleMat = new BABYLON.StandardMaterial('handleMat', this.scene);
+    handleMat.diffuseColor = new BABYLON.Color3(sc.r * 0.4, sc.g * 0.4, sc.b * 0.4);
+    handleMat.emissiveColor = new BABYLON.Color3(sc.r * 0.08, sc.g * 0.08, sc.b * 0.08);
+    handle.material = handleMat;
+
+    // Pommel
+    const pommel = BABYLON.MeshBuilder.CreateSphere('pommel', { diameter: 0.06 }, this.scene);
+    pommel.position.y = -0.14;
+    pommel.parent = this.swordMesh;
+    pommel.material = guardMat;
+
+    this.swordMesh.setEnabled(false); // hidden by default
+
+    // Store skin color for gun rebuilds
+    this._skinColor = sc;
+
+    // Build gun for current weapon
+    this.currentGunType = null;
+    this.buildGunModel(this.gameState.selectedWeapon || 'pistol');
+
+    this.weaponModelsCreated = true;
+  }
+
+  buildGunModel(weaponType) {
+    // Don't rebuild if same type
+    if (this.currentGunType === weaponType) return;
+    this.currentGunType = weaponType;
+
+    // Dispose old gun mesh
+    if (this.gunMesh) {
+      this.gunMesh.getChildMeshes().forEach(m => {
+        if (m.material) m.material.dispose();
+        m.dispose();
+      });
+      this.gunMesh.dispose();
+    }
+
+    const sc = this._skinColor || { r: 0.3, g: 0.5, b: 0.8 };
+
+    this.gunMesh = new BABYLON.TransformNode('gunRoot', this.scene);
+    this.gunMesh.parent = this.camera;
+    this.gunMesh.position = new BABYLON.Vector3(0.3, -0.25, 0.5);
+
+    // Shared materials
+    const gunMat = new BABYLON.StandardMaterial('fpGunMat', this.scene);
+    gunMat.diffuseColor = new BABYLON.Color3(
+      0.15 + sc.r * 0.2, 0.15 + sc.g * 0.2, 0.18 + sc.b * 0.2
+    );
+    gunMat.emissiveColor = new BABYLON.Color3(sc.r * 0.06, sc.g * 0.06, sc.b * 0.06);
+    gunMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+
+    const gripMat = new BABYLON.StandardMaterial('gripMat', this.scene);
+    gripMat.diffuseColor = new BABYLON.Color3(sc.r * 0.5, sc.g * 0.5, sc.b * 0.5);
+    gripMat.emissiveColor = new BABYLON.Color3(sc.r * 0.08, sc.g * 0.08, sc.b * 0.08);
+
+    const accentMat = new BABYLON.StandardMaterial('accentMat', this.scene);
+    accentMat.diffuseColor = new BABYLON.Color3(sc.r, sc.g, sc.b);
+    accentMat.emissiveColor = new BABYLON.Color3(sc.r * 0.2, sc.g * 0.2, sc.b * 0.2);
+
+    if (weaponType === 'shotgun') {
+      // SHOTGUN — wide double barrel, chunky
+      const barrel1 = BABYLON.MeshBuilder.CreateCylinder('sgBarrel1', {
+        height: 0.38, diameter: 0.04
+      }, this.scene);
+      barrel1.rotation.x = Math.PI / 2;
+      barrel1.position.set(-0.02, 0.01, 0.2);
+      barrel1.parent = this.gunMesh;
+      barrel1.material = gunMat;
+
+      const barrel2 = BABYLON.MeshBuilder.CreateCylinder('sgBarrel2', {
+        height: 0.38, diameter: 0.04
+      }, this.scene);
+      barrel2.rotation.x = Math.PI / 2;
+      barrel2.position.set(0.02, 0.01, 0.2);
+      barrel2.parent = this.gunMesh;
+      barrel2.material = gunMat;
+
+      // Wide body
+      const sgBody = BABYLON.MeshBuilder.CreateBox('sgBody', {
+        width: 0.1, height: 0.08, depth: 0.2
+      }, this.scene);
+      sgBody.position.set(0, -0.02, 0);
+      sgBody.parent = this.gunMesh;
+      sgBody.material = gunMat;
+
+      // Pump grip
+      const pump = BABYLON.MeshBuilder.CreateBox('sgPump', {
+        width: 0.06, height: 0.05, depth: 0.08
+      }, this.scene);
+      pump.position.set(0, -0.04, 0.12);
+      pump.parent = this.gunMesh;
+      pump.material = gripMat;
+
+      // Grip
+      const sgGrip = BABYLON.MeshBuilder.CreateBox('sgGrip', {
+        width: 0.05, height: 0.12, depth: 0.06
+      }, this.scene);
+      sgGrip.position.set(0, -0.1, -0.04);
+      sgGrip.rotation.x = 0.3;
+      sgGrip.parent = this.gunMesh;
+      sgGrip.material = gripMat;
+
+      // Accent stripe
+      const sgStripe = BABYLON.MeshBuilder.CreateBox('sgStripe', {
+        width: 0.105, height: 0.02, depth: 0.21
+      }, this.scene);
+      sgStripe.position.set(0, 0.03, 0);
+      sgStripe.parent = this.gunMesh;
+      sgStripe.material = accentMat;
+
+    } else if (weaponType === 'rocket') {
+      // ROCKET LAUNCHER — big tube on shoulder
+      this.gunMesh.position = new BABYLON.Vector3(0.3, -0.2, 0.4);
+
+      const tube = BABYLON.MeshBuilder.CreateCylinder('rlTube', {
+        height: 0.5, diameter: 0.1
+      }, this.scene);
+      tube.rotation.x = Math.PI / 2;
+      tube.position.set(0, 0.02, 0.15);
+      tube.parent = this.gunMesh;
+      tube.material = gunMat;
+
+      // Wide opening at front
+      const muzzleRing = BABYLON.MeshBuilder.CreateTorus('rlMuzzle', {
+        diameter: 0.1, thickness: 0.015, tessellation: 12
+      }, this.scene);
+      muzzleRing.position.set(0, 0.02, 0.4);
+      muzzleRing.rotation.x = Math.PI / 2;
+      muzzleRing.parent = this.gunMesh;
+      muzzleRing.material = accentMat;
+
+      // Grip
+      const rlGrip = BABYLON.MeshBuilder.CreateBox('rlGrip', {
+        width: 0.05, height: 0.14, depth: 0.06
+      }, this.scene);
+      rlGrip.position.set(0, -0.1, -0.02);
+      rlGrip.rotation.x = 0.2;
+      rlGrip.parent = this.gunMesh;
+      rlGrip.material = gripMat;
+
+      // Sight on top
+      const sight = BABYLON.MeshBuilder.CreateBox('rlSight', {
+        width: 0.02, height: 0.04, depth: 0.06
+      }, this.scene);
+      sight.position.set(0, 0.1, 0.05);
+      sight.parent = this.gunMesh;
+      sight.material = accentMat;
+
+      // Accent bands
+      for (let i = 0; i < 3; i++) {
+        const band = BABYLON.MeshBuilder.CreateTorus('rlBand', {
+          diameter: 0.105, thickness: 0.008, tessellation: 12
+        }, this.scene);
+        band.position.set(0, 0.02, -0.05 + i * 0.15);
+        band.rotation.x = Math.PI / 2;
+        band.parent = this.gunMesh;
+        band.material = accentMat;
+      }
+
+    } else if (weaponType === 'laser') {
+      // LASER — sleek sci-fi blaster
+      const laserBody = BABYLON.MeshBuilder.CreateBox('lsBody', {
+        width: 0.06, height: 0.07, depth: 0.3
+      }, this.scene);
+      laserBody.position.set(0, 0, 0.05);
+      laserBody.parent = this.gunMesh;
+      laserBody.material = gunMat;
+
+      // Tapered barrel
+      const laserBarrel = BABYLON.MeshBuilder.CreateCylinder('lsBarrel', {
+        height: 0.2, diameterTop: 0.02, diameterBottom: 0.05
+      }, this.scene);
+      laserBarrel.rotation.x = Math.PI / 2;
+      laserBarrel.position.set(0, 0.01, 0.3);
+      laserBarrel.parent = this.gunMesh;
+      laserBarrel.material = gunMat;
+
+      // Glowing core
+      const core = BABYLON.MeshBuilder.CreateSphere('lsCore', { diameter: 0.04 }, this.scene);
+      core.position.set(0, 0.01, 0.08);
+      core.parent = this.gunMesh;
+      const coreMat = new BABYLON.StandardMaterial('lsCoreMat', this.scene);
+      coreMat.diffuseColor = new BABYLON.Color3(sc.r, sc.g, sc.b);
+      coreMat.emissiveColor = new BABYLON.Color3(sc.r * 0.5, sc.g * 0.5, sc.b * 0.5);
+      core.material = coreMat;
+
+      // Side fins
+      for (let side = -1; side <= 1; side += 2) {
+        const fin = BABYLON.MeshBuilder.CreateBox('lsFin', {
+          width: 0.01, height: 0.04, depth: 0.12
+        }, this.scene);
+        fin.position.set(side * 0.04, 0, 0.1);
+        fin.parent = this.gunMesh;
+        fin.material = accentMat;
+      }
+
+      // Grip
+      const lsGrip = BABYLON.MeshBuilder.CreateBox('lsGrip', {
+        width: 0.04, height: 0.1, depth: 0.05
+      }, this.scene);
+      lsGrip.position.set(0, -0.08, -0.02);
+      lsGrip.rotation.x = 0.25;
+      lsGrip.parent = this.gunMesh;
+      lsGrip.material = gripMat;
+
+    } else if (weaponType === 'minigun') {
+      // MINIGUN — multiple rotating barrels
+      this.gunMesh.position = new BABYLON.Vector3(0.3, -0.22, 0.45);
+
+      // 4 barrels in a circle
+      for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2;
+        const mgBarrel = BABYLON.MeshBuilder.CreateCylinder('mgBarrel' + i, {
+          height: 0.4, diameter: 0.025
+        }, this.scene);
+        mgBarrel.rotation.x = Math.PI / 2;
+        mgBarrel.position.set(
+          Math.cos(angle) * 0.03,
+          Math.sin(angle) * 0.03 + 0.01,
+          0.2
+        );
+        mgBarrel.parent = this.gunMesh;
+        mgBarrel.material = gunMat;
+      }
+
+      // Barrel housing (cylinder)
+      const housing = BABYLON.MeshBuilder.CreateCylinder('mgHousing', {
+        height: 0.12, diameter: 0.1
+      }, this.scene);
+      housing.rotation.x = Math.PI / 2;
+      housing.position.set(0, 0.01, 0.05);
+      housing.parent = this.gunMesh;
+      housing.material = gunMat;
+
+      // Big body
+      const mgBody = BABYLON.MeshBuilder.CreateBox('mgBody', {
+        width: 0.09, height: 0.1, depth: 0.18
+      }, this.scene);
+      mgBody.position.set(0, -0.02, -0.05);
+      mgBody.parent = this.gunMesh;
+      mgBody.material = gunMat;
+
+      // Ammo box hanging below
+      const ammoBox = BABYLON.MeshBuilder.CreateBox('mgAmmo', {
+        width: 0.06, height: 0.06, depth: 0.08
+      }, this.scene);
+      ammoBox.position.set(0.03, -0.1, -0.06);
+      ammoBox.parent = this.gunMesh;
+      ammoBox.material = accentMat;
+
+      // Grip
+      const mgGrip = BABYLON.MeshBuilder.CreateBox('mgGrip', {
+        width: 0.05, height: 0.12, depth: 0.06
+      }, this.scene);
+      mgGrip.position.set(0, -0.12, -0.02);
+      mgGrip.rotation.x = 0.2;
+      mgGrip.parent = this.gunMesh;
+      mgGrip.material = gripMat;
+
+      // Front handle
+      const frontGrip = BABYLON.MeshBuilder.CreateBox('mgFrontGrip', {
+        width: 0.04, height: 0.08, depth: 0.04
+      }, this.scene);
+      frontGrip.position.set(0, -0.06, 0.08);
+      frontGrip.parent = this.gunMesh;
+      frontGrip.material = gripMat;
+
+    } else {
+      // PISTOL — default small gun
+      const barrel = BABYLON.MeshBuilder.CreateBox('barrel', {
+        width: 0.05, height: 0.05, depth: 0.35
+      }, this.scene);
+      barrel.position.z = 0.15;
+      barrel.parent = this.gunMesh;
+      barrel.material = gunMat;
+
+      const pBody = BABYLON.MeshBuilder.CreateBox('gunBody', {
+        width: 0.07, height: 0.1, depth: 0.2
+      }, this.scene);
+      pBody.position.set(0, -0.02, 0);
+      pBody.parent = this.gunMesh;
+      pBody.material = gunMat;
+
+      const pGrip = BABYLON.MeshBuilder.CreateBox('gunGrip', {
+        width: 0.05, height: 0.12, depth: 0.06
+      }, this.scene);
+      pGrip.position.set(0, -0.1, -0.04);
+      pGrip.rotation.x = 0.3;
+      pGrip.parent = this.gunMesh;
+      pGrip.material = gripMat;
+
+      // Accent stripe
+      const pStripe = BABYLON.MeshBuilder.CreateBox('gunStripe', {
+        width: 0.075, height: 0.03, depth: 0.21
+      }, this.scene);
+      pStripe.position.set(0, 0.04, 0);
+      pStripe.parent = this.gunMesh;
+      pStripe.material = accentMat;
+    }
+
+    // Muzzle tip (colored by element) — all guns get this
+    this.gunMuzzle = BABYLON.MeshBuilder.CreateCylinder('gunMuzzle', {
+      height: 0.03, diameter: 0.04
+    }, this.scene);
+    const muzzleZ = weaponType === 'rocket' ? 0.42 : weaponType === 'laser' ? 0.42 : weaponType === 'minigun' ? 0.42 : weaponType === 'shotgun' ? 0.4 : 0.34;
+    this.gunMuzzle.position.set(0, weaponType === 'rocket' ? 0.02 : 0, muzzleZ);
+    this.gunMuzzle.rotation.x = Math.PI / 2;
+    this.gunMuzzle.parent = this.gunMesh;
+    this.gunMuzzleMat = new BABYLON.StandardMaterial('muzzleMat', this.scene);
+    this.gunMuzzleMat.diffuseColor = new BABYLON.Color3(1, 0.3, 0);
+    this.gunMuzzleMat.emissiveColor = new BABYLON.Color3(0.3, 0.1, 0);
+    this.gunMuzzle.material = this.gunMuzzleMat;
+
+    this.gunMesh.setEnabled(true);
+  }
+
+  updateWeaponModels(deltaTime) {
+    if (!this.weaponModelsCreated) return;
+
+    // Rebuild gun model if weapon changed
+    const wp = this.gameState.selectedWeapon || 'pistol';
+    if (wp !== this.currentGunType) {
+      this.buildGunModel(wp);
+    }
+
+    // Update muzzle color based on selected element
+    const elementColors = {
+      fire: { diff: new BABYLON.Color3(1, 0.3, 0), emis: new BABYLON.Color3(0.3, 0.1, 0) },
+      ice: { diff: new BABYLON.Color3(0.3, 0.8, 1), emis: new BABYLON.Color3(0.1, 0.2, 0.3) },
+      lightning: { diff: new BABYLON.Color3(1, 0.9, 0.2), emis: new BABYLON.Color3(0.3, 0.25, 0.05) }
+    };
+    const ec = elementColors[this.gameState.selectedElement] || elementColors.fire;
+    this.gunMuzzleMat.diffuseColor = ec.diff;
+    this.gunMuzzleMat.emissiveColor = ec.emis;
+
+    // Sword swing animation
+    if (this.swordAnim > 0) {
+      this.swordMesh.setEnabled(true);
+      this.gunMesh.setEnabled(false);
+
+      // Swing from right to left: rotation on Z axis
+      const t = 1 - this.swordAnim; // 0 to 1
+      this.swordMesh.rotation.z = -1.5 + t * 3.0; // swing arc
+      this.swordMesh.rotation.x = -0.3 + t * 0.6;
+      this.swordMesh.position.x = 0.35 - t * 0.3;
+
+      this.swordAnim -= deltaTime * 3; // swing lasts ~0.33s
+      if (this.swordAnim <= 0) {
+        this.swordAnim = 0;
+        this.swordMesh.setEnabled(false);
+        this.gunMesh.setEnabled(true);
+        // Reset sword position
+        this.swordMesh.rotation.set(0, 0, 0);
+        this.swordMesh.position = new BABYLON.Vector3(0.35, -0.3, 0.6);
+      }
+    }
+
+    // Gun recoil animation
+    if (this.gunAnim > 0) {
+      const t = this.gunAnim; // 1 to 0
+      this.gunMesh.position.z = 0.5 - t * 0.12; // kick back
+      this.gunMesh.rotation.x = -t * 0.2;        // tilt up
+
+      this.gunAnim -= deltaTime * 5; // recoil lasts ~0.2s
+      if (this.gunAnim <= 0) {
+        this.gunAnim = 0;
+        this.gunMesh.position.z = 0.5;
+        this.gunMesh.rotation.x = 0;
+      }
+    }
   }
 
   update(deltaTime, inputManager, shieldActive) {
     // Update cooldowns
     if (this.swordCooldown > 0) this.swordCooldown -= deltaTime;
     if (this.gunCooldown > 0) this.gunCooldown -= deltaTime;
+
+    // Create weapon models once camera is available
+    if (!this.weaponModelsCreated && this.camera) {
+      this.createWeaponModels();
+    }
+
+    // Animate weapon models
+    this.updateWeaponModels(deltaTime);
 
     // Always update projectiles (even while shielded)
     this.updateProjectiles(deltaTime);
@@ -38,6 +489,7 @@ export class CombatSystem {
 
   swordAttack() {
     this.swordCooldown = 0.5;
+    this.swordAnim = 1.0; // trigger swing animation
 
     // Use camera aim direction, flattened to XZ for melee
     const forward = this.getAimDirection();
@@ -62,6 +514,7 @@ export class CombatSystem {
           const hitPos = enemy.mesh.position.clone();
           enemy.takeDamage(25 * (this.gameState.damageMultiplier || 1) * stealth);
           this.createHitEffect(hitPos);
+          if (enemy.dead) this.swordKilledThisFrame = true;
         }
       }
     });
@@ -125,6 +578,8 @@ export class CombatSystem {
     const weapon = this.gameState.selectedWeapon || 'pistol';
     const element = this.gameState.selectedElement;
     if (this.gameState.ammo[element] <= 0) return;
+    this.gunAnim = 1.0; // trigger recoil animation
+    this.gunFiredThisFrame = true;
 
     switch (weapon) {
       case 'shotgun':
@@ -247,6 +702,7 @@ export class CombatSystem {
       const multiplier = (this.gameState.damageMultiplier || 1) * (isHeadshot ? 2.0 : 1.0) * stealth;
       hit.enemy.takeDamage(30 * multiplier, element);
       if (isHeadshot) {
+        this.headshotThisFrame = true;
         this.createHeadshotEffect(hit.point);
       } else {
         this.createHitEffect(hit.point);
@@ -260,7 +716,7 @@ export class CombatSystem {
   }
 
   shootMinigun(element) {
-    this.gunCooldown = 0.08; // Super fast!
+    this.gunCooldown = 0.2; // ~5 shots per second
     this.gameState.ammo[element]--;
 
     const forward = this.getAimDirection();
@@ -474,6 +930,7 @@ export class CombatSystem {
         const multiplier = (this.gameState.damageMultiplier || 1) * (isHeadshot ? 2.0 : 1.0) * stealth;
         enemy.takeDamage(projectile.damage * multiplier, projectile.element);
         if (isHeadshot) {
+          this.headshotThisFrame = true;
           this.createHeadshotEffect(hitPos);
         } else {
           this.createHitEffect(hitPos);
