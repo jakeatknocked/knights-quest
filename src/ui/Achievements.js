@@ -180,6 +180,53 @@ export class Achievements {
       { id: 'gift_send_5', name: 'Santa Claus', desc: 'Gift 5 items to others', icon: '&#x1F385;' },
       { id: 'gift_receive', name: 'Lucky Knight', desc: 'Receive a gift from someone', icon: '&#x1F381;' },
 
+      // PLATINUM — the big one!
+      { id: 'platinum_knight', name: 'PLATINUM KNIGHT', desc: 'Earn 100 achievements — you are a TRUE legend!', icon: '&#x1F48E;' },
+
+      // Party achievements
+      { id: 'party_time', name: 'Party Animal', desc: 'Enter the party level', icon: '&#x1F389;' },
+      { id: 'party_bounce', name: 'Bouncy Boy', desc: 'Use a trampoline at the party', icon: '&#x1F3C0;' },
+      { id: 'party_5', name: 'Party Addict', desc: 'Visit the party level 5 times', icon: '&#x1F38A;' },
+
+      // Speed achievements
+      { id: 'sprint_marathon', name: 'Marathon Runner', desc: 'Sprint for 5 minutes total', icon: '&#x1F3C3;' },
+      { id: 'jump_100', name: 'Bunny Hop', desc: 'Jump 100 times', icon: '&#x1F407;' },
+      { id: 'jump_500', name: 'Moon Bounce', desc: 'Jump 500 times', icon: '&#x1F319;' },
+
+      // Combat challenges
+      { id: 'no_sword_win', name: 'Guns Only', desc: 'Beat a level without using the sword', icon: '&#x1F52B;' },
+      { id: 'no_gun_win', name: 'Swords Only', desc: 'Beat a level without shooting', icon: '&#x2694;&#xFE0F;' },
+      { id: 'overkill', name: 'Overkill', desc: 'Deal 500+ damage in one hit', icon: '&#x1F4A5;' },
+      { id: 'point_blank', name: 'Point Blank', desc: 'Kill an enemy at very close range with a gun', icon: '&#x1F52B;' },
+      { id: 'last_second', name: 'Last Second', desc: 'Kill the boss with under 10 HP', icon: '&#x1F62C;' },
+
+      // Social / multiplayer
+      { id: 'coop_start', name: 'Team Player', desc: 'Start a co-op game', icon: '&#x1F91D;' },
+      { id: 'pvp_start', name: 'Challenger', desc: 'Start a PvP match', icon: '&#x1F94A;' },
+      { id: 'win_pvp_10', name: 'PvP Legend', desc: 'Win 10 PvP matches', icon: '&#x1F3C6;' },
+
+      // Exploration
+      { id: 'reach_height_20', name: 'Sky High', desc: 'Reach a height of 20 meters', icon: '&#x2601;&#xFE0F;' },
+      { id: 'reach_height_50', name: 'Stratosphere', desc: 'Reach a height of 50 meters', icon: '&#x1F680;' },
+      { id: 'edge_of_map', name: 'Explorer', desc: 'Reach the edge of the map', icon: '&#x1F5FA;&#xFE0F;' },
+
+      // Skin & fashion
+      { id: 'skin_10', name: 'Fashion Icon', desc: 'Own 10 skins', icon: '&#x1F457;' },
+      { id: 'skin_15', name: 'Closet Explosion', desc: 'Own 15 skins', icon: '&#x1F45F;' },
+      { id: 'skin_20', name: 'Every Color', desc: 'Own 20 skins', icon: '&#x1F308;' },
+
+      // Economy
+      { id: 'coins_25000', name: 'Treasure Dragon', desc: 'Collect 25000 coins total', icon: '&#x1F409;' },
+      { id: 'coins_50000', name: 'Kingdom Treasury', desc: 'Collect 50000 coins total', icon: '&#x1F3E6;' },
+      { id: 'buy_50', name: 'Bought the Shop', desc: 'Buy 50 items from the shop', icon: '&#x1F3EA;' },
+      { id: 'gift_send_10', name: 'Gift Machine', desc: 'Gift 10 items to others', icon: '&#x1F381;' },
+
+      // Endurance
+      { id: 'play_time_1800', name: 'No Sleep Knight', desc: 'Play for 30 hours total', icon: '&#x1F236;' },
+      { id: 'died_250', name: 'Phoenix', desc: 'Die 250 times and keep going', icon: '&#x1F426;&#x200D;&#x1F525;' },
+      { id: 'beat_game_3', name: 'Triple Crown', desc: 'Beat all levels 3 times', icon: '&#x1F451;' },
+      { id: 'beat_game_5', name: 'Victory Lap x5', desc: 'Beat all levels 5 times', icon: '&#x1F3C1;' },
+
       { id: 'all_achievements', name: 'Completionist', desc: 'Unlock every other achievement', icon: '&#x1F3C6;' },
     ];
 
@@ -215,8 +262,17 @@ export class Achievements {
     const achievement = this.list.find(a => a.id === id);
     if (!achievement) return;
 
+    // Check for Platinum Knight (100 achievements)
+    const totalUnlocked = Object.keys(this.unlocked).length;
+    if (totalUnlocked >= 100 && !this.unlocked['platinum_knight']) {
+      this.unlocked['platinum_knight'] = Date.now();
+      localStorage.setItem('achievements', JSON.stringify(this.unlocked));
+      const platAch = this.list.find(a => a.id === 'platinum_knight');
+      if (platAch) this.showPopup(platAch);
+    }
+
     // Check if all other achievements are unlocked (completionist)
-    const otherAchievements = this.list.filter(a => a.id !== 'all_achievements');
+    const otherAchievements = this.list.filter(a => a.id !== 'all_achievements' && a.id !== 'platinum_knight');
     const allUnlocked = otherAchievements.every(a => this.unlocked[a.id]);
     if (allUnlocked && !this.unlocked['all_achievements']) {
       this.unlocked['all_achievements'] = Date.now();
