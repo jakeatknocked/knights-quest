@@ -58,6 +58,16 @@ export class Player {
       royal: new BABYLON.Color3(0.5, 0.15, 0.8),
       candy: new BABYLON.Color3(1, 0.4, 0.7),
       galaxy: new BABYLON.Color3(0.3, 0.0, 0.6),
+      sunrise: new BABYLON.Color3(1, 0.6, 0.1),
+      ocean: new BABYLON.Color3(0.0, 0.3, 0.7),
+      storm: new BABYLON.Color3(0.25, 0.25, 0.65),
+      toxic: new BABYLON.Color3(0.2, 1, 0.0),
+      blood: new BABYLON.Color3(0.6, 0.0, 0.0),
+      sakura: new BABYLON.Color3(1, 0.7, 0.85),
+      void: new BABYLON.Color3(0.13, 0.0, 0.27),
+      copper: new BABYLON.Color3(0.8, 0.45, 0.2),
+      diamond: new BABYLON.Color3(0.85, 0.95, 1),
+      inferno: new BABYLON.Color3(1, 0.4, 0.0),
     };
     this.isRainbow = skinColor === 'rainbow';
     const baseColor = colors[skinColor] || colors.silver;
