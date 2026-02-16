@@ -161,11 +161,13 @@ export class Game {
       if (this.shopPurchaseCount >= 5) this.achievements.unlock('buy_5', this.hud);
       if (this.shopPurchaseCount >= 10) this.achievements.unlock('buy_10', this.hud);
       if (this.shopPurchaseCount >= 25) this.achievements.unlock('buy_25', this.hud);
+      if (this.shopPurchaseCount >= 50) this.achievements.unlock('buy_50', this.hud);
 
       // Gift achievements
       const giftsSent = parseInt(localStorage.getItem('giftsSent') || '0');
       if (giftsSent >= 1) this.achievements.unlock('gift_send', this.hud);
       if (giftsSent >= 5) this.achievements.unlock('gift_send_5', this.hud);
+      if (giftsSent >= 10) this.achievements.unlock('gift_send_10', this.hud);
 
       // Collection achievements
       const p = this.shop.purchases;
@@ -184,6 +186,9 @@ export class Game {
       const ownedSkins = skins.filter(id => p[id]).length;
       if (ownedSkins >= 3) this.achievements.unlock('skin_3', this.hud);
       if (ownedSkins >= 6) this.achievements.unlock('skin_6', this.hud);
+      if (ownedSkins >= 10) this.achievements.unlock('skin_10', this.hud);
+      if (ownedSkins >= 15) this.achievements.unlock('skin_15', this.hud);
+      if (ownedSkins >= 20) this.achievements.unlock('skin_20', this.hud);
       if (ownedSkins >= skins.length) this.achievements.unlock('skin_all', this.hud);
       // Full upgrades
       if (p.dmg3 && p.hp3 && p.speed2) this.achievements.unlock('full_upgrades', this.hud);
@@ -765,6 +770,8 @@ export class Game {
     if (coins >= 2500) this.achievements.unlock('coins_2500', this.hud);
     if (coins >= 5000) this.achievements.unlock('coins_5000', this.hud);
     if (coins >= 10000) this.achievements.unlock('coins_10000', this.hud);
+    if (coins >= 25000) this.achievements.unlock('coins_25000', this.hud);
+    if (coins >= 50000) this.achievements.unlock('coins_50000', this.hud);
   }
 
   updateLeaderboard() {
@@ -1030,6 +1037,10 @@ export class Game {
     if (this.state.currentLevel >= totalLevels - 1) {
       // Beat the whole game!
       this.achievements.unlock('beat_game', this.hud);
+      this.beatGameCount = (parseInt(localStorage.getItem('beatGameCount') || '0')) + 1;
+      localStorage.setItem('beatGameCount', this.beatGameCount.toString());
+      if (this.beatGameCount >= 3) this.achievements.unlock('beat_game_3', this.hud);
+      if (this.beatGameCount >= 5) this.achievements.unlock('beat_game_5', this.hud);
       // Start the bonus party level!
       this.startPartyLevel();
     } else {
@@ -1070,6 +1081,12 @@ export class Game {
     // Show celebration message
     this.hud.showMessage('YOU BEAT THE GAME! PARTY TIME!');
     this.chat.levelMsg('CONGRATULATIONS! You conquered all levels!');
+
+    // Party achievements
+    this.achievements.unlock('party_time', this.hud);
+    this.partyVisits = (this.partyVisits || parseInt(localStorage.getItem('partyVisits') || '0')) + 1;
+    localStorage.setItem('partyVisits', this.partyVisits.toString());
+    if (this.partyVisits >= 5) this.achievements.unlock('party_5', this.hud);
 
     // Keep pointer locked for exploring
     this.canvas.requestPointerLock();
@@ -1425,6 +1442,7 @@ export class Game {
       if (this.deathCount >= 10) this.achievements.unlock('died_10', this.hud);
       if (this.deathCount >= 50) this.achievements.unlock('died_50', this.hud);
       if (this.deathCount >= 100) this.achievements.unlock('died_100', this.hud);
+      if (this.deathCount >= 250) this.achievements.unlock('died_250', this.hud);
       this.soundManager.stopMusic();
       if (this.survivalTimerEl) this.survivalTimerEl.style.display = 'none';
       document.exitPointerLock();
@@ -1711,6 +1729,14 @@ export class Game {
       this.practice.update(deltaTime);
     }
 
+    // Height and exploration achievements
+    const py = this.player.mesh.position.y;
+    if (py >= 20) this.achievements.unlock('reach_height_20', this.hud);
+    if (py >= 50) this.achievements.unlock('reach_height_50', this.hud);
+    const px = this.player.mesh.position.x;
+    const pz = this.player.mesh.position.z;
+    if (Math.abs(px) > 120 || Math.abs(pz) > 120) this.achievements.unlock('edge_of_map', this.hud);
+
     // Update pet
     if (this.activePet) {
       this.activePet.update(deltaTime, this.enemyManager, this.state);
@@ -1771,9 +1797,14 @@ export class Game {
             this.player.mesh.physicsImpostor.setLinearVelocity(
               new BABYLON.Vector3(0, 22, 0)
             );
+            this.achievements.unlock('party_bounce', this.hud);
           }
         }
       }
+
+      // Height achievements
+      if (pPos.y >= 20) this.achievements.unlock('reach_height_20', this.hud);
+      if (pPos.y >= 50) this.achievements.unlock('reach_height_50', this.hud);
 
       // Flickering candle flames
       for (let i = 0; i < 5; i++) {
