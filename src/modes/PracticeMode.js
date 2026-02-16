@@ -52,6 +52,12 @@ export class PracticeMode {
     // Clear all enemies — this is practice, no fighting!
     this.game.enemyManager.clearAll();
 
+    // Add bright practice lighting
+    this._practiceLight = new BABYLON.HemisphericLight('practiceLight', new BABYLON.Vector3(0, 1, 0), this.scene);
+    this._practiceLight.intensity = 1.5;
+    this._practiceLight.diffuse = new BABYLON.Color3(1, 1, 1);
+    this._practiceLight.groundColor = new BABYLON.Color3(0.6, 0.6, 0.6);
+
     // Spawn targets
     this._spawnTargets();
 
@@ -72,6 +78,12 @@ export class PracticeMode {
     this.active = false;
     this.game.practiceMode = false;
     this.hudEl.style.display = 'none';
+
+    // Clean up practice light
+    if (this._practiceLight) {
+      this._practiceLight.dispose();
+      this._practiceLight = null;
+    }
 
     // Clean up targets
     this.targets.forEach(t => this._disposeTarget(t));
@@ -130,8 +142,8 @@ export class PracticeMode {
 
     // Wooden post
     const postMat = new BABYLON.StandardMaterial('postMat', this.scene);
-    postMat.diffuseColor = new BABYLON.Color3(0.45, 0.3, 0.15);
-    postMat.emissiveColor = new BABYLON.Color3(0.06, 0.04, 0.02);
+    postMat.diffuseColor = new BABYLON.Color3(0.6, 0.4, 0.2);
+    postMat.emissiveColor = new BABYLON.Color3(0.15, 0.1, 0.05);
 
     const post = BABYLON.MeshBuilder.CreateCylinder('post', {
       height: 1.8 * s, diameter: 0.15 * s, tessellation: 8
@@ -150,8 +162,8 @@ export class PracticeMode {
 
     // Bullseye board (back)
     const boardMat = new BABYLON.StandardMaterial('boardMat', this.scene);
-    boardMat.diffuseColor = new BABYLON.Color3(0.85, 0.8, 0.65);
-    boardMat.emissiveColor = new BABYLON.Color3(0.1, 0.09, 0.07);
+    boardMat.diffuseColor = new BABYLON.Color3(0.95, 0.9, 0.75);
+    boardMat.emissiveColor = new BABYLON.Color3(0.25, 0.22, 0.18);
 
     const board = BABYLON.MeshBuilder.CreateCylinder('board', {
       height: 0.08 * s, diameter: 0.9 * s, tessellation: 24
@@ -163,8 +175,8 @@ export class PracticeMode {
 
     // Red outer ring
     const ringMat = new BABYLON.StandardMaterial('ringMat', this.scene);
-    ringMat.diffuseColor = new BABYLON.Color3(0.9, 0.15, 0.1);
-    ringMat.emissiveColor = new BABYLON.Color3(0.2, 0.03, 0.02);
+    ringMat.diffuseColor = new BABYLON.Color3(1, 0.2, 0.1);
+    ringMat.emissiveColor = new BABYLON.Color3(0.4, 0.06, 0.03);
 
     const ring = BABYLON.MeshBuilder.CreateTorus('ring', {
       diameter: 0.7 * s, thickness: 0.12 * s, tessellation: 24
@@ -177,7 +189,7 @@ export class PracticeMode {
     // White middle ring
     const midMat = new BABYLON.StandardMaterial('midMat', this.scene);
     midMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-    midMat.emissiveColor = new BABYLON.Color3(0.15, 0.15, 0.15);
+    midMat.emissiveColor = new BABYLON.Color3(0.35, 0.35, 0.35);
 
     const mid = BABYLON.MeshBuilder.CreateTorus('midRing', {
       diameter: 0.45 * s, thickness: 0.08 * s, tessellation: 24

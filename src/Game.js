@@ -154,11 +154,39 @@ export class Game {
 
     // Hook shop purchase achievement
     this.shopPurchaseCount = parseInt(localStorage.getItem('shopPurchaseCount') || '0');
-    this.shop.onPurchase = () => {
+    this.shop.onPurchase = (item) => {
       this.achievements.unlock('buy_item', this.hud);
       this.shopPurchaseCount++;
       localStorage.setItem('shopPurchaseCount', this.shopPurchaseCount.toString());
       if (this.shopPurchaseCount >= 5) this.achievements.unlock('buy_5', this.hud);
+      if (this.shopPurchaseCount >= 10) this.achievements.unlock('buy_10', this.hud);
+      if (this.shopPurchaseCount >= 25) this.achievements.unlock('buy_25', this.hud);
+
+      // Gift achievements
+      const giftsSent = parseInt(localStorage.getItem('giftsSent') || '0');
+      if (giftsSent >= 1) this.achievements.unlock('gift_send', this.hud);
+      if (giftsSent >= 5) this.achievements.unlock('gift_send_5', this.hud);
+
+      // Collection achievements
+      const p = this.shop.purchases;
+      // All weapons
+      if (p.shotgun && p.rocket && p.minigun && p.laser && p.crossbow && p.flamethrower) {
+        this.achievements.unlock('all_weapons', this.hud);
+      }
+      // Pets
+      const pets = ['pet_wolf','pet_dragon','pet_fairy','pet_ghost','pet_phoenix','pet_golem','pet_cat'];
+      const ownedPets = pets.filter(id => p[id]).length;
+      if (ownedPets >= 2) this.achievements.unlock('pet_2', this.hud);
+      if (ownedPets >= 4) this.achievements.unlock('pet_4', this.hud);
+      if (ownedPets >= pets.length) this.achievements.unlock('pet_all', this.hud);
+      // Skins
+      const skins = ['skin_gold','skin_dark','skin_crystal','skin_rainbow','skin_lava','skin_ice','skin_shadow','skin_emerald','skin_royal','skin_candy','skin_galaxy'];
+      const ownedSkins = skins.filter(id => p[id]).length;
+      if (ownedSkins >= 3) this.achievements.unlock('skin_3', this.hud);
+      if (ownedSkins >= 6) this.achievements.unlock('skin_6', this.hud);
+      if (ownedSkins >= skins.length) this.achievements.unlock('skin_all', this.hud);
+      // Full upgrades
+      if (p.dmg3 && p.hp3 && p.speed2) this.achievements.unlock('full_upgrades', this.hud);
     };
 
     // Achievement tracking per level
@@ -686,6 +714,9 @@ export class Game {
     if (this.state.totalKills >= 100) this.achievements.unlock('kills_100', this.hud);
     if (this.state.totalKills >= 250) this.achievements.unlock('kills_250', this.hud);
     if (this.state.totalKills >= 500) this.achievements.unlock('kills_500', this.hud);
+    if (this.state.totalKills >= 1000) this.achievements.unlock('kills_1000', this.hud);
+    if (this.state.totalKills >= 2500) this.achievements.unlock('kills_2500', this.hud);
+    if (this.state.totalKills >= 5000) this.achievements.unlock('kills_5000', this.hud);
 
     // Kill streak tracking
     const now = performance.now() / 1000;
@@ -694,6 +725,9 @@ export class Game {
     const killsIn10s = this.recentKillTimes.filter(t => now - t < 10).length;
     if (killsIn10s >= 5) this.achievements.unlock('kill_streak_5', this.hud);
     if (this.recentKillTimes.length >= 10) this.achievements.unlock('kill_streak_10', this.hud);
+    if (this.recentKillTimes.length >= 15) this.achievements.unlock('kill_streak_15', this.hud);
+    const killsIn30s = this.recentKillTimes.filter(t => now - t < 30).length;
+    if (killsIn30s >= 20) this.achievements.unlock('kill_streak_20', this.hud);
 
     // Coin achievements
     const coins = parseInt(localStorage.getItem('totalCoins') || '0');
@@ -701,6 +735,8 @@ export class Game {
     if (coins >= 500) this.achievements.unlock('coins_500', this.hud);
     if (coins >= 1000) this.achievements.unlock('coins_1000', this.hud);
     if (coins >= 2500) this.achievements.unlock('coins_2500', this.hud);
+    if (coins >= 5000) this.achievements.unlock('coins_5000', this.hud);
+    if (coins >= 10000) this.achievements.unlock('coins_10000', this.hud);
   }
 
   updateLeaderboard() {
@@ -784,6 +820,7 @@ export class Game {
         </div>
       `;
       document.body.appendChild(popup);
+      this.achievements.unlock('gift_receive', this.hud);
       document.getElementById('gift-received-ok').addEventListener('click', () => {
         popup.remove();
       });
@@ -916,12 +953,20 @@ export class Game {
     // No damage achievement
     if (!this.damageTakenThisLevel) {
       this.achievements.unlock('no_damage', this.hud);
+      this.noDamageLevels = (this.noDamageLevels || 0) + 1;
+      if (this.noDamageLevels >= 3) this.achievements.unlock('no_damage_3', this.hud);
     }
 
     // Speed run achievement (under 90 seconds)
     const levelTime = (performance.now() / 1000) - this.levelStartTime;
     if (levelTime < 90) {
       this.achievements.unlock('quick_clear', this.hud);
+    }
+    if (levelTime < 60) {
+      this.achievements.unlock('speed_run_60', this.hud);
+    }
+    if (levelTime < 30) {
+      this.achievements.unlock('speed_run_30', this.hud);
     }
 
     // Close call — beat level with under 10 HP
@@ -949,6 +994,8 @@ export class Game {
     if (this.bossKillsTotal >= 3) this.achievements.unlock('boss_3', this.hud);
     if (this.bossKillsTotal >= 5) this.achievements.unlock('boss_5', this.hud);
     if (this.bossKillsTotal >= 10) this.achievements.unlock('boss_10', this.hud);
+    if (this.bossKillsTotal >= 25) this.achievements.unlock('boss_25', this.hud);
+    if (this.bossKillsTotal >= 50) this.achievements.unlock('boss_50', this.hud);
 
     const totalLevels = this.enemyManager.getTotalLevels();
 
@@ -977,6 +1024,8 @@ export class Game {
 
     if (this.state.shieldActive) {
       this.achievements.unlock('shield_block', this.hud);
+      this.shieldBlocks = (this.shieldBlocks || 0) + 1;
+      if (this.shieldBlocks >= 50) this.achievements.unlock('shield_master', this.hud);
       return;
     }
 
@@ -1000,6 +1049,8 @@ export class Game {
       localStorage.setItem('deathCount', this.deathCount.toString());
       this.achievements.unlock('died_first', this.hud);
       if (this.deathCount >= 10) this.achievements.unlock('died_10', this.hud);
+      if (this.deathCount >= 50) this.achievements.unlock('died_50', this.hud);
+      if (this.deathCount >= 100) this.achievements.unlock('died_100', this.hud);
       this.soundManager.stopMusic();
       if (this.survivalTimerEl) this.survivalTimerEl.style.display = 'none';
       document.exitPointerLock();
@@ -1255,6 +1306,8 @@ export class Game {
       if (this.swordKillsTotal >= 10) this.achievements.unlock('sword_10', this.hud);
       if (this.swordKillsTotal >= 25) this.achievements.unlock('sword_25', this.hud);
       if (this.swordKillsTotal >= 50) this.achievements.unlock('sword_50', this.hud);
+      if (this.swordKillsTotal >= 100) this.achievements.unlock('sword_100', this.hud);
+      if (this.swordKillsTotal >= 250) this.achievements.unlock('sword_250', this.hud);
       this.combatSystem.swordKilledThisFrame = false;
     }
 
@@ -1266,6 +1319,8 @@ export class Game {
       if (this.headshotsTotal >= 10) this.achievements.unlock('headshot_10', this.hud);
       if (this.headshotsTotal >= 25) this.achievements.unlock('headshot_25', this.hud);
       if (this.headshotsTotal >= 50) this.achievements.unlock('headshot_50', this.hud);
+      if (this.headshotsTotal >= 100) this.achievements.unlock('headshot_100', this.hud);
+      if (this.headshotsTotal >= 250) this.achievements.unlock('headshot_250', this.hud);
       this.combatSystem.headshotThisFrame = false;
     }
 
@@ -1320,6 +1375,11 @@ export class Game {
         document.getElementById('survival-victory').style.display = 'flex';
         this.state.levelComplete = true;
         this.achievements.unlock('survive', this.hud);
+        this.survivalWins = (this.survivalWins || 0) + 1;
+        if (this.survivalWins >= 3) this.achievements.unlock('survive_3', this.hud);
+        if (this.survivalWins >= 5) this.achievements.unlock('survive_5', this.hud);
+        if (this.state.health <= this.state.maxHealth * 0.5) this.achievements.unlock('survive_half_hp', this.hud);
+        if (!this.damageTakenThisLevel) this.achievements.unlock('survive_no_damage', this.hud);
         this.hud.hide();
         document.exitPointerLock();
       }
@@ -1351,6 +1411,7 @@ export class Game {
     // Sky Battle: fall off the islands = instant death
     if (this.state.currentLevel === 2 && this.player.mesh.position.y < -3) {
       this.hud.showMessage('You fell into the lava!');
+      this.achievements.unlock('fall_death', this.hud);
       this.damagePlayer(99999);
     }
 
@@ -1374,6 +1435,7 @@ export class Game {
             this.state.rankColor = this.ranks[i].color;
             this.state.rewardMultiplier = this.ranks[i].reward;
             this.hud.showMessage(`Rank Up! ${newRank}! (${this.ranks[i].reward}x rewards)`);
+            if (newRank === 'Legend') this.achievements.unlock('max_rank', this.hud);
             this.saveProgress();
           }
           break;
@@ -1403,6 +1465,8 @@ export class Game {
     }
     if (this.totalPlayTime >= 1800) this.achievements.unlock('play_time_30', this.hud);
     if (this.totalPlayTime >= 3600) this.achievements.unlock('play_time_60', this.hud);
+    if (this.totalPlayTime >= 10800) this.achievements.unlock('play_time_180', this.hud);
+    if (this.totalPlayTime >= 36000) this.achievements.unlock('play_time_600', this.hud);
 
     // Friend rescue achievements
     const rescued = this.friendManager.getRescuedCount();
@@ -1717,6 +1781,15 @@ export class Game {
   }
 
   _showPvPEnd(won) {
+    if (won) {
+      this.achievements.unlock('win_pvp', this.hud);
+      this.pvpWins = (this.pvpWins || parseInt(localStorage.getItem('pvpWins') || '0')) + 1;
+      localStorage.setItem('pvpWins', this.pvpWins.toString());
+      if (this.pvpWins >= 5) this.achievements.unlock('win_pvp_5', this.hud);
+      // Flawless = won 5-0
+      const theirScore = this.network.isHost ? this.pvpScores.client : this.pvpScores.host;
+      if (theirScore === 0) this.achievements.unlock('win_pvp_flawless', this.hud);
+    }
     document.getElementById('pvp-score').style.display = 'none';
     document.getElementById('pvp-result').textContent = won ? 'VICTORY!' : 'DEFEATED!';
     document.getElementById('pvp-final-score').textContent =
