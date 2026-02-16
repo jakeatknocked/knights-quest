@@ -1002,12 +1002,8 @@ export class Game {
     if (this.state.currentLevel >= totalLevels - 1) {
       // Beat the whole game!
       this.achievements.unlock('beat_game', this.hud);
-      // All levels beaten — victory!
-      this.soundManager.stopMusic();
-      document.getElementById('victory-score').textContent = this.state.score;
-      document.getElementById('victory-screen').style.display = 'flex';
-      this.hud.hide();
-      document.exitPointerLock();
+      // Start the bonus party level!
+      this.startPartyLevel();
     } else {
       // Show level complete screen
       const config = this.enemyManager.getLevelConfig();
@@ -1018,8 +1014,160 @@ export class Game {
     }
   }
 
+  startPartyLevel() {
+    this.partyMode = true;
+    this.state.levelComplete = true; // Prevent checkLevelComplete from running
+    this.survivalMode = false;
+    this.practiceMode = false;
+
+    // Clear ALL enemies first
+    this.enemyManager.clearAll();
+    this.enemyManager.enemies = [];
+    this.enemyManager.bossDefeated = true;
+
+    // Build The Void map with party decorations on top
+    this.world.buildLevel(9);
+    this.world.addPartyDecorations();
+
+    // Teleport player to the arena
+    this.player.mesh.position = new BABYLON.Vector3(0, 2, -15);
+    if (this.player.mesh.physicsImpostor) {
+      this.player.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+    }
+
+    // Full health and ammo for celebration
+    this.state.health = this.state.maxHealth;
+    this.state.ammo = { fire: 9999, ice: 9999, lightning: 9999 };
+
+    // Show celebration message
+    this.hud.showMessage('YOU BEAT THE GAME! PARTY TIME!');
+    this.chat.levelMsg('CONGRATULATIONS! You conquered all levels!');
+
+    // Keep pointer locked for exploring
+    this.canvas.requestPointerLock();
+
+    // Start firework effects
+    this._partyFireworkTimer = 0;
+    this._partyFireworks = [];
+    this._partyDuration = 0;
+
+    // Create party HUD overlay
+    this._createPartyHUD();
+  }
+
+  _createPartyHUD() {
+    const el = document.createElement('div');
+    el.id = 'party-hud';
+    el.innerHTML = `
+      <div style="position:fixed;top:30px;left:50%;transform:translateX(-50%);
+        font-size:48px;font-weight:bold;color:#FFD700;text-shadow:0 0 20px #FF6600,0 0 40px #FF3300;
+        font-family:Arial,sans-serif;z-index:100;text-align:center;pointer-events:none;">
+        CONGRATULATIONS!<br>
+        <span style="font-size:28px;color:#FFF;">You conquered Knights Quest!</span>
+      </div>
+      <div style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+        font-size:18px;color:#FFF;text-shadow:0 0 10px #000;
+        font-family:Arial,sans-serif;z-index:100;pointer-events:none;">
+        Press ESC to return to menu
+      </div>
+    `;
+    document.body.appendChild(el);
+    this._partyHudEl = el;
+
+    // ESC to end party
+    this._partyEscHandler = (e) => {
+      if (e.code === 'Escape') this._endParty();
+    };
+    window.addEventListener('keydown', this._partyEscHandler);
+  }
+
+  _endParty() {
+    this.partyMode = false;
+
+    // Clean up fireworks
+    if (this._partyFireworks) {
+      this._partyFireworks.forEach(ps => ps.dispose());
+      this._partyFireworks = [];
+    }
+
+    // Remove party HUD
+    if (this._partyHudEl) {
+      this._partyHudEl.remove();
+      this._partyHudEl = null;
+    }
+
+    // Remove ESC handler
+    if (this._partyEscHandler) {
+      window.removeEventListener('keydown', this._partyEscHandler);
+      this._partyEscHandler = null;
+    }
+
+    // Show victory screen
+    this.soundManager.stopMusic();
+    document.getElementById('victory-score').textContent = this.state.score;
+    document.getElementById('victory-screen').style.display = 'flex';
+    this.hud.hide();
+    document.exitPointerLock();
+  }
+
+  _spawnFirework() {
+    const colors = [
+      new BABYLON.Color4(1, 0.2, 0.2, 1),    // red
+      new BABYLON.Color4(0.2, 0.5, 1, 1),    // blue
+      new BABYLON.Color4(0.2, 1, 0.3, 1),    // green
+      new BABYLON.Color4(1, 0.85, 0.1, 1),   // gold
+      new BABYLON.Color4(0.8, 0.2, 1, 1),    // purple
+      new BABYLON.Color4(1, 0.5, 0.1, 1),    // orange
+      new BABYLON.Color4(0.1, 1, 1, 1),      // cyan
+      new BABYLON.Color4(1, 0.3, 0.6, 1),    // pink
+    ];
+
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const color2 = colors[Math.floor(Math.random() * colors.length)];
+
+    const ps = new BABYLON.ParticleSystem('firework', 150, this.scene);
+    ps.createPointEmitter(
+      new BABYLON.Vector3(-1, -1, -1),
+      new BABYLON.Vector3(1, 1, 1)
+    );
+
+    // Random position in the sky above the arena
+    ps.emitter = new BABYLON.Vector3(
+      (Math.random() - 0.5) * 40,
+      10 + Math.random() * 15,
+      (Math.random() - 0.5) * 40
+    );
+
+    ps.color1 = color;
+    ps.color2 = color2;
+    ps.colorDead = new BABYLON.Color4(color.r * 0.3, color.g * 0.3, color.b * 0.3, 0);
+
+    ps.minSize = 0.2;
+    ps.maxSize = 0.6;
+    ps.minLifeTime = 0.5;
+    ps.maxLifeTime = 1.5;
+    ps.emitRate = 0;  // burst mode
+    ps.manualEmitCount = 100 + Math.floor(Math.random() * 80);
+    ps.gravity = new BABYLON.Vector3(0, -5, 0);
+    ps.minEmitPower = 5;
+    ps.maxEmitPower = 12;
+    ps.updateSpeed = 0.02;
+    ps.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+    ps.targetStopDuration = 0.1;
+    ps.disposeOnStop = true;
+
+    ps.start();
+
+    // Track for cleanup
+    this._partyFireworks.push(ps);
+
+    // Remove disposed ones from the array
+    this._partyFireworks = this._partyFireworks.filter(p => !p._stopped);
+  }
+
   damagePlayer(amount) {
     if (this.state.dead) return;
+    if (this.partyMode) return; // No damage during party!
     if (this.player && this.player.invincible) return;
 
     if (this.state.shieldActive) {
@@ -1284,8 +1432,10 @@ export class Game {
       this.state.shieldCooldown -= deltaTime;
     }
 
-    // Update enemies
-    this.enemyManager.update(deltaTime, this);
+    // Update enemies (skip during party mode)
+    if (!this.partyMode) {
+      this.enemyManager.update(deltaTime, this);
+    }
 
     // Update combat (attacks, projectiles — always update projectiles, block new attacks if shielded)
     // In survival mode, block ALL player attacks (sword + gun)
@@ -1348,8 +1498,21 @@ export class Game {
     this.state.enemiesAlive = this.enemyManager.getAliveEnemies().length;
 
     // Check level complete (not in survival or practice mode)
-    if (!this.survivalMode && !this.practiceMode) {
+    if (!this.survivalMode && !this.practiceMode && !this.partyMode) {
       this.checkLevelComplete();
+    }
+
+    // Party mode fireworks
+    if (this.partyMode) {
+      this._partyDuration += deltaTime;
+      this._partyFireworkTimer += deltaTime;
+      // Spawn firework every 0.4-0.8 seconds
+      if (this._partyFireworkTimer > 0.4 + Math.random() * 0.4) {
+        this._partyFireworkTimer = 0;
+        this._spawnFirework();
+      }
+      // Keep health and ammo full during party
+      this.state.health = this.state.maxHealth;
     }
 
     // Survival mode timer
