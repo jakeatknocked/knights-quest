@@ -275,7 +275,7 @@ export class SoundManager {
       this.initialized = true;
       // Master music gain node
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.value = 0.12;
+      this.musicGain.gain.value = 0.45;
       this.musicGain.connect(this.ctx.destination);
     } catch (e) {
       // Web Audio not supported
@@ -307,7 +307,7 @@ export class SoundManager {
           const dur = beats * beatDuration;
           const timerId = setTimeout(() => {
             if (!this.musicPlaying) return;
-            this._playMusicNote(freq, dur * 0.9, music.melodyType, 0.12);
+            this._playMusicNote(freq, dur * 0.9, music.melodyType, 0.4);
           }, melodyTime * 1000);
           this.musicTimers.push(timerId);
         }
@@ -320,7 +320,7 @@ export class SoundManager {
           const dur = beats * beatDuration;
           const timerId = setTimeout(() => {
             if (!this.musicPlaying) return;
-            this._playMusicNote(freq, dur * 0.9, music.bassType, 0.08);
+            this._playMusicNote(freq, dur * 0.9, music.bassType, 0.25);
           }, bassTime * 1000);
           this.musicTimers.push(timerId);
         }

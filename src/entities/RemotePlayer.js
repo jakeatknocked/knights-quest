@@ -351,20 +351,21 @@ export class RemotePlayer {
   }
 
   update(deltaTime) {
-    if (!this.root || this.dying) {
-      // If dying, continue death animation
-      if (this.dying) {
-        this.deathTimer += deltaTime;
-        // Tip over on X axis
-        const fallAngle = Math.min(this.deathTimer * 3, Math.PI / 2);
-        this.root.rotation.x = fallAngle;
-        if (this.deathTimer > 1.5) {
-          // Make mostly invisible after falling
-          this.root.setEnabled(false);
-        }
+    if (!this.root) return;
+
+    // If dying, play death animation and skip movement
+    if (this.dying) {
+      this.deathTimer += deltaTime;
+      const fallAngle = Math.min(this.deathTimer * 3, Math.PI / 2);
+      this.root.rotation.x = fallAngle;
+      if (this.deathTimer > 1.5) {
+        this.root.setEnabled(false);
       }
       return;
     }
+
+    // If not alive yet (waiting for respawn), skip
+    if (!this.alive) return;
 
     // Smooth position interpolation (lerp toward target)
     const lerpFactor = Math.min(1, 10 * deltaTime);
@@ -453,6 +454,7 @@ export class RemotePlayer {
   }
 
   die() {
+    if (this.dying) return; // Already dying
     this.alive = false;
     this.dying = true;
     this.deathTimer = 0;
