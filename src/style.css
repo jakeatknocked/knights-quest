@@ -698,6 +698,17 @@ body {
   background: linear-gradient(to bottom, #ffd700, #aa8800);
   color: #222; cursor: pointer; font-weight: bold;
 }
+.shop-btn-row {
+  display: flex; gap: 6px; justify-content: center; margin-top: 6px;
+}
+.gift-btn {
+  background: linear-gradient(to bottom, #ff66aa, #cc3388) !important;
+  color: #fff !important; cursor: pointer; font-size: 11px !important;
+  padding: 6px 10px !important; border-radius: 6px;
+}
+.gift-btn:hover {
+  background: linear-gradient(to bottom, #ff88cc, #dd44aa) !important;
+}
 #shop-back-btn, #achievements-back-btn {
   padding: 12px 36px; font-size: 18px;
   background: linear-gradient(to bottom, #ff6644, #cc2200);

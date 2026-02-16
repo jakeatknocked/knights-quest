@@ -155,14 +155,22 @@ export class Shop {
         btnHtml = `<button class="buy-btn ${!canAfford ? 'cant-afford' : ''}">${item.cost} coins</button>`;
       }
 
+      // Gift button (always show if you can afford it)
+      const giftHtml = !item.info && canAfford
+        ? `<button class="buy-btn gift-btn" data-action="gift" data-item-id="${item.id}">&#x1F381; GIFT (${item.cost})</button>`
+        : '';
+
       div.innerHTML = `
         ${item.icon ? `<div class="item-icon">${item.icon}</div>` : ''}
         <div class="item-name">${item.name}</div>
         <div class="item-desc">${item.desc}</div>
-        ${btnHtml}
+        <div class="shop-btn-row">
+          ${btnHtml}
+          ${giftHtml}
+        </div>
       `;
 
-      const btn = div.querySelector('.buy-btn');
+      const btn = div.querySelector('.buy-btn:not(.gift-btn)');
       if (btn) {
         if (btn.dataset.action === 'equip-pet') {
           btn.addEventListener('click', () => this.equipPet(btn.dataset.pet));
@@ -171,6 +179,12 @@ export class Shop {
         } else if (!owned && canAfford && !item.info) {
           btn.addEventListener('click', () => this.buy(item));
         }
+      }
+
+      // Gift button handler
+      const giftBtn = div.querySelector('.gift-btn');
+      if (giftBtn) {
+        giftBtn.addEventListener('click', () => this.gift(item));
       }
 
       container.appendChild(div);
@@ -190,6 +204,41 @@ export class Shop {
   unequipPet() {
     localStorage.removeItem('equippedPet');
     this.render();
+  }
+
+  gift(item) {
+    if (this.coins < item.cost) return;
+
+    // Check if connected to another player
+    if (!this.onGift) {
+      alert('You need to be in a multiplayer game to gift items!');
+      return;
+    }
+
+    this.coins -= item.cost;
+    localStorage.setItem('totalCoins', this.coins.toString());
+
+    // Send gift to other player via network
+    this.onGift(item);
+    this.render();
+  }
+
+  receiveGift(itemId, fromUsername) {
+    // Find the item across all categories
+    let item = null;
+    for (const category of Object.values(this.items)) {
+      item = category.find(i => i.id === itemId);
+      if (item) break;
+    }
+    if (!item) return;
+
+    this.purchases[itemId] = true;
+    localStorage.setItem('shopPurchases', JSON.stringify(this.purchases));
+
+    // Show notification
+    if (this.onGiftReceived) {
+      this.onGiftReceived(item, fromUsername);
+    }
   }
 
   buy(item) {

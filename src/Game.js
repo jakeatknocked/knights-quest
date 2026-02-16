@@ -127,6 +127,20 @@ export class Game {
     // Shop
     this.shop = new Shop();
 
+    // Gift system — wire shop to network
+    this.shop.onGift = (item) => {
+      if (this.network && this.network.connected) {
+        this.network.send('gi', { itemId: item.id, username: this.state.username, itemName: item.name });
+        this.hud.showMessage(`Gifted ${item.name}!`);
+      } else {
+        alert('You need to be in a multiplayer game to gift items!');
+      }
+    };
+    this.shop.onGiftReceived = (item, fromUsername) => {
+      this.hud.showMessage(`${fromUsername} gifted you ${item.name}!`);
+      this.chat.systemMsg(`${fromUsername} gifted ${item.name}!`);
+    };
+
     // Chat system
     this.chat = new ChatSystem();
 
@@ -1443,6 +1457,12 @@ export class Game {
 
       case 'pw': // PvP win notification
         this._showPvPEnd(false);
+        break;
+
+      case 'gi': // Gift received
+        if (this.shop) {
+          this.shop.receiveGift(data.itemId, data.username);
+        }
         break;
     }
   }
