@@ -135,8 +135,6 @@ export class Game {
       if (this.network && this.network.connected) {
         this.network.send('gi', { itemId: item.id, username: this.state.username, itemName: item.name });
         this.hud.showMessage(`Gifted ${item.name}!`);
-      } else {
-        alert('You need to be in a multiplayer game to gift items!');
       }
     };
     this.shop.onGiftReceived = (item, fromUsername) => {
@@ -291,16 +289,6 @@ export class Game {
       this.chat.show();
       this.chat.systemMsg(`${this.state.username} has joined the quest!`);
       this.achievements.unlock('welcome', this.hud);
-
-      // Check gift inbox
-      const gifts = this.shop.checkGiftInbox(this.state.username);
-      if (gifts && gifts.length > 0) {
-        gifts.forEach(g => {
-          this.hud.showMessage(`Gift from ${g.from}: ${g.itemName}!`);
-        });
-        // Re-apply upgrades with new items
-        this.shop.applyUpgrades(this.state, this.player);
-      }
 
       this.startLevel(this.state.currentLevel);
       this.hud.update();
@@ -1360,6 +1348,9 @@ export class Game {
   // ==================== MULTIPLAYER ====================
 
   _onPeerConnected() {
+    // Tell shop we're connected so gifting works
+    this.shop._networkConnected = true;
+
     // Hide lobby
     document.getElementById('multiplayer-lobby').style.display = 'none';
 
@@ -1378,6 +1369,7 @@ export class Game {
   }
 
   _onPeerDisconnected() {
+    this.shop._networkConnected = false;
     if (this.remotePlayer) {
       this.remotePlayer.dispose();
       this.remotePlayer = null;

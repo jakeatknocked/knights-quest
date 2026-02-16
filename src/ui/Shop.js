@@ -216,80 +216,57 @@ export class Shop {
     let popup = document.getElementById('gift-popup');
     if (popup) popup.remove();
 
+    const isConnected = this._networkConnected;
+
     popup = document.createElement('div');
     popup.id = 'gift-popup';
-    popup.innerHTML = `
-      <div class="gift-popup-inner">
-        <h2>&#x1F381; Gift ${item.name}</h2>
-        <p>Enter their username:</p>
-        <input type="text" id="gift-username-input" maxlength="16" placeholder="Their name..." style="
-          font-size: 20px; text-align: center; padding: 10px; width: 220px;
-          background: #1a1a2e; color: #ffd700; border: 2px solid #ffd700;
-          border-radius: 8px;
-        ">
-        <p style="color:#aaa; font-size:12px; margin-top:6px;">Cost: ${item.cost} coins</p>
-        <br>
-        <button id="gift-send-btn">&#x1F381; SEND GIFT</button>
-        <button id="gift-cancel-btn">CANCEL</button>
-        <p id="gift-status" style="margin-top: 10px;"></p>
-      </div>
-    `;
-    document.body.appendChild(popup);
 
-    document.getElementById('gift-send-btn').addEventListener('click', () => {
-      const toUsername = document.getElementById('gift-username-input').value.trim();
-      if (!toUsername) {
-        document.getElementById('gift-status').style.color = '#ff4444';
-        document.getElementById('gift-status').textContent = 'Enter a username!';
-        return;
-      }
+    if (isConnected) {
+      // Connected in multiplayer — gift directly to the other player
+      popup.innerHTML = `
+        <div class="gift-popup-inner">
+          <h2>&#x1F381; Gift ${item.name}</h2>
+          <p>Send <strong>${item.name}</strong> to the other player?</p>
+          <p style="color:#aaa; font-size:12px;">Cost: ${item.cost} coins</p>
+          <br>
+          <button id="gift-send-btn">&#x1F381; SEND GIFT</button>
+          <button id="gift-cancel-btn">CANCEL</button>
+          <p id="gift-status" style="margin-top: 10px;"></p>
+        </div>
+      `;
+      document.body.appendChild(popup);
 
-      // Deduct coins
-      this.coins -= item.cost;
-      localStorage.setItem('totalCoins', this.coins.toString());
-
-      // Store gift for that username
-      const allGifts = JSON.parse(localStorage.getItem('giftInbox') || '{}');
-      if (!allGifts[toUsername.toLowerCase()]) allGifts[toUsername.toLowerCase()] = [];
-      allGifts[toUsername.toLowerCase()].push({
-        itemId: item.id,
-        itemName: item.name,
-        from: localStorage.getItem('username') || 'A Knight',
+      document.getElementById('gift-send-btn').addEventListener('click', () => {
+        this.coins -= item.cost;
+        localStorage.setItem('totalCoins', this.coins.toString());
+        if (this.onGift) this.onGift(item);
+        document.getElementById('gift-status').style.color = '#44ff44';
+        document.getElementById('gift-status').textContent = `Sent ${item.name}!`;
+        setTimeout(() => { popup.remove(); this.render(); }, 1500);
       });
-      localStorage.setItem('giftInbox', JSON.stringify(allGifts));
-
-      document.getElementById('gift-status').style.color = '#44ff44';
-      document.getElementById('gift-status').textContent = `Sent ${item.name} to ${toUsername}!`;
-      setTimeout(() => {
-        popup.remove();
-        this.render();
-      }, 1500);
-    });
+    } else {
+      // Not connected — tell them to join multiplayer first
+      popup.innerHTML = `
+        <div class="gift-popup-inner">
+          <h2>&#x1F381; Gift ${item.name}</h2>
+          <p>To gift items you need to be<br>connected to another player!</p>
+          <p style="color:#ffd700; font-size:14px; margin-top:12px;">
+            <strong>How to gift:</strong><br>
+            1. Go to the main menu<br>
+            2. Click <strong>CO-OP</strong> or <strong>1v1 PVP</strong><br>
+            3. Connect with your friend<br>
+            4. Open the shop and gift them!
+          </p>
+          <br>
+          <button id="gift-cancel-btn">GOT IT</button>
+        </div>
+      `;
+      document.body.appendChild(popup);
+    }
 
     document.getElementById('gift-cancel-btn').addEventListener('click', () => {
       popup.remove();
     });
-  }
-
-  checkGiftInbox(username) {
-    if (!username) return;
-    const allGifts = JSON.parse(localStorage.getItem('giftInbox') || '{}');
-    const myGifts = allGifts[username.toLowerCase()];
-    if (!myGifts || myGifts.length === 0) return;
-
-    // Claim all gifts
-    const received = [];
-    myGifts.forEach(gift => {
-      this.purchases[gift.itemId] = true;
-      received.push(gift);
-    });
-    localStorage.setItem('shopPurchases', JSON.stringify(this.purchases));
-
-    // Clear inbox
-    delete allGifts[username.toLowerCase()];
-    localStorage.setItem('giftInbox', JSON.stringify(allGifts));
-
-    return received;
   }
 
   receiveGift(itemId, fromUsername) {
