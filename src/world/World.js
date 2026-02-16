@@ -1792,5 +1792,282 @@ export class World {
       archMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0.05);
       arch.material = archMat;
     }
+
+    // === DISCO BALL ===
+    const discoBall = this._track(BABYLON.MeshBuilder.CreateSphere('discoBall', {
+      diameter: 4, segments: 16
+    }, this.scene));
+    discoBall.position.y = 25;
+    const discoMat = new BABYLON.StandardMaterial('discoMat', this.scene);
+    discoMat.diffuseColor = new BABYLON.Color3(0.9, 0.9, 0.95);
+    discoMat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.55);
+    discoMat.specularColor = new BABYLON.Color3(1, 1, 1);
+    discoMat.specularPower = 128;
+    discoBall.material = discoMat;
+
+    // Disco ball string
+    const discoString = this._track(BABYLON.MeshBuilder.CreateCylinder('discoString', {
+      height: 8, diameter: 0.1, tessellation: 6
+    }, this.scene));
+    discoString.position.y = 31;
+    discoString.material = discoMat;
+
+    // Disco spotlight beams (colored point lights orbiting)
+    const discoColors = [
+      new BABYLON.Color3(1, 0, 0.3),
+      new BABYLON.Color3(0, 0.5, 1),
+      new BABYLON.Color3(0, 1, 0.3),
+      new BABYLON.Color3(1, 1, 0),
+    ];
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2;
+      const dl = this._trackLight(new BABYLON.PointLight(
+        'discoLight' + i, new BABYLON.Vector3(Math.cos(angle) * 3, 24, Math.sin(angle) * 3), this.scene
+      ));
+      dl.diffuse = discoColors[i];
+      dl.intensity = 2.5;
+      dl.range = 60;
+    }
+
+    // === DANCE FLOOR (colored tiles in a grid) ===
+    const floorColors = [
+      [1, 0.2, 0.2], [0.2, 0.5, 1], [0.2, 1, 0.3], [1, 0.8, 0.1],
+      [0.8, 0.2, 1], [1, 0.5, 0.1], [0.1, 1, 1], [1, 0.3, 0.6],
+    ];
+    for (let x = -3; x <= 3; x++) {
+      for (let z = -3; z <= 3; z++) {
+        const tile = this._track(BABYLON.MeshBuilder.CreateBox('dTile_' + x + '_' + z, {
+          width: 1.8, height: 0.15, depth: 1.8
+        }, this.scene));
+        tile.position = new BABYLON.Vector3(x * 2, 0.08, z * 2);
+        const fc = floorColors[(Math.abs(x) + Math.abs(z)) % floorColors.length];
+        const tileMat = new BABYLON.StandardMaterial('tileMat_' + x + '_' + z, this.scene);
+        tileMat.diffuseColor = new BABYLON.Color3(fc[0], fc[1], fc[2]);
+        tileMat.emissiveColor = new BABYLON.Color3(fc[0] * 0.6, fc[1] * 0.6, fc[2] * 0.6);
+        tileMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        tile.material = tileMat;
+      }
+    }
+
+    // === BALLOONS (floating spheres with strings) ===
+    const balloonColors = [
+      [1, 0.2, 0.2], [0.2, 0.6, 1], [0.2, 1, 0.3],
+      [1, 0.85, 0.1], [0.8, 0.2, 1], [1, 0.4, 0.7],
+      [1, 0.5, 0.1], [0.1, 1, 1], [1, 1, 0.3],
+    ];
+    for (let i = 0; i < 20; i++) {
+      const bc = balloonColors[i % balloonColors.length];
+      const bx = (Math.random() - 0.5) * 50;
+      const bz = (Math.random() - 0.5) * 50;
+      const by = 8 + Math.random() * 12;
+
+      const balloon = this._track(BABYLON.MeshBuilder.CreateSphere('balloon' + i, {
+        diameter: 1.2 + Math.random() * 0.6, segments: 8
+      }, this.scene));
+      balloon.position = new BABYLON.Vector3(bx, by, bz);
+      const bMat = new BABYLON.StandardMaterial('balloonMat' + i, this.scene);
+      bMat.diffuseColor = new BABYLON.Color3(bc[0], bc[1], bc[2]);
+      bMat.emissiveColor = new BABYLON.Color3(bc[0] * 0.3, bc[1] * 0.3, bc[2] * 0.3);
+      bMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+      balloon.material = bMat;
+
+      // String
+      const str = this._track(BABYLON.MeshBuilder.CreateCylinder('bStr' + i, {
+        height: 2 + Math.random() * 2, diameter: 0.03, tessellation: 4
+      }, this.scene));
+      str.position = new BABYLON.Vector3(bx, by - 1.8, bz);
+      const strMat = new BABYLON.StandardMaterial('strMat' + i, this.scene);
+      strMat.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+      str.material = strMat;
+    }
+
+    // === GIFT BOXES ===
+    const giftColors = [
+      [1, 0, 0], [0, 0.6, 1], [0, 0.8, 0.2], [1, 0.8, 0], [0.8, 0, 1],
+    ];
+    for (let i = 0; i < 10; i++) {
+      const gc = giftColors[i % giftColors.length];
+      const gx = (Math.random() - 0.5) * 40;
+      const gz = (Math.random() - 0.5) * 40;
+
+      // Box
+      const gift = this._track(BABYLON.MeshBuilder.CreateBox('gift' + i, {
+        width: 0.8 + Math.random() * 0.4,
+        height: 0.8 + Math.random() * 0.4,
+        depth: 0.8 + Math.random() * 0.4
+      }, this.scene));
+      gift.position = new BABYLON.Vector3(gx, 0.5, gz);
+      gift.rotation.y = Math.random() * Math.PI * 2;
+      const gMat = new BABYLON.StandardMaterial('giftMat' + i, this.scene);
+      gMat.diffuseColor = new BABYLON.Color3(gc[0], gc[1], gc[2]);
+      gMat.emissiveColor = new BABYLON.Color3(gc[0] * 0.3, gc[1] * 0.3, gc[2] * 0.3);
+      gift.material = gMat;
+
+      // Ribbon on top
+      const ribbon = this._track(BABYLON.MeshBuilder.CreateBox('ribbon' + i, {
+        width: 0.1, height: 0.5, depth: 1.0
+      }, this.scene));
+      ribbon.position = new BABYLON.Vector3(gx, 1.1, gz);
+      ribbon.rotation.y = gift.rotation.y;
+      const rMat = new BABYLON.StandardMaterial('ribbonMat' + i, this.scene);
+      rMat.diffuseColor = new BABYLON.Color3(1, 0.85, 0.1);
+      rMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0.05);
+      ribbon.material = rMat;
+    }
+
+    // === CAKE (center piece near trophy) ===
+    // Bottom tier
+    const cakeMat1 = new BABYLON.StandardMaterial('cakeMat1', this.scene);
+    cakeMat1.diffuseColor = new BABYLON.Color3(1, 0.85, 0.7);
+    cakeMat1.emissiveColor = new BABYLON.Color3(0.3, 0.25, 0.2);
+
+    const cakeBot = this._track(BABYLON.MeshBuilder.CreateCylinder('cakeBot', {
+      height: 1, diameterTop: 3, diameterBottom: 3, tessellation: 24
+    }, this.scene));
+    cakeBot.position = new BABYLON.Vector3(8, 0.5, 0);
+    cakeBot.material = cakeMat1;
+
+    // Middle tier
+    const cakeMid = this._track(BABYLON.MeshBuilder.CreateCylinder('cakeMid', {
+      height: 0.8, diameterTop: 2.2, diameterBottom: 2.2, tessellation: 24
+    }, this.scene));
+    cakeMid.position = new BABYLON.Vector3(8, 1.4, 0);
+    cakeMid.material = cakeMat1;
+
+    // Top tier
+    const cakeTop = this._track(BABYLON.MeshBuilder.CreateCylinder('cakeTop', {
+      height: 0.6, diameterTop: 1.4, diameterBottom: 1.4, tessellation: 24
+    }, this.scene));
+    cakeTop.position = new BABYLON.Vector3(8, 2.1, 0);
+    cakeTop.material = cakeMat1;
+
+    // Frosting (pink layer on each tier)
+    const frostMat = new BABYLON.StandardMaterial('frostMat', this.scene);
+    frostMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0.7);
+    frostMat.emissiveColor = new BABYLON.Color3(0.4, 0.15, 0.25);
+
+    const frost1 = this._track(BABYLON.MeshBuilder.CreateTorus('frost1', {
+      diameter: 2.8, thickness: 0.2, tessellation: 24
+    }, this.scene));
+    frost1.position = new BABYLON.Vector3(8, 1.0, 0);
+    frost1.material = frostMat;
+
+    const frost2 = this._track(BABYLON.MeshBuilder.CreateTorus('frost2', {
+      diameter: 2.0, thickness: 0.18, tessellation: 24
+    }, this.scene));
+    frost2.position = new BABYLON.Vector3(8, 1.8, 0);
+    frost2.material = frostMat;
+
+    // Candles on top
+    const candleMat = new BABYLON.StandardMaterial('candleMat', this.scene);
+    candleMat.diffuseColor = new BABYLON.Color3(1, 1, 0.8);
+    candleMat.emissiveColor = new BABYLON.Color3(0.3, 0.3, 0.2);
+    const flameMat = new BABYLON.StandardMaterial('flameMat', this.scene);
+    flameMat.diffuseColor = new BABYLON.Color3(1, 0.6, 0);
+    flameMat.emissiveColor = new BABYLON.Color3(1, 0.4, 0);
+
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2;
+      const cx = 8 + Math.cos(angle) * 0.4;
+      const cz = Math.sin(angle) * 0.4;
+
+      const candle = this._track(BABYLON.MeshBuilder.CreateCylinder('candle' + i, {
+        height: 0.4, diameter: 0.08, tessellation: 6
+      }, this.scene));
+      candle.position = new BABYLON.Vector3(cx, 2.6, cz);
+      candle.material = candleMat;
+
+      // Flame
+      const flame = this._track(BABYLON.MeshBuilder.CreateSphere('flame' + i, {
+        diameter: 0.15, segments: 6
+      }, this.scene));
+      flame.position = new BABYLON.Vector3(cx, 2.85, cz);
+      flame.material = flameMat;
+    }
+
+    // === TRAMPOLINES (bouncy pads) ===
+    const trampPositions = [
+      [-15, 0, 15], [15, 0, 15], [-15, 0, -15], [15, 0, -15]
+    ];
+    const trampMat = new BABYLON.StandardMaterial('trampMat', this.scene);
+    trampMat.diffuseColor = new BABYLON.Color3(0.2, 0.5, 1);
+    trampMat.emissiveColor = new BABYLON.Color3(0.1, 0.25, 0.5);
+
+    const trampRingMat = new BABYLON.StandardMaterial('trampRingMat', this.scene);
+    trampRingMat.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+    trampRingMat.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+
+    trampPositions.forEach((tp, i) => {
+      // Bouncy pad
+      const pad = this._track(BABYLON.MeshBuilder.CreateCylinder('tramp' + i, {
+        height: 0.15, diameter: 3, tessellation: 24
+      }, this.scene));
+      pad.position = new BABYLON.Vector3(tp[0], 0.3, tp[2]);
+      pad.material = trampMat;
+
+      // Ring around it
+      const ring = this._track(BABYLON.MeshBuilder.CreateTorus('trampRing' + i, {
+        diameter: 3, thickness: 0.2, tessellation: 24
+      }, this.scene));
+      ring.position = new BABYLON.Vector3(tp[0], 0.3, tp[2]);
+      ring.material = trampRingMat;
+    });
+
+    // === SPINNING PLATFORMS ===
+    const spinColors = [
+      new BABYLON.Color3(1, 0.3, 0.3),
+      new BABYLON.Color3(0.3, 1, 0.3),
+      new BABYLON.Color3(0.3, 0.3, 1),
+    ];
+    const spinPositions = [
+      [-20, 3, 0], [20, 3, 0], [0, 3, 20]
+    ];
+    spinPositions.forEach((sp, i) => {
+      const platform = this._track(BABYLON.MeshBuilder.CreateCylinder('spinPlat' + i, {
+        height: 0.3, diameter: 4, tessellation: 6
+      }, this.scene));
+      platform.position = new BABYLON.Vector3(sp[0], sp[1], sp[2]);
+      const sMat = new BABYLON.StandardMaterial('spinMat' + i, this.scene);
+      sMat.diffuseColor = spinColors[i];
+      sMat.emissiveColor = spinColors[i].scale(0.4);
+      platform.material = sMat;
+
+      // Stars on top of platforms
+      const star = this._track(BABYLON.MeshBuilder.CreateTorus('spinStar' + i, {
+        diameter: 1.5, thickness: 0.2, tessellation: 5
+      }, this.scene));
+      star.position = new BABYLON.Vector3(sp[0], sp[1] + 0.3, sp[2]);
+      star.material = sMat;
+    });
+
+    // === BANNER POLES WITH FLAGS ===
+    const flagColors = [
+      [1, 0, 0], [1, 0.5, 0], [1, 1, 0], [0, 1, 0], [0, 0.5, 1], [0.5, 0, 1]
+    ];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 + Math.PI / 6;
+      const r = 35;
+      const px = Math.cos(angle) * r;
+      const pz = Math.sin(angle) * r;
+
+      // Pole
+      const pole = this._track(BABYLON.MeshBuilder.CreateCylinder('flagPole' + i, {
+        height: 10, diameter: 0.15, tessellation: 6
+      }, this.scene));
+      pole.position = new BABYLON.Vector3(px, 5, pz);
+      pole.material = trampRingMat;
+
+      // Flag
+      const flag = this._track(BABYLON.MeshBuilder.CreateBox('flag' + i, {
+        width: 2.5, height: 1.5, depth: 0.05
+      }, this.scene));
+      flag.position = new BABYLON.Vector3(px + 1.3, 9, pz);
+      const fMat = new BABYLON.StandardMaterial('flagMat' + i, this.scene);
+      const fc = flagColors[i];
+      fMat.diffuseColor = new BABYLON.Color3(fc[0], fc[1], fc[2]);
+      fMat.emissiveColor = new BABYLON.Color3(fc[0] * 0.4, fc[1] * 0.4, fc[2] * 0.4);
+      fMat.backFaceCulling = false;
+      flag.material = fMat;
+    }
   }
 }

@@ -1741,6 +1741,48 @@ export class Game {
       this.state.health = this.state.maxHealth;
       // Animate dancing NPCs
       this._updateDancingNPCs(deltaTime);
+
+      // Spin the disco ball
+      const discoBall = this.scene.getMeshByName('discoBall');
+      if (discoBall) discoBall.rotation.y += deltaTime * 1.5;
+
+      // Spin platforms
+      for (let i = 0; i < 3; i++) {
+        const plat = this.scene.getMeshByName('spinPlat' + i);
+        if (plat) plat.rotation.y += deltaTime * (1.5 + i * 0.5);
+        const star = this.scene.getMeshByName('spinStar' + i);
+        if (star) star.rotation.y -= deltaTime * (2 + i * 0.5);
+      }
+
+      // Bobbing balloons
+      for (let i = 0; i < 20; i++) {
+        const b = this.scene.getMeshByName('balloon' + i);
+        if (b) b.position.y += Math.sin(this._partyDuration * 1.5 + i) * 0.003;
+      }
+
+      // Trampoline bounce — if player is near a trampoline, bounce them up!
+      const trampolines = [[-15, 15], [15, 15], [-15, -15], [15, -15]];
+      const pPos = this.player.mesh.position;
+      for (const [tx, tz] of trampolines) {
+        const dx = pPos.x - tx;
+        const dz = pPos.z - tz;
+        if (Math.sqrt(dx * dx + dz * dz) < 1.8 && pPos.y < 1.5) {
+          if (this.player.mesh.physicsImpostor) {
+            this.player.mesh.physicsImpostor.setLinearVelocity(
+              new BABYLON.Vector3(0, 18, 0)
+            );
+          }
+        }
+      }
+
+      // Flickering candle flames
+      for (let i = 0; i < 5; i++) {
+        const flame = this.scene.getMeshByName('flame' + i);
+        if (flame) {
+          flame.scaling.y = 0.8 + Math.random() * 0.5;
+          flame.scaling.x = 0.8 + Math.random() * 0.3;
+        }
+      }
     }
 
     // Survival mode timer
