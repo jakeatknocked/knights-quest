@@ -107,10 +107,6 @@ export class Shop {
       document.getElementById('start-screen').style.display = 'flex';
     });
 
-    // Redeem gift button
-    document.getElementById('redeem-gift-btn').addEventListener('click', () => {
-      this._showRedeemPopup();
-    });
 
     // Shop button on start screen
     document.getElementById('shop-btn').addEventListener('click', () => {
@@ -213,37 +209,10 @@ export class Shop {
 
   gift(item) {
     if (this.coins < item.cost) return;
-
-    // Deduct coins
-    this.coins -= item.cost;
-    localStorage.setItem('totalCoins', this.coins.toString());
-
-    // Generate a gift code and store it
-    const code = this._generateGiftCode();
-    const gifts = JSON.parse(localStorage.getItem('pendingGifts') || '{}');
-    gifts[code] = {
-      itemId: item.id,
-      itemName: item.name,
-      from: localStorage.getItem('username') || 'A Knight',
-    };
-    localStorage.setItem('pendingGifts', JSON.stringify(gifts));
-
-    // Show the gift code in a popup
-    this._showGiftPopup(code, item.name);
-    this.render();
+    this._showGiftPopup(item);
   }
 
-  _generateGiftCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-  }
-
-  _showGiftPopup(code, itemName) {
-    // Remove old popup if exists
+  _showGiftPopup(item) {
     let popup = document.getElementById('gift-popup');
     if (popup) popup.remove();
 
@@ -251,84 +220,76 @@ export class Shop {
     popup.id = 'gift-popup';
     popup.innerHTML = `
       <div class="gift-popup-inner">
-        <h2>&#x1F381; Gift Created!</h2>
-        <p>You're gifting: <strong>${itemName}</strong></p>
-        <p>Share this code with your friend:</p>
-        <div class="gift-code">${code}</div>
-        <button id="gift-copy-btn">&#x1F4CB; COPY CODE</button>
-        <button id="gift-close-btn">CLOSE</button>
-      </div>
-    `;
-    document.body.appendChild(popup);
-
-    document.getElementById('gift-copy-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText(code).then(() => {
-        document.getElementById('gift-copy-btn').textContent = 'COPIED!';
-      });
-    });
-    document.getElementById('gift-close-btn').addEventListener('click', () => {
-      popup.remove();
-    });
-  }
-
-  redeemGift(code) {
-    const gifts = JSON.parse(localStorage.getItem('pendingGifts') || '{}');
-    const gift = gifts[code.toUpperCase()];
-    if (!gift) return false;
-
-    // Give the item
-    this.purchases[gift.itemId] = true;
-    localStorage.setItem('shopPurchases', JSON.stringify(this.purchases));
-
-    // Remove the used gift code
-    delete gifts[code.toUpperCase()];
-    localStorage.setItem('pendingGifts', JSON.stringify(gifts));
-
-    this.render();
-    return gift;
-  }
-
-  _showRedeemPopup() {
-    let popup = document.getElementById('gift-popup');
-    if (popup) popup.remove();
-
-    popup = document.createElement('div');
-    popup.id = 'gift-popup';
-    popup.innerHTML = `
-      <div class="gift-popup-inner">
-        <h2>&#x1F381; Redeem Gift</h2>
-        <p>Enter the gift code from your friend:</p>
-        <input type="text" id="redeem-code-input" maxlength="8" placeholder="ABCD1234" style="
-          font-size: 24px; text-align: center; padding: 10px; width: 200px;
+        <h2>&#x1F381; Gift ${item.name}</h2>
+        <p>Enter their username:</p>
+        <input type="text" id="gift-username-input" maxlength="16" placeholder="Their name..." style="
+          font-size: 20px; text-align: center; padding: 10px; width: 220px;
           background: #1a1a2e; color: #ffd700; border: 2px solid #ffd700;
-          border-radius: 8px; letter-spacing: 4px; text-transform: uppercase;
+          border-radius: 8px;
         ">
-        <br><br>
-        <button id="redeem-submit-btn">&#x2705; REDEEM</button>
-        <button id="redeem-cancel-btn">CANCEL</button>
-        <p id="redeem-status" style="color: #ff4444; margin-top: 10px;"></p>
+        <p style="color:#aaa; font-size:12px; margin-top:6px;">Cost: ${item.cost} coins</p>
+        <br>
+        <button id="gift-send-btn">&#x1F381; SEND GIFT</button>
+        <button id="gift-cancel-btn">CANCEL</button>
+        <p id="gift-status" style="margin-top: 10px;"></p>
       </div>
     `;
     document.body.appendChild(popup);
 
-    document.getElementById('redeem-submit-btn').addEventListener('click', () => {
-      const code = document.getElementById('redeem-code-input').value.trim().toUpperCase();
-      if (code.length !== 8) {
-        document.getElementById('redeem-status').textContent = 'Code must be 8 characters!';
+    document.getElementById('gift-send-btn').addEventListener('click', () => {
+      const toUsername = document.getElementById('gift-username-input').value.trim();
+      if (!toUsername) {
+        document.getElementById('gift-status').style.color = '#ff4444';
+        document.getElementById('gift-status').textContent = 'Enter a username!';
         return;
       }
-      const gift = this.redeemGift(code);
-      if (gift) {
-        document.getElementById('redeem-status').style.color = '#44ff44';
-        document.getElementById('redeem-status').textContent = `Got ${gift.itemName} from ${gift.from}!`;
-        setTimeout(() => popup.remove(), 2000);
-      } else {
-        document.getElementById('redeem-status').textContent = 'Invalid code! Check and try again.';
-      }
+
+      // Deduct coins
+      this.coins -= item.cost;
+      localStorage.setItem('totalCoins', this.coins.toString());
+
+      // Store gift for that username
+      const allGifts = JSON.parse(localStorage.getItem('giftInbox') || '{}');
+      if (!allGifts[toUsername.toLowerCase()]) allGifts[toUsername.toLowerCase()] = [];
+      allGifts[toUsername.toLowerCase()].push({
+        itemId: item.id,
+        itemName: item.name,
+        from: localStorage.getItem('username') || 'A Knight',
+      });
+      localStorage.setItem('giftInbox', JSON.stringify(allGifts));
+
+      document.getElementById('gift-status').style.color = '#44ff44';
+      document.getElementById('gift-status').textContent = `Sent ${item.name} to ${toUsername}!`;
+      setTimeout(() => {
+        popup.remove();
+        this.render();
+      }, 1500);
     });
-    document.getElementById('redeem-cancel-btn').addEventListener('click', () => {
+
+    document.getElementById('gift-cancel-btn').addEventListener('click', () => {
       popup.remove();
     });
+  }
+
+  checkGiftInbox(username) {
+    if (!username) return;
+    const allGifts = JSON.parse(localStorage.getItem('giftInbox') || '{}');
+    const myGifts = allGifts[username.toLowerCase()];
+    if (!myGifts || myGifts.length === 0) return;
+
+    // Claim all gifts
+    const received = [];
+    myGifts.forEach(gift => {
+      this.purchases[gift.itemId] = true;
+      received.push(gift);
+    });
+    localStorage.setItem('shopPurchases', JSON.stringify(this.purchases));
+
+    // Clear inbox
+    delete allGifts[username.toLowerCase()];
+    localStorage.setItem('giftInbox', JSON.stringify(allGifts));
+
+    return received;
   }
 
   receiveGift(itemId, fromUsername) {

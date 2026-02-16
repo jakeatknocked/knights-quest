@@ -288,6 +288,17 @@ export class Game {
       this.chat.show();
       this.chat.systemMsg(`${this.state.username} has joined the quest!`);
       this.achievements.unlock('welcome', this.hud);
+
+      // Check gift inbox
+      const gifts = this.shop.checkGiftInbox(this.state.username);
+      if (gifts && gifts.length > 0) {
+        gifts.forEach(g => {
+          this.hud.showMessage(`Gift from ${g.from}: ${g.itemName}!`);
+        });
+        // Re-apply upgrades with new items
+        this.shop.applyUpgrades(this.state, this.player);
+      }
+
       this.startLevel(this.state.currentLevel);
       this.hud.update();
       this.canvas.requestPointerLock();
