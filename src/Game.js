@@ -1766,10 +1766,10 @@ export class Game {
       for (const [tx, tz] of trampolines) {
         const dx = pPos.x - tx;
         const dz = pPos.z - tz;
-        if (Math.sqrt(dx * dx + dz * dz) < 1.8 && pPos.y < 1.5) {
+        if (Math.sqrt(dx * dx + dz * dz) < 2.5 && pPos.y < 2.5) {
           if (this.player.mesh.physicsImpostor) {
             this.player.mesh.physicsImpostor.setLinearVelocity(
-              new BABYLON.Vector3(0, 18, 0)
+              new BABYLON.Vector3(0, 22, 0)
             );
           }
         }
