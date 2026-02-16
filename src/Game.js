@@ -362,6 +362,24 @@ export class Game {
       this.canvas.requestPointerLock();
     });
 
+    // Party mode button
+    document.getElementById('party-btn').addEventListener('click', () => {
+      const nameVal = (usernameInput.value || '').trim() || 'Knight';
+      this.state.username = nameVal;
+      localStorage.setItem('username', nameVal);
+      document.getElementById('start-screen').style.display = 'none';
+      this.state.started = true;
+      this.shop.applyUpgrades(this.state, this.player);
+      this.soundManager.init();
+      this.hud.show();
+      this.chat.setUsername(this.state.username);
+      this.chat.show();
+      this.chat.systemMsg(`${this.state.username} is celebrating!`);
+      this.startPartyLevel();
+      this.hud.update();
+      this.canvas.requestPointerLock();
+    });
+
     // Multiplayer buttons (lobby)
     document.getElementById('coop-btn').addEventListener('click', () => {
       this._multiplayerMode = 'coop';
