@@ -1069,6 +1069,10 @@ export class Game {
     this._partyFireworks = [];
     this._partyDuration = 0;
 
+    // Spawn dancing NPCs
+    this._partyNPCs = [];
+    this._spawnDancingNPCs();
+
     // Create party HUD overlay
     this._createPartyHUD();
   }
@@ -1108,6 +1112,20 @@ export class Game {
       this._partyFireworks = [];
     }
 
+    // Clean up dancing NPCs
+    if (this._partyNPCs) {
+      this._partyNPCs.forEach(npc => {
+        if (npc.root) {
+          npc.root.getChildMeshes().forEach(m => {
+            if (m.material) m.material.dispose();
+            m.dispose();
+          });
+          npc.root.dispose();
+        }
+      });
+      this._partyNPCs = [];
+    }
+
     // Remove party HUD
     if (this._partyHudEl) {
       this._partyHudEl.remove();
@@ -1126,6 +1144,186 @@ export class Game {
     document.getElementById('victory-screen').style.display = 'flex';
     this.hud.hide();
     document.exitPointerLock();
+  }
+
+  _spawnDancingNPCs() {
+    const npcConfigs = [
+      { pos: [8, 0, 5], color: [1, 0.2, 0.2], name: 'RedDancer', dance: 'bounce' },
+      { pos: [-8, 0, 5], color: [0.2, 0.5, 1], name: 'BlueDancer', dance: 'spin' },
+      { pos: [5, 0, -8], color: [0.2, 1, 0.3], name: 'GreenDancer', dance: 'wave' },
+      { pos: [-5, 0, -8], color: [1, 0.85, 0.1], name: 'GoldDancer', dance: 'bounce' },
+      { pos: [12, 0, -3], color: [0.8, 0.2, 1], name: 'PurpleDancer', dance: 'spin' },
+      { pos: [-12, 0, -3], color: [1, 0.5, 0.1], name: 'OrangeDancer', dance: 'wave' },
+      { pos: [0, 0, 10], color: [0.1, 1, 1], name: 'CyanDancer', dance: 'bounce' },
+      { pos: [0, 0, -12], color: [1, 0.3, 0.6], name: 'PinkDancer', dance: 'spin' },
+      // More NPCs in a wider circle
+      { pos: [15, 0, 10], color: [1, 1, 0.3], name: 'YellowDancer', dance: 'wave' },
+      { pos: [-15, 0, 10], color: [0.3, 1, 0.6], name: 'MintDancer', dance: 'bounce' },
+      { pos: [18, 0, -8], color: [1, 0.4, 0.4], name: 'CoralDancer', dance: 'spin' },
+      { pos: [-18, 0, -8], color: [0.4, 0.4, 1], name: 'IndigoDancer', dance: 'wave' },
+    ];
+
+    npcConfigs.forEach((cfg, i) => {
+      const npc = this._createDancingNPC(cfg, i);
+      this._partyNPCs.push(npc);
+    });
+  }
+
+  _createDancingNPC(cfg, index) {
+    const scene = this.scene;
+    const root = new BABYLON.TransformNode('npc_' + cfg.name, scene);
+    root.position = new BABYLON.Vector3(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
+
+    const bodyColor = new BABYLON.Color3(cfg.color[0], cfg.color[1], cfg.color[2]);
+    const mat = new BABYLON.StandardMaterial('npcMat_' + index, scene);
+    mat.diffuseColor = bodyColor;
+    mat.emissiveColor = bodyColor.scale(0.3);
+
+    const skinMat = new BABYLON.StandardMaterial('npcSkin_' + index, scene);
+    skinMat.diffuseColor = new BABYLON.Color3(0.95, 0.75, 0.6);
+    skinMat.emissiveColor = new BABYLON.Color3(0.2, 0.15, 0.1);
+
+    // Body (torso)
+    const body = BABYLON.MeshBuilder.CreateBox('npcBody', {
+      width: 0.7, height: 0.9, depth: 0.4
+    }, scene);
+    body.position.y = 1.4;
+    body.parent = root;
+    body.material = mat;
+
+    // Head
+    const head = BABYLON.MeshBuilder.CreateSphere('npcHead', {
+      diameter: 0.5, segments: 8
+    }, scene);
+    head.position.y = 2.15;
+    head.parent = root;
+    head.material = skinMat;
+
+    // Hat (party hat!)
+    const hatMat = new BABYLON.StandardMaterial('npcHat_' + index, scene);
+    hatMat.diffuseColor = bodyColor;
+    hatMat.emissiveColor = bodyColor.scale(0.5);
+    const hat = BABYLON.MeshBuilder.CreateCylinder('npcHat', {
+      height: 0.5, diameterTop: 0, diameterBottom: 0.4, tessellation: 8
+    }, scene);
+    hat.position.y = 2.55;
+    hat.parent = root;
+    hat.material = hatMat;
+
+    // Left arm
+    const leftArm = BABYLON.MeshBuilder.CreateBox('npcLArm', {
+      width: 0.2, height: 0.7, depth: 0.2
+    }, scene);
+    leftArm.position.set(-0.55, 1.5, 0);
+    leftArm.parent = root;
+    leftArm.material = mat;
+    // Pivot at shoulder
+    leftArm.setPivotPoint(new BABYLON.Vector3(0, 0.35, 0));
+
+    // Right arm
+    const rightArm = BABYLON.MeshBuilder.CreateBox('npcRArm', {
+      width: 0.2, height: 0.7, depth: 0.2
+    }, scene);
+    rightArm.position.set(0.55, 1.5, 0);
+    rightArm.parent = root;
+    rightArm.material = mat;
+    rightArm.setPivotPoint(new BABYLON.Vector3(0, 0.35, 0));
+
+    // Left leg
+    const leftLeg = BABYLON.MeshBuilder.CreateBox('npcLLeg', {
+      width: 0.25, height: 0.7, depth: 0.25
+    }, scene);
+    leftLeg.position.set(-0.2, 0.35, 0);
+    leftLeg.parent = root;
+    leftLeg.material = mat;
+
+    // Right leg
+    const rightLeg = BABYLON.MeshBuilder.CreateBox('npcRLeg', {
+      width: 0.25, height: 0.7, depth: 0.25
+    }, scene);
+    rightLeg.position.set(0.2, 0.35, 0);
+    rightLeg.parent = root;
+    rightLeg.material = mat;
+
+    // Eyes (two small white spheres with black pupils)
+    const eyeMat = new BABYLON.StandardMaterial('eyeMat_' + index, scene);
+    eyeMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    eyeMat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+
+    const leftEye = BABYLON.MeshBuilder.CreateSphere('npcLEye', { diameter: 0.1 }, scene);
+    leftEye.position.set(-0.1, 2.2, 0.22);
+    leftEye.parent = root;
+    leftEye.material = eyeMat;
+
+    const rightEye = BABYLON.MeshBuilder.CreateSphere('npcREye', { diameter: 0.1 }, scene);
+    rightEye.position.set(0.1, 2.2, 0.22);
+    rightEye.parent = root;
+    rightEye.material = eyeMat;
+
+    // Smile
+    const smileMat = new BABYLON.StandardMaterial('smileMat_' + index, scene);
+    smileMat.diffuseColor = new BABYLON.Color3(0.2, 0.1, 0.05);
+    smileMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.02);
+
+    const smile = BABYLON.MeshBuilder.CreateTorus('npcSmile', {
+      diameter: 0.15, thickness: 0.025, tessellation: 12
+    }, scene);
+    smile.position.set(0, 2.08, 0.23);
+    smile.rotation.x = Math.PI * 0.3;
+    smile.parent = root;
+    smile.material = smileMat;
+
+    return {
+      root,
+      head,
+      body,
+      leftArm,
+      rightArm,
+      leftLeg,
+      rightLeg,
+      hat,
+      dance: cfg.dance,
+      time: Math.random() * Math.PI * 2, // offset so they don't all sync
+      speed: 2.5 + Math.random() * 1.5,
+    };
+  }
+
+  _updateDancingNPCs(deltaTime) {
+    if (!this._partyNPCs) return;
+
+    for (const npc of this._partyNPCs) {
+      npc.time += deltaTime * npc.speed;
+      const t = npc.time;
+
+      if (npc.dance === 'bounce') {
+        // Bounce up and down, arms pumping
+        npc.root.position.y = Math.abs(Math.sin(t * 2)) * 0.5;
+        npc.leftArm.rotation.x = Math.sin(t * 2) * 1.2;
+        npc.rightArm.rotation.x = -Math.sin(t * 2) * 1.2;
+        npc.leftLeg.rotation.x = Math.sin(t * 2) * 0.3;
+        npc.rightLeg.rotation.x = -Math.sin(t * 2) * 0.3;
+        npc.root.rotation.y = Math.sin(t * 0.5) * 0.3;
+      } else if (npc.dance === 'spin') {
+        // Spin around with arms out
+        npc.root.rotation.y += deltaTime * 3;
+        npc.root.position.y = Math.abs(Math.sin(t * 1.5)) * 0.3;
+        npc.leftArm.rotation.z = Math.PI * 0.6 + Math.sin(t * 3) * 0.3;
+        npc.rightArm.rotation.z = -(Math.PI * 0.6 + Math.sin(t * 3) * 0.3);
+        npc.head.rotation.z = Math.sin(t * 2) * 0.2;
+      } else if (npc.dance === 'wave') {
+        // Side-to-side sway with one arm waving
+        npc.root.position.y = Math.abs(Math.sin(t * 1.8)) * 0.2;
+        npc.body.rotation.z = Math.sin(t * 1.8) * 0.15;
+        npc.leftArm.rotation.z = Math.sin(t * 3) * 0.8 + 0.5;
+        npc.rightArm.rotation.x = Math.sin(t * 2.5) * 1.0;
+        npc.leftLeg.rotation.x = Math.sin(t * 1.8) * 0.2;
+        npc.rightLeg.rotation.x = -Math.sin(t * 1.8) * 0.2;
+        npc.root.rotation.y = Math.sin(t * 0.3) * 0.5;
+      }
+
+      // Hat bobble
+      npc.hat.rotation.z = Math.sin(t * 4) * 0.15;
+    }
   }
 
   _spawnFirework() {
@@ -1531,6 +1729,8 @@ export class Game {
       }
       // Keep health and ammo full during party
       this.state.health = this.state.maxHealth;
+      // Animate dancing NPCs
+      this._updateDancingNPCs(deltaTime);
     }
 
     // Survival mode timer
