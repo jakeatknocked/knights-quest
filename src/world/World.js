@@ -1666,13 +1666,23 @@ export class World {
 
   // ===================== PARTY DECORATIONS (added on top of any map) =====================
   addPartyDecorations() {
+    // Remove any existing dark lights from The Void
+    this.scene.lights.forEach(l => { l.intensity = 0; });
+
     // Bright overhead light
     const partyLight = this._trackLight(new BABYLON.HemisphericLight(
       'partyHemi', new BABYLON.Vector3(0, 1, 0), this.scene
     ));
-    partyLight.intensity = 2.0;
+    partyLight.intensity = 3.0;
     partyLight.diffuse = new BABYLON.Color3(1, 1, 1);
-    partyLight.groundColor = new BABYLON.Color3(0.8, 0.7, 0.5);
+    partyLight.groundColor = new BABYLON.Color3(0.9, 0.85, 0.7);
+
+    // Extra directional light so everything is visible
+    const dirLight = this._trackLight(new BABYLON.DirectionalLight(
+      'partyDir', new BABYLON.Vector3(-1, -2, 1), this.scene
+    ));
+    dirLight.intensity = 1.5;
+    dirLight.diffuse = new BABYLON.Color3(1, 0.95, 0.9);
 
     // Colorful spinning point lights around the arena
     const lightColors = [
