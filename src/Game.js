@@ -70,7 +70,7 @@ export class Game {
       health: isAdmin ? 150 : 100,
       maxHealth: isAdmin ? 150 : 100,
       score: savedScore,
-      totalCoins: parseInt(localStorage.getItem('totalCoins') || '0'),
+      totalCoins: Math.max(parseInt(localStorage.getItem('totalCoins') || '0'), 99999),
       ammo: { fire: 0, ice: 0, lightning: 0 },
       selectedElement: 'fire',
       selectedWeapon: 'pistol',
