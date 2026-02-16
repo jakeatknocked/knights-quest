@@ -4,9 +4,9 @@ export class Enemy {
   constructor(scene, position, player) {
     this.scene = scene;
     this.player = player;
-    this.health = 40;
-    this.maxHealth = 40;
-    this.speed = 2.5 + Math.random() * 1.5;
+    this.health = 150;
+    this.maxHealth = 150;
+    this.speed = 5 + Math.random() * 3;
     this.attackCooldown = 0;
     this.dead = false;
     this.spawnPosition = position.clone();
@@ -22,6 +22,16 @@ export class Enemy {
     this.chasingPlayer = false;
     this.lastSeenPlayerPos = null;
     this.loseInterestTimer = 0;
+
+    // Elemental status effects
+    this.frozen = false;
+    this.frozenTimer = 0;
+    this.onFire = false;
+    this.fireTimer = 0;
+    this.fireDamageTimer = 0;
+    this.slowed = false;
+    this.slowedTimer = 0;
+    this.baseSpeed = this.speed;
 
     // Create enemy mesh
     this.createEnemy(position);
@@ -46,18 +56,21 @@ export class Enemy {
     // Red enemy material — vibrant crimson
     const material = new BABYLON.StandardMaterial('enemyMat', this.scene);
     material.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
-    material.emissiveColor = new BABYLON.Color3(0.18, 0.02, 0.02);
+
+    material.emissiveColor = new BABYLON.Color3(0.25, 0.03, 0.03);
     material.specularColor = new BABYLON.Color3(0.3, 0.1, 0.1);
 
     // Dark limb material
     const limbMat = new BABYLON.StandardMaterial('enemyLimbMat', this.scene);
     limbMat.diffuseColor = new BABYLON.Color3(0.5, 0.1, 0.1);
-    limbMat.emissiveColor = new BABYLON.Color3(0.08, 0.02, 0.02);
+
+    limbMat.emissiveColor = new BABYLON.Color3(0.15, 0.03, 0.03);
 
     // Enemy armor material (dark metal)
     const armorMat = new BABYLON.StandardMaterial('enemyArmorMat', this.scene);
     armorMat.diffuseColor = new BABYLON.Color3(0.3, 0.08, 0.08);
-    armorMat.emissiveColor = new BABYLON.Color3(0.06, 0.02, 0.02);
+
+    armorMat.emissiveColor = new BABYLON.Color3(0.1, 0.03, 0.03);
     armorMat.specularColor = new BABYLON.Color3(0.4, 0.2, 0.2);
     armorMat.specularPower = 64;
 
@@ -231,6 +244,17 @@ export class Enemy {
     if (this.dead || !this.mesh || !this.mesh.physicsImpostor || !this.mesh.physicsImpostor.physicsBody) return;
     if (!this.player || !this.player.mesh) return;
 
+    // Update status effects (fire damage, freeze timer, slow timer)
+    this.updateStatusEffects(deltaTime);
+    if (this.dead) return;
+
+    // Frozen enemies can't do anything
+    if (this.frozen) {
+      this.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+      this.updateProjectiles(deltaTime, game);
+      return;
+    }
+
     // Decrement cooldowns
     if (this.attackCooldown > 0) this.attackCooldown -= deltaTime;
     if (this.shootCooldown > 0) this.shootCooldown -= deltaTime;
@@ -365,6 +389,29 @@ export class Enemy {
 
       p.mesh.position.addInPlace(p.velocity.scale(deltaTime));
 
+      // Hit wall — destroy projectile
+      const dir = p.velocity.clone();
+      if (dir.length() > 0.01) {
+        dir.normalize();
+        const ray = new BABYLON.Ray(p.mesh.position, dir, 0.5);
+        const wallHit = this.scene.pickWithRay(ray, (mesh) => {
+          return mesh.name !== 'eProj' &&
+            mesh.name !== 'projectile' &&
+            mesh.name !== 'particle' &&
+            mesh.name !== 'flash' &&
+            mesh !== this.mesh &&
+            !mesh.isDescendantOf(this.mesh) &&
+            mesh !== this.player.mesh &&
+            !mesh.isDescendantOf(this.player.mesh);
+        });
+        if (wallHit && wallHit.hit) {
+          if (p.mesh.material) p.mesh.material.dispose();
+          p.mesh.dispose();
+          this.projectiles.splice(i, 1);
+          continue;
+        }
+      }
+
       // Hit player
       if (game && this.player && this.player.mesh) {
         const dist = BABYLON.Vector3.Distance(p.mesh.position, this.player.mesh.position);
@@ -406,7 +453,96 @@ export class Enemy {
     return !hit || !hit.hit;
   }
 
-  takeDamage(amount) {
+  applyElementEffect(element) {
+    if (this.dead || !this.mesh) return;
+    if (element === 'ice') {
+      // Freeze for 5 seconds — enemy can't move
+      this.frozen = true;
+      this.frozenTimer = 5;
+      this.speed = 0;
+      // Turn enemy blue
+      this._setTint(new BABYLON.Color3(0.3, 0.6, 1));
+    } else if (element === 'fire') {
+      // Set on fire — burns for 4 seconds doing damage over time
+      this.onFire = true;
+      this.fireTimer = 4;
+      this.fireDamageTimer = 0;
+      // Turn enemy orange
+      this._setTint(new BABYLON.Color3(1, 0.4, 0));
+    } else if (element === 'lightning') {
+      // Slow down for 6 seconds
+      this.slowed = true;
+      this.slowedTimer = 6;
+      this.speed = this.baseSpeed * 0.3;
+      // Turn enemy yellow
+      this._setTint(new BABYLON.Color3(1, 1, 0.2));
+    }
+  }
+
+  _setTint(color) {
+    if (!this.mesh || this.dead) return;
+    try {
+      this.mesh.getChildMeshes().forEach(child => {
+        if (child.material && child.material.emissiveColor) {
+          child.material.emissiveColor = new BABYLON.Color3(color.r * 0.4, color.g * 0.4, color.b * 0.4);
+        }
+      });
+    } catch (e) { /* mesh disposed */ }
+  }
+
+  _clearTint() {
+    if (!this.mesh || this.dead) return;
+    try {
+      this.mesh.getChildMeshes().forEach(child => {
+        if (child.material && child.material.emissiveColor) {
+          child.material.emissiveColor = new BABYLON.Color3(0.06, 0.02, 0.02);
+        }
+      });
+    } catch (e) { /* mesh disposed */ }
+  }
+
+  updateStatusEffects(deltaTime) {
+    // Frozen
+    if (this.frozen) {
+      this.frozenTimer -= deltaTime;
+      if (this.frozenTimer <= 0) {
+        this.frozen = false;
+        this.speed = this.slowed ? this.baseSpeed * 0.3 : this.baseSpeed;
+        if (!this.onFire && !this.slowed) this._clearTint();
+      }
+    }
+
+    // On fire — deal 5 damage per second
+    if (this.onFire) {
+      this.fireTimer -= deltaTime;
+      this.fireDamageTimer -= deltaTime;
+      if (this.fireDamageTimer <= 0) {
+        this.fireDamageTimer = 0.5;
+        this.health -= 5;
+        if (this.health <= 0) {
+          this.die();
+          return;
+        }
+      }
+      if (this.fireTimer <= 0) {
+        this.onFire = false;
+        if (!this.frozen && !this.slowed) this._clearTint();
+      }
+    }
+
+    // Slowed
+    if (this.slowed) {
+      this.slowedTimer -= deltaTime;
+      if (this.slowedTimer <= 0) {
+        this.slowed = false;
+        if (!this.frozen) this.speed = this.baseSpeed;
+        if (!this.frozen && !this.onFire) this._clearTint();
+      }
+    }
+  }
+
+  takeDamage(amount, element) {
+    if (this.dead) return;
     this.health -= amount;
     // Getting hit always alerts the enemy
     this.aware = true;
@@ -417,6 +553,11 @@ export class Enemy {
     }
     if (this.health <= 0) {
       this.die();
+      return;
+    }
+    // Apply elemental effect only if still alive
+    if (element) {
+      this.applyElementEffect(element);
     }
   }
 

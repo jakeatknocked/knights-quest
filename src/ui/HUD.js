@@ -7,6 +7,9 @@ export class HUD {
     // Minimap
     this.minimapCanvas = document.getElementById('minimap');
     this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
+    // Big map
+    this.bigMapCanvas = document.getElementById('big-map');
+    this.bigMapCtx = this.bigMapCanvas ? this.bigMapCanvas.getContext('2d') : null;
   }
 
   show() {
@@ -26,9 +29,11 @@ export class HUD {
 
     // Weapon
     const elNames = { fire: 'FIRE', ice: 'ICE', lightning: 'LIGHTNING' };
+    const weaponNames = { pistol: 'Pistol', shotgun: 'Shotgun', rocket: 'Rocket', laser: 'Laser', minigun: 'Minigun' };
     const el = s.selectedElement;
+    const wp = s.selectedWeapon || 'pistol';
     document.getElementById('weapon-display').innerHTML =
-      `Gun: <span class="element-name ${el}">${elNames[el]} (${s.ammo[el]})</span><br><small>1=Fire 2=Ice 3=Lightning</small>`;
+      `${weaponNames[wp]}: <span class="element-name ${el}">${elNames[el]} (${s.ammo[el]})</span><br><small>1-3=Element 4-7=Weapon</small>`;
 
     // Shield
     const shieldEl = document.getElementById('shield-indicator');
@@ -92,22 +97,30 @@ export class HUD {
   }
 
   updateMinimap(player, enemyManager) {
-    const ctx = this.minimapCtx;
+    this._renderMap(this.minimapCtx, this.minimapCanvas, player, enemyManager, 1.5, true);
+    // Render big map if visible
+    if (this.bigMapCanvas && this.bigMapCanvas.style.display !== 'none') {
+      this._renderMap(this.bigMapCtx, this.bigMapCanvas, player, enemyManager, 3.0, false);
+    }
+  }
+
+  _renderMap(ctx, canvas, player, enemyManager, scale, circular) {
     if (!ctx || !player || !player.mesh) return;
 
-    const w = this.minimapCanvas.width;
-    const h = this.minimapCanvas.height;
+    const w = canvas.width;
+    const h = canvas.height;
     const cx = w / 2;
     const cy = h / 2;
-    const scale = 1.5; // 1 world unit = 1.5 px
     const radius = w / 2;
 
-    // Clear with circular clip
+    // Clear
     ctx.clearRect(0, 0, w, h);
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
-    ctx.clip();
+    if (circular) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
+      ctx.clip();
+    }
 
     // Dark background
     ctx.fillStyle = 'rgba(10, 15, 25, 0.85)';
@@ -186,11 +199,21 @@ export class HUD {
 
     ctx.restore();
 
-    // Draw border circle
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // Draw border
+    if (circular) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Label for big map
+    if (!circular) {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 16px Segoe UI, Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('MAP (press M to close)', cx, 24);
+    }
   }
 }

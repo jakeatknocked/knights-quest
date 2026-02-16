@@ -220,6 +220,19 @@ body {
   background: rgba(0,0,0,0.5);
 }
 
+/* ---- Big Map (M key) ---- */
+#big-map {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px; height: 400px;
+  border: 3px solid rgba(255,215,0,0.6);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.8);
+  pointer-events: none;
+  z-index: 5;
+}
+
 #message {
   position: absolute;
   top: 50%; left: 50%;

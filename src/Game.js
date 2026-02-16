@@ -1,4 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
+import '@babylonjs/core/Physics/v1/physicsEngineComponent';
+import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin';
 import * as CANNON from 'cannon-es';
 import { Player } from './entities/Player.js';
 import { World } from './world/World.js';
@@ -30,7 +32,7 @@ export class Game {
     // Enable physics
     this.scene.enablePhysics(
       new BABYLON.Vector3(0, -9.81, 0),
-      new BABYLON.CannonJSPlugin(true, 10, CANNON)
+      new CannonJSPlugin(true, 10, CANNON)
     );
 
     // Rank thresholds — reward multiplier increases with rank
@@ -64,6 +66,7 @@ export class Game {
       totalCoins: parseInt(localStorage.getItem('totalCoins') || '0'),
       ammo: { fire: 30, ice: 20, lightning: 15 },
       selectedElement: 'fire',
+      selectedWeapon: 'pistol',
       shieldActive: false,
       shieldCooldown: 0,
       enemiesAlive: 0,
@@ -255,15 +258,41 @@ export class Game {
       location.reload();
     });
 
-    // Skin selection
-    document.querySelectorAll('.skin-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const skin = btn.getAttribute('data-skin');
-        localStorage.setItem('knightSkin', skin);
-        document.querySelectorAll('.skin-btn').forEach(b => b.style.borderColor = 'transparent');
-        btn.style.borderColor = '#fff';
+    // Build skin buttons based on what the player owns
+    const skinContainer = document.getElementById('skin-buttons');
+    if (skinContainer) {
+      const purchases = JSON.parse(localStorage.getItem('shopPurchases') || '{}');
+      const currentSkin = localStorage.getItem('knightSkin') || 'silver';
+
+      // All available skins — silver is always free
+      const allSkins = [
+        { id: 'silver', name: 'Silver', shopId: null },
+        { id: 'gold', name: 'Gold', shopId: 'skin_gold' },
+        { id: 'dark', name: 'Dark', shopId: 'skin_dark' },
+        { id: 'crystal', name: 'Crystal', shopId: 'skin_crystal' },
+        { id: 'rainbow', name: 'Rainbow', shopId: 'skin_rainbow' },
+        { id: 'lava', name: 'Lava', shopId: 'skin_lava' },
+        { id: 'ice', name: 'Frost', shopId: 'skin_ice' },
+      ];
+
+      // Only show skins the player owns (silver is always owned)
+      const ownedSkins = allSkins.filter(s => !s.shopId || purchases[s.shopId]);
+
+      skinContainer.innerHTML = '';
+      ownedSkins.forEach(skin => {
+        const btn = document.createElement('button');
+        btn.className = 'skin-btn';
+        btn.setAttribute('data-skin', skin.id);
+        btn.textContent = skin.name;
+        btn.style.borderColor = skin.id === currentSkin ? '#fff' : 'transparent';
+        btn.addEventListener('click', () => {
+          localStorage.setItem('knightSkin', skin.id);
+          skinContainer.querySelectorAll('.skin-btn').forEach(b => b.style.borderColor = 'transparent');
+          btn.style.borderColor = '#fff';
+        });
+        skinContainer.appendChild(btn);
       });
-    });
+    }
 
     // Restart
     document.getElementById('restart-btn').addEventListener('click', () => {
@@ -303,11 +332,31 @@ export class Game {
         return;
       }
 
+      // Map toggle
+      if (evt.code === 'KeyM' && !this.chat.isOpen) {
+        this.toggleMap();
+        return;
+      }
+
       // Element switching
       if (evt.code === 'Digit1') { this.state.selectedElement = 'fire'; this.hud.update(); }
       if (evt.code === 'Digit2') { this.state.selectedElement = 'ice'; this.hud.update(); }
       if (evt.code === 'Digit3') { this.state.selectedElement = 'lightning'; this.hud.update(); }
+
+      // Weapon switching
+      if (evt.code === 'Digit4' && this.state.hasShotgun) { this.state.selectedWeapon = this.state.selectedWeapon === 'shotgun' ? 'pistol' : 'shotgun'; this.hud.update(); }
+      if (evt.code === 'Digit5' && this.state.hasRocket) { this.state.selectedWeapon = this.state.selectedWeapon === 'rocket' ? 'pistol' : 'rocket'; this.hud.update(); }
+      if (evt.code === 'Digit6' && this.state.hasLaser) { this.state.selectedWeapon = this.state.selectedWeapon === 'laser' ? 'pistol' : 'laser'; this.hud.update(); }
+      if (evt.code === 'Digit7' && this.state.hasMinigun) { this.state.selectedWeapon = this.state.selectedWeapon === 'minigun' ? 'pistol' : 'minigun'; this.hud.update(); }
     });
+  }
+
+  toggleMap() {
+    this.mapOpen = !this.mapOpen;
+    const bigMap = document.getElementById('big-map');
+    if (bigMap) {
+      bigMap.style.display = this.mapOpen ? 'block' : 'none';
+    }
   }
 
   pause() {
@@ -646,26 +695,26 @@ export class Game {
   }
 
   setupLighting() {
-    // Ambient color so materials are never fully black
-    this.scene.ambientColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+    // No scene ambient color — let hemispheric + directional lights handle everything
+    // (setting ambientColor requires every material to also set ambientColor or they go black)
 
-    // Hemispheric light — bright sky + ground fill
+    // Hemispheric light — good sky + ground fill
     const hemiLight = new BABYLON.HemisphericLight(
       'hemi',
       new BABYLON.Vector3(0, 1, 0),
       this.scene
     );
-    hemiLight.intensity = 1.2;
+    hemiLight.intensity = 1.6;
     hemiLight.diffuse = new BABYLON.Color3(1, 1, 1);
-    hemiLight.groundColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+    hemiLight.groundColor = new BABYLON.Color3(0.7, 0.7, 0.7);
 
-    // Sun
+    // Sun — angled so it lights the ground nicely
     this.sunLight = new BABYLON.DirectionalLight(
       'sun',
-      new BABYLON.Vector3(-1, -2, -1),
+      new BABYLON.Vector3(-0.5, -1, -0.3),
       this.scene
     );
-    this.sunLight.intensity = 1.0;
+    this.sunLight.intensity = 1.5;
     this.sunLight.diffuse = new BABYLON.Color3(1, 0.95, 0.85);
   }
 

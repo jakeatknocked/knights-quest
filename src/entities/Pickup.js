@@ -19,6 +19,8 @@ export class Pickup {
       }, this.scene);
       const mat = new BABYLON.StandardMaterial('coinMat', this.scene);
       mat.diffuseColor = new BABYLON.Color3(1, 0.84, 0);
+
+      mat.emissiveColor = new BABYLON.Color3(0.4, 0.3, 0);
       mat.specularColor = new BABYLON.Color3(1, 1, 0.5);
       mat.specularPower = 64;
       this.mesh.material = mat;
@@ -42,6 +44,8 @@ export class Pickup {
 
       const mat = new BABYLON.StandardMaterial('potionMat', this.scene);
       mat.diffuseColor = new BABYLON.Color3(1, 0.13, 0.27);
+
+      mat.emissiveColor = new BABYLON.Color3(0.4, 0.05, 0.1);
       mat.alpha = 0.85;
       this.mesh.material = mat;
       cap.material = mat;
@@ -62,6 +66,8 @@ export class Pickup {
       };
       const c = colors[this.subType] || colors.fire;
       mat.diffuseColor = c.diff;
+
+      mat.emissiveColor = c.emis;
       this.mesh.material = mat;
 
       this.light = new BABYLON.PointLight('ammoLight', position.clone(), this.scene);

@@ -62,7 +62,7 @@ export class World {
     const makeMat = (name, r, g, b) => {
       const mat = new BABYLON.StandardMaterial(name, this.scene);
       mat.diffuseColor = new BABYLON.Color3(r, g, b);
-      mat.emissiveColor = new BABYLON.Color3(r * 0.15, g * 0.15, b * 0.15);
+      mat.emissiveColor = new BABYLON.Color3(r * 0.2, g * 0.2, b * 0.2);
       mat._shared = true;
       return mat;
     };
@@ -115,7 +115,7 @@ export class World {
 
     const mat = new BABYLON.StandardMaterial('groundMat', this.scene);
     mat.diffuseColor = new BABYLON.Color3(c.r, c.g, c.b);
-    mat.emissiveColor = new BABYLON.Color3(c.r * 0.15, c.g * 0.15, c.b * 0.15);
+    mat.emissiveColor = new BABYLON.Color3(c.r * 0.2, c.g * 0.2, c.b * 0.2);
     mat.specularColor = new BABYLON.Color3(0.05, 0.05, 0.02);
     ground.material = mat;
 

@@ -1,4 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
+import '@babylonjs/core/Physics/v1/physicsImpostor';
 
 export class Player {
   constructor(scene, inputManager) {
@@ -49,13 +50,16 @@ export class Player {
       gold: new BABYLON.Color3(1, 0.75, 0.1),
       dark: new BABYLON.Color3(0.25, 0.2, 0.4),
       crystal: new BABYLON.Color3(0.2, 0.9, 0.9),
-      rainbow: new BABYLON.Color3(1, 0, 0)
+      rainbow: new BABYLON.Color3(1, 0, 0),
+      lava: new BABYLON.Color3(1, 0.2, 0),
+      ice: new BABYLON.Color3(0.4, 0.7, 1),
     };
     this.isRainbow = skinColor === 'rainbow';
     const baseColor = colors[skinColor] || colors.silver;
 
     const material = new BABYLON.StandardMaterial('playerMat', this.scene);
     material.diffuseColor = baseColor;
+
     material.emissiveColor = new BABYLON.Color3(baseColor.r * 0.2, baseColor.g * 0.2, baseColor.b * 0.2);
     material.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
     material.specularPower = 80;
@@ -63,6 +67,7 @@ export class Player {
     // Skin color for limbs (slightly darker)
     const limbMat = new BABYLON.StandardMaterial('playerLimbMat', this.scene);
     limbMat.diffuseColor = new BABYLON.Color3(0.9, 0.7, 0.55);
+
     limbMat.emissiveColor = new BABYLON.Color3(0.15, 0.1, 0.08);
 
     // Body
@@ -76,7 +81,8 @@ export class Player {
     // Armor material (metallic)
     const armorMat = new BABYLON.StandardMaterial('playerArmorMat', this.scene);
     armorMat.diffuseColor = new BABYLON.Color3(baseColor.r * 0.7, baseColor.g * 0.7, baseColor.b * 0.7);
-    armorMat.emissiveColor = new BABYLON.Color3(baseColor.r * 0.1, baseColor.g * 0.1, baseColor.b * 0.1);
+
+    armorMat.emissiveColor = new BABYLON.Color3(baseColor.r * 0.15, baseColor.g * 0.15, baseColor.b * 0.15);
     armorMat.specularColor = new BABYLON.Color3(0.6, 0.6, 0.6);
     armorMat.specularPower = 64;
 
