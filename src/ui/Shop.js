@@ -156,9 +156,9 @@ export class Shop {
         btnHtml = `<button class="buy-btn ${!canAfford ? 'cant-afford' : ''}">${item.cost} coins</button>`;
       }
 
-      // Gift button (always show if you can afford it)
-      const giftHtml = !item.info && canAfford
-        ? `<button class="buy-btn gift-btn" data-action="gift" data-item-id="${item.id}">&#x1F381; GIFT (${item.cost})</button>`
+      // Gift button (always show on every item)
+      const giftHtml = !item.info
+        ? `<button class="buy-btn gift-btn ${!canAfford ? 'cant-afford' : ''}" data-action="gift" data-item-id="${item.id}">&#x1F381; GIFT (${item.cost})</button>`
         : '';
 
       div.innerHTML = `
