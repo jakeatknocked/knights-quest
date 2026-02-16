@@ -1395,7 +1395,7 @@ export class Game {
     this.engine.runRenderLoop(() => {
       const deltaTime = this.engine.getDeltaTime() / 1000;
 
-      if (this.state.started && !this.state.paused && !this.state.dead && !this.state.levelComplete) {
+      if (this.state.started && !this.state.paused && !this.state.dead && (!this.state.levelComplete || this.partyMode)) {
         this.update(deltaTime);
       }
 
