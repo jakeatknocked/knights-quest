@@ -1,0 +1,2798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knight's Quest - Gavin's Game</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #000; font-family: 'Segoe UI', Arial, sans-serif; cursor: none; }
+canvas { display: block; }
+
+#hud {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 10;
+}
+
+#health-bar-container {
+  position: absolute; top: 20px; left: 20px;
+  width: 250px; height: 28px;
+  background: rgba(0,0,0,0.6); border: 2px solid #888;
+  border-radius: 14px; overflow: hidden;
+}
+#health-bar {
+  width: 100%; height: 100%;
+  background: linear-gradient(to bottom, #4f4, #2a2);
+  transition: width 0.3s;
+  border-radius: 12px;
+}
+#health-text {
+  position: absolute; top: 22px; left: 30px;
+  color: white; font-size: 13px; font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  line-height: 28px;
+}
+
+#weapon-display {
+  position: absolute; bottom: 20px; left: 20px;
+  color: white; font-size: 16px;
+  background: rgba(0,0,0,0.6); padding: 12px 18px;
+  border-radius: 10px; border: 2px solid #666;
+}
+#weapon-display .element-name { font-weight: bold; font-size: 20px; }
+#weapon-display .fire { color: #ff6622; }
+#weapon-display .ice { color: #44ccff; }
+#weapon-display .lightning { color: #ffee00; }
+
+#shield-indicator {
+  position: absolute; bottom: 20px; right: 20px;
+  color: #88ccff; font-size: 16px;
+  background: rgba(0,0,0,0.6); padding: 12px 18px;
+  border-radius: 10px; border: 2px solid #4488aa;
+}
+
+#friends-display {
+  position: absolute; top: 20px; right: 20px;
+  color: #8f8; font-size: 16px;
+  background: rgba(0,0,0,0.6); padding: 12px 18px;
+  border-radius: 10px; border: 2px solid #4a4;
+}
+
+#crosshair {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 50%;
+}
+#crosshair::before, #crosshair::after {
+  content: ''; position: absolute; background: rgba(255,255,255,0.6);
+}
+#crosshair::before { width: 2px; height: 8px; top: -5px; left: 50%; transform: translateX(-50%); }
+#crosshair::after { width: 8px; height: 2px; left: -5px; top: 50%; transform: translateY(-50%); }
+
+#message {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -80px);
+  color: #ffe; font-size: 22px; font-weight: bold;
+  text-shadow: 2px 2px 4px #000;
+  opacity: 0; transition: opacity 0.3s;
+  text-align: center;
+}
+#message.show { opacity: 1; }
+
+#start-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(135deg, #1a0a2e, #0a1628, #0a2818);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 100; cursor: default;
+}
+#start-screen h1 {
+  font-size: 64px; color: #ffd700;
+  text-shadow: 0 0 20px #ff8800, 0 0 40px #ff4400;
+  margin-bottom: 10px;
+}
+#start-screen h2 {
+  font-size: 24px; color: #aaccff; margin-bottom: 40px;
+  font-weight: normal;
+}
+#start-screen .controls-info {
+  color: #aaa; font-size: 14px; line-height: 2;
+  text-align: center; margin-bottom: 30px;
+}
+#start-screen .controls-info span { color: #ffd700; font-weight: bold; }
+#start-btn {
+  padding: 16px 48px; font-size: 24px;
+  background: linear-gradient(to bottom, #ffd700, #ff8800);
+  border: none; border-radius: 8px; cursor: pointer;
+  color: #1a0a2e; font-weight: bold;
+  transition: transform 0.2s, box-shadow 0.2s;
+  pointer-events: all;
+}
+#start-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255,200,0,0.5);
+}
+
+#game-over {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 100; cursor: default;
+}
+#game-over h1 { font-size: 48px; color: #ff4444; margin-bottom: 20px; }
+#game-over p { color: #aaa; font-size: 20px; margin-bottom: 30px; }
+#restart-btn {
+  padding: 14px 40px; font-size: 20px;
+  background: linear-gradient(to bottom, #ff6644, #cc2200);
+  border: none; border-radius: 8px; cursor: pointer;
+  color: white; font-weight: bold;
+  pointer-events: all;
+}
+
+#zone-name {
+  position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+  color: #ffd700; font-size: 24px; font-weight: bold;
+  text-shadow: 2px 2px 4px #000;
+  opacity: 0; transition: opacity 0.5s;
+}
+#zone-name.show { opacity: 1; }
+
+#enemy-count {
+  position: absolute; top: 56px; left: 20px;
+  color: #ff6666; font-size: 14px;
+  background: rgba(0,0,0,0.6); padding: 8px 14px;
+  border-radius: 8px; border: 2px solid #a44;
+}
+
+#score-display {
+  position: absolute; top: 56px; right: 20px;
+  color: #ffd700; font-size: 14px;
+  background: rgba(0,0,0,0.6); padding: 8px 14px;
+  border-radius: 8px; border: 2px solid #aa8800;
+}
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <h1>⚔️ Knight's Quest ⚔️</h1>
+  <h2>Gavin's Adventure</h2>
+  <div class="controls-info">
+    <span>W A S D</span> — Move &nbsp;|&nbsp; <span>Mouse</span> — Look Around<br>
+    <span>Left Click</span> — Sword Attack &nbsp;|&nbsp; <span>Right Click</span> — Shoot Gun<br>
+    <span>1</span> 🔥 Fire &nbsp;|&nbsp; <span>2</span> ❄️ Ice &nbsp;|&nbsp; <span>3</span> ⚡ Lightning<br>
+    <span>Space</span> — Jump &nbsp;|&nbsp; <span>F</span> — Shield<br>
+    <span>E</span> — Rescue Friends / Power Objects &nbsp;|&nbsp; <span>Shift</span> — Sprint
+  </div>
+  <div style="margin-bottom: 25px;">
+    <div style="color: #aaccff; font-size: 16px; margin-bottom: 10px;">Choose Your Knight:</div>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button class="skin-btn" data-skin="silver" style="padding: 8px 16px; background: linear-gradient(to bottom, #aaaacc, #6666aa); border: 3px solid #fff; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">Silver</button>
+      <button class="skin-btn" data-skin="gold" style="padding: 8px 16px; background: linear-gradient(to bottom, #ffcc44, #aa8800); border: 3px solid transparent; border-radius: 8px; cursor: pointer; color: #442200; font-weight: bold; pointer-events: all;">Gold</button>
+      <button class="skin-btn" data-skin="dark" style="padding: 8px 16px; background: linear-gradient(to bottom, #444466, #222244); border: 3px solid transparent; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">Dark</button>
+      <button class="skin-btn" data-skin="crystal" style="padding: 8px 16px; background: linear-gradient(to bottom, #44ffff, #2288aa); border: 3px solid transparent; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">Crystal</button>
+    </div>
+  </div>
+  <button id="start-btn">START QUEST</button>
+  <button id="tour-btn" style="margin-top: 15px; padding: 12px 36px; font-size: 18px; background: linear-gradient(to bottom, #44aaff, #2266aa); border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; pointer-events: all;">CASTLE TOUR</button>
+</div>
+
+<div id="game-over">
+  <h1>DEFEATED!</h1>
+  <p>Enemies vanquished: <span id="final-score">0</span></p>
+  <button id="restart-btn">TRY AGAIN</button>
+</div>
+
+<div id="pause-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); flex-direction:column; align-items:center; justify-content:center; z-index:100; cursor:default;">
+  <h1 style="font-size:48px; color:#ffd700; margin-bottom:20px;">PAUSED</h1>
+  <div style="color:#aaa; font-size:14px; line-height:2.2; text-align:center; margin-bottom:30px; max-width:500px;">
+    <span style="color:#ffd700; font-weight:bold;">W A S D</span> — Move &nbsp;|&nbsp; <span style="color:#ffd700; font-weight:bold;">Mouse</span> — Look<br>
+    <span style="color:#ffd700; font-weight:bold;">Left Click</span> — Sword &nbsp;|&nbsp; <span style="color:#ffd700; font-weight:bold;">Right Click</span> — Gun<br>
+    <span style="color:#ffd700; font-weight:bold;">1</span>=Fire &nbsp; <span style="color:#ffd700; font-weight:bold;">2</span>=Ice &nbsp; <span style="color:#ffd700; font-weight:bold;">3</span>=Lightning<br>
+    <span style="color:#ffd700; font-weight:bold;">Space</span> — Jump &nbsp;|&nbsp; <span style="color:#ffd700; font-weight:bold;">F</span> — Shield &nbsp;|&nbsp; <span style="color:#ffd700; font-weight:bold;">E</span> — Interact &nbsp;|&nbsp; <span style="color:#ffd700; font-weight:bold;">Shift</span> — Sprint
+  </div>
+  <button id="resume-btn" style="padding:14px 40px; font-size:20px; background:linear-gradient(to bottom,#44ff44,#228822); border:none; border-radius:8px; cursor:pointer; color:#fff; font-weight:bold; margin-bottom:15px; pointer-events:all;">RESUME</button>
+  <button id="pause-restart-btn" style="padding:12px 36px; font-size:18px; background:linear-gradient(to bottom,#ff6644,#cc2200); border:none; border-radius:8px; cursor:pointer; color:#fff; font-weight:bold; pointer-events:all;">RESTART</button>
+</div>
+
+<div id="hud">
+  <div id="health-bar-container"><div id="health-bar"></div></div>
+  <div id="health-text">♥ 100 / 100</div>
+  <div id="enemy-count">⚔ Enemies: 0</div>
+  <div id="weapon-display">
+    🔫 Gun: <span class="element-name fire">FIRE</span><br>
+    <small>1=Fire 2=Ice 3=Lightning</small>
+  </div>
+  <div id="shield-indicator">🛡 Shield: READY</div>
+  <div id="friends-display">👥 Friends: 0</div>
+  <div id="score-display">★ Score: 0</div>
+  <div id="coin-display" style="position:absolute; top:92px; right:20px; color:#ffdd00; font-size:16px; background:rgba(0,0,0,0.6); padding:8px 14px; border-radius:8px; border:2px solid #aa8800;">💰 Coins: 0</div>
+  <div id="crosshair"></div>
+  <div id="message"></div>
+  <div id="zone-name"></div>
+  <div id="boss-bar-container" style="display:none; position:absolute; bottom:80px; left:50%; transform:translateX(-50%); width:400px; text-align:center;">
+    <div style="color:#ff44ff; font-size:16px; font-weight:bold; text-shadow:1px 1px 2px #000; margin-bottom:4px;">DARK KNIGHT LORD</div>
+    <div style="width:100%; height:20px; background:rgba(0,0,0,0.6); border:2px solid #aa00aa; border-radius:10px; overflow:hidden;">
+      <div id="boss-health-bar" style="width:100%; height:100%; background:linear-gradient(to bottom,#ff44ff,#aa00aa); transition:width 0.3s; border-radius:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============================================================
+// GAME STATE
+// ============================================================
+const state = {
+  started: false,
+  health: 100,
+  maxHealth: 100,
+  score: 0,
+  element: 'fire', // fire, ice, lightning
+  shieldActive: false,
+  shieldCooldown: 0,
+  swordSwinging: false,
+  swordCooldown: 0,
+  gunCooldown: 0,
+  friends: [],
+  enemies: [],
+  projectiles: [],
+  particles: [],
+  rescuables: [],
+  powerables: [],
+  potions: [],
+  ammoPickups: [],
+  ammo: { fire: 30, ice: 20, lightning: 15 }, // Starting ammo
+  coins: [],
+  totalCoins: parseInt(localStorage.getItem('totalCoins') || '0'),
+  keys: {},
+  mouse: { x: 0, y: 0, leftDown: false, rightDown: false },
+  yaw: 0,
+  pitch: 0,
+  currentZone: '',
+  enemySpawnTimer: 0,
+  dead: false,
+  // Jump & gravity
+  playerVelY: 0,
+  onGround: true,
+  // Boss
+  bossSpawned: false,
+  bossDefeated: false,
+  // Tour mode
+  tourActive: false,
+  tourWaypointIndex: 0,
+  tourProgress: 0,
+  // Day/night cycle
+  timeOfDay: 0.25, // 0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk, 1=midnight
+  // Pause
+  paused: false,
+  // Player skin
+  selectedSkin: localStorage.getItem('knightSkin') || 'silver',
+};
+
+// Tour waypoints (camera position, lookAt, message, duration in seconds)
+const tourWaypoints = [
+  { pos: [0, 5, 20], look: [0, 2, -30], msg: "🏰 Welcome to the Castle!", duration: 3 },
+  { pos: [-15, 8, -30], look: [0, 5, -30], msg: "The mighty fortress stands before you", duration: 3 },
+  { pos: [0, 3, -24], look: [0, 2, -30], msg: "Enter through the grand doorway", duration: 3 },
+  { pos: [0, 4, -30], look: [0, 2, -33], msg: "⚔️ The Throne Room - seat of power", duration: 3 },
+  { pos: [5, 3, -28], look: [5, 2, -32], msg: "🗡️ The Armory - weapons and supplies", duration: 3 },
+  { pos: [-5, 3, -28], look: [-5, 1, -32], msg: "🔽 Dungeon stairs lead to the depths below", duration: 3 },
+  { pos: [15, 12, -15], look: [0, 5, -30], msg: "🌍 Explore the village and beyond!", duration: 3 },
+  { pos: [0, 8, 0], look: [0, 0, 0], msg: "Your adventure begins now!", duration: 2 },
+];
+
+// ============================================================
+// THREE.JS SETUP
+// ============================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+scene.fog = new THREE.Fog(0x1a1a2e, 60, 180);
+
+const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 300);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x334466, 0.6);
+scene.add(ambientLight);
+
+const sunLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+sunLight.position.set(50, 80, 30);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left = -80;
+sunLight.shadow.camera.right = 80;
+sunLight.shadow.camera.top = 80;
+sunLight.shadow.camera.bottom = -80;
+sunLight.shadow.camera.far = 200;
+scene.add(sunLight);
+
+const hemiLight = new THREE.HemisphereLight(0x88aaff, 0x445522, 0.4);
+scene.add(hemiLight);
+
+// ============================================================
+// HELPER: Build an improved knight mesh
+// ============================================================
+function createKnight(color, scale = 1, isEnemy = false) {
+  const group = new THREE.Group();
+  const mat = (c) => new THREE.MeshPhongMaterial({ color: c });
+  const matShiny = (c) => new THREE.MeshPhongMaterial({ color: c, shininess: 80, specular: 0x444444 });
+
+  // Darker/lighter variants
+  const darker = new THREE.Color(color).multiplyScalar(0.6).getHex();
+  const lighter = new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.3).getHex();
+
+  // ---- Torso (chest plate) ----
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.5), matShiny(color));
+  torso.position.y = 1.5;
+  torso.castShadow = true;
+  group.add(torso);
+
+  // Chest plate ridge
+  const chestRidge = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.08), matShiny(lighter));
+  chestRidge.position.set(0, 1.55, 0.26);
+  group.add(chestRidge);
+
+  // Lower torso / waist
+  const waist = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.3, 0.45), mat(darker));
+  waist.position.y = 0.9;
+  waist.castShadow = true;
+  group.add(waist);
+
+  // Belt
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.12, 0.52), mat(0x553311));
+  belt.position.y = 1.0;
+  group.add(belt);
+  // Belt buckle
+  const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.06), mat(0xddaa00));
+  buckle.position.set(0, 1.0, 0.28);
+  group.add(buckle);
+
+  // ---- Shoulder pauldrons ----
+  const pauldronGeo = new THREE.SphereGeometry(0.22, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.6);
+  const leftPauldron = new THREE.Mesh(pauldronGeo, matShiny(lighter));
+  leftPauldron.position.set(-0.55, 2.0, 0);
+  leftPauldron.castShadow = true;
+  group.add(leftPauldron);
+  const rightPauldron = new THREE.Mesh(pauldronGeo, matShiny(lighter));
+  rightPauldron.position.set(0.55, 2.0, 0);
+  rightPauldron.castShadow = true;
+  group.add(rightPauldron);
+
+  // Pauldron rims
+  const rimGeo = new THREE.TorusGeometry(0.2, 0.03, 6, 12);
+  const leftRim = new THREE.Mesh(rimGeo, mat(darker));
+  leftRim.position.set(-0.55, 1.92, 0);
+  leftRim.rotation.x = Math.PI / 2;
+  group.add(leftRim);
+  const rightRim = new THREE.Mesh(rimGeo, mat(darker));
+  rightRim.position.set(0.55, 1.92, 0);
+  rightRim.rotation.x = Math.PI / 2;
+  group.add(rightRim);
+
+  // ---- Arms with gauntlets ----
+  const upperArmGeo = new THREE.BoxGeometry(0.22, 0.45, 0.22);
+  const leftUpperArm = new THREE.Mesh(upperArmGeo, mat(color));
+  leftUpperArm.position.set(-0.58, 1.55, 0);
+  leftUpperArm.castShadow = true;
+  group.add(leftUpperArm);
+  const rightUpperArm = new THREE.Mesh(upperArmGeo, mat(color));
+  rightUpperArm.position.set(0.58, 1.55, 0);
+  rightUpperArm.castShadow = true;
+  group.add(rightUpperArm);
+  group.userData.rightArm = rightUpperArm;
+
+  // Forearms / gauntlets
+  const gauntletGeo = new THREE.BoxGeometry(0.24, 0.35, 0.24);
+  const leftGauntlet = new THREE.Mesh(gauntletGeo, matShiny(darker));
+  leftGauntlet.position.set(-0.58, 1.15, 0);
+  leftGauntlet.castShadow = true;
+  group.add(leftGauntlet);
+  const rightGauntlet = new THREE.Mesh(gauntletGeo, matShiny(darker));
+  rightGauntlet.position.set(0.58, 1.15, 0);
+  rightGauntlet.castShadow = true;
+  group.add(rightGauntlet);
+
+  // Hands
+  const handGeo = new THREE.SphereGeometry(0.09, 6, 6);
+  const leftHand = new THREE.Mesh(handGeo, mat(0xddbb88));
+  leftHand.position.set(-0.58, 0.94, 0);
+  group.add(leftHand);
+  const rightHand = new THREE.Mesh(handGeo, mat(0xddbb88));
+  rightHand.position.set(0.58, 0.94, 0);
+  group.add(rightHand);
+
+  // ---- Legs with boots ----
+  const thighGeo = new THREE.BoxGeometry(0.28, 0.45, 0.28);
+  const legColor = isEnemy ? 0x661111 : 0x3a3a55;
+  const leftThigh = new THREE.Mesh(thighGeo, mat(legColor));
+  leftThigh.position.set(-0.2, 0.55, 0);
+  leftThigh.castShadow = true;
+  group.add(leftThigh);
+  const rightThigh = new THREE.Mesh(thighGeo, mat(legColor));
+  rightThigh.position.set(0.2, 0.55, 0);
+  rightThigh.castShadow = true;
+  group.add(rightThigh);
+  group.userData.leftLeg = leftThigh;
+  group.userData.rightLeg = rightThigh;
+
+  // Boots
+  const bootGeo = new THREE.BoxGeometry(0.3, 0.35, 0.38);
+  const bootColor = isEnemy ? 0x441111 : 0x332222;
+  const leftBoot = new THREE.Mesh(bootGeo, matShiny(bootColor));
+  leftBoot.position.set(-0.2, 0.17, 0.03);
+  leftBoot.castShadow = true;
+  group.add(leftBoot);
+  const rightBoot = new THREE.Mesh(bootGeo, matShiny(bootColor));
+  rightBoot.position.set(0.2, 0.17, 0.03);
+  rightBoot.castShadow = true;
+  group.add(rightBoot);
+
+  // ---- Head ----
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 10), mat(0xddbb88));
+  head.position.y = 2.25;
+  head.castShadow = true;
+  group.add(head);
+
+  // ---- Helmet ----
+  // Helmet dome
+  const helmetDome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.32, 10, 10, 0, Math.PI * 2, 0, Math.PI * 0.6),
+    matShiny(color)
+  );
+  helmetDome.position.y = 2.3;
+  helmetDome.castShadow = true;
+  group.add(helmetDome);
+
+  // Helmet point / crest
+  const crest = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.35, 6), matShiny(lighter));
+  crest.position.y = 2.7;
+  group.add(crest);
+
+  // Helmet rim
+  const helmetRim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.3, 0.04, 6, 16),
+    matShiny(darker)
+  );
+  helmetRim.position.y = 2.2;
+  helmetRim.rotation.x = Math.PI / 2;
+  group.add(helmetRim);
+
+  // Face guard / visor
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.12), matShiny(0x333333));
+  visor.position.set(0, 2.2, 0.24);
+  group.add(visor);
+
+  // Nose guard
+  const noseGuard = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.2, 0.1), matShiny(color));
+  noseGuard.position.set(0, 2.22, 0.28);
+  group.add(noseGuard);
+
+  // Cheek guards
+  const cheekGeo = new THREE.BoxGeometry(0.08, 0.18, 0.12);
+  const leftCheek = new THREE.Mesh(cheekGeo, matShiny(color));
+  leftCheek.position.set(-0.22, 2.15, 0.2);
+  group.add(leftCheek);
+  const rightCheek = new THREE.Mesh(cheekGeo, matShiny(color));
+  rightCheek.position.set(0.22, 2.15, 0.2);
+  group.add(rightCheek);
+
+  // Eyes (glowing for enemies)
+  const eyeColor = isEnemy ? 0xff0000 : 0x44aaff;
+  const eyeMat = new THREE.MeshPhongMaterial({ color: eyeColor, emissive: eyeColor, emissiveIntensity: isEnemy ? 0.8 : 0.3 });
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyeMat);
+  eyeL.position.set(-0.1, 2.24, 0.3);
+  group.add(eyeL);
+  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyeMat);
+  eyeR.position.set(0.1, 2.24, 0.3);
+  group.add(eyeR);
+
+  // ---- Cape ----
+  const capeGeo = new THREE.PlaneGeometry(0.7, 1.3, 1, 4);
+  const capeColor = isEnemy ? 0x880000 : 0x2244aa;
+  const cape = new THREE.Mesh(capeGeo, new THREE.MeshPhongMaterial({
+    color: capeColor, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+  }));
+  cape.position.set(0, 1.3, -0.28);
+  cape.castShadow = true;
+  group.add(cape);
+  group.userData.cape = cape;
+
+  // Cape clasp at neck
+  const clasp = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), mat(0xddaa00));
+  clasp.position.set(0, 1.95, -0.25);
+  group.add(clasp);
+
+  // ---- Sword (improved) ----
+  const swordGroup = new THREE.Group();
+  // Blade with taper
+  const bladeGeo = new THREE.BoxGeometry(0.07, 1.1, 0.02);
+  const blade = new THREE.Mesh(bladeGeo, matShiny(0xdddde8));
+  blade.position.y = 0.55;
+  swordGroup.add(blade);
+  // Blade tip
+  const bladeTip = new THREE.Mesh(
+    new THREE.ConeGeometry(0.04, 0.2, 4),
+    matShiny(0xdddde8)
+  );
+  bladeTip.position.y = 1.2;
+  swordGroup.add(bladeTip);
+  // Blood groove
+  const groove = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.7, 0.025), mat(0xaaaabc));
+  groove.position.y = 0.5;
+  groove.position.z = 0.001;
+  swordGroup.add(groove);
+  // Guard (cross-shaped)
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.07, 0.07), matShiny(0xddaa00));
+  swordGroup.add(guard);
+  // Guard gems
+  const gemL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6),
+    new THREE.MeshPhongMaterial({ color: 0xff0044, emissive: 0xff0044, emissiveIntensity: 0.4 }));
+  gemL.position.set(-0.15, 0, 0.04);
+  swordGroup.add(gemL);
+  const gemR = gemL.clone();
+  gemR.position.set(0.15, 0, 0.04);
+  swordGroup.add(gemR);
+  // Grip (wrapped leather look)
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.28, 8), mat(0x553311));
+  grip.position.y = -0.17;
+  swordGroup.add(grip);
+  // Pommel
+  const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), matShiny(0xddaa00));
+  pommel.position.y = -0.34;
+  swordGroup.add(pommel);
+  swordGroup.position.set(0.58, 1.0, 0.3);
+  group.add(swordGroup);
+  group.userData.sword = swordGroup;
+
+  // ---- Shield & Gun (only for player/friends) ----
+  if (!isEnemy) {
+    // Knight's heater shield
+    const shieldGroup = new THREE.Group();
+
+    // Heater shield shape (pointed bottom, flat top with curved sides)
+    const shieldOutline = new THREE.Shape();
+    shieldOutline.moveTo(0, 0.5);          // top center
+    shieldOutline.lineTo(0.4, 0.45);       // top right
+    shieldOutline.quadraticCurveTo(0.45, 0.3, 0.4, 0.1);  // right curve
+    shieldOutline.lineTo(0, -0.55);        // bottom point
+    shieldOutline.lineTo(-0.4, 0.1);       // left lower
+    shieldOutline.quadraticCurveTo(-0.45, 0.3, -0.4, 0.45); // left curve
+    shieldOutline.lineTo(0, 0.5);          // back to top
+
+    // Shield body (extruded for thickness)
+    const shieldExtrudeSettings = { depth: 0.06, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 };
+    const shieldBody = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(shieldOutline, shieldExtrudeSettings),
+      new THREE.MeshPhongMaterial({ color: 0x2244aa, shininess: 70, specular: 0x444444 })
+    );
+    shieldBody.position.z = -0.03;
+    shieldGroup.add(shieldBody);
+
+    // Shield border / trim
+    const borderShape = new THREE.Shape();
+    borderShape.moveTo(0, 0.5);
+    borderShape.lineTo(0.4, 0.45);
+    borderShape.quadraticCurveTo(0.45, 0.3, 0.4, 0.1);
+    borderShape.lineTo(0, -0.55);
+    borderShape.lineTo(-0.4, 0.1);
+    borderShape.quadraticCurveTo(-0.45, 0.3, -0.4, 0.45);
+    borderShape.lineTo(0, 0.5);
+    // Inner cutout for the border effect
+    const innerHole = new THREE.Path();
+    innerHole.moveTo(0, 0.42);
+    innerHole.lineTo(0.33, 0.38);
+    innerHole.quadraticCurveTo(0.37, 0.25, 0.33, 0.1);
+    innerHole.lineTo(0, -0.43);
+    innerHole.lineTo(-0.33, 0.1);
+    innerHole.quadraticCurveTo(-0.37, 0.25, -0.33, 0.38);
+    innerHole.lineTo(0, 0.42);
+    borderShape.holes.push(innerHole);
+    const borderMesh = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(borderShape, { depth: 0.08, bevelEnabled: false }),
+      matShiny(0xcc9900)
+    );
+    borderMesh.position.z = -0.04;
+    shieldGroup.add(borderMesh);
+
+    // Center vertical bar
+    const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.85, 0.09), matShiny(0xcc9900));
+    vBar.position.set(0, -0.02, 0.02);
+    shieldGroup.add(vBar);
+
+    // Center horizontal bar
+    const hBar = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.09), matShiny(0xcc9900));
+    hBar.position.set(0, 0.2, 0.02);
+    shieldGroup.add(hBar);
+
+    // Center boss (shield boss - the round metal piece)
+    const boss = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 10, 10, 0, Math.PI * 2, 0, Math.PI * 0.5),
+      matShiny(0xddbb00)
+    );
+    boss.position.set(0, 0.2, 0.06);
+    shieldGroup.add(boss);
+
+    // Heraldic emblem - lion/cross shape using simple geometry
+    // Top quadrant emblems (small diamonds)
+    for (const ox of [-0.15, 0.15]) {
+      const diamond = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.08, 0.03),
+        new THREE.MeshPhongMaterial({ color: 0xffdd00, emissive: 0x886600, emissiveIntensity: 0.2 })
+      );
+      diamond.position.set(ox, 0.35, 0.04);
+      diamond.rotation.z = Math.PI / 4;
+      shieldGroup.add(diamond);
+    }
+
+    shieldGroup.position.set(-0.72, 1.4, 0.3);
+    shieldGroup.visible = false;
+    group.add(shieldGroup);
+    group.userData.shield = shieldGroup;
+
+    // Gun on left arm (improved)
+    const gun = new THREE.Group();
+    // Main barrel
+    const barrel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.08, 0.55, 8),
+      matShiny(0x556677)
+    );
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.z = 0.32;
+    gun.add(barrel);
+    // Barrel rings
+    for (let r = 0; r < 3; r++) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.07, 0.015, 6, 12),
+        matShiny(0x888899)
+      );
+      ring.position.z = 0.15 + r * 0.15;
+      gun.add(ring);
+    }
+    // Gun body / receiver
+    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.3), matShiny(0x445566));
+    gunBody.position.z = 0.05;
+    gun.add(gunBody);
+    // Crystal chamber
+    const chamber = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.06, 0),
+      new THREE.MeshPhongMaterial({ color: 0xff6600, emissive: 0xff6600, emissiveIntensity: 0.6, transparent: true, opacity: 0.8 })
+    );
+    chamber.position.set(0, 0.1, 0.1);
+    gun.add(chamber);
+    // Muzzle glow
+    const glow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.07, 8, 8),
+      new THREE.MeshPhongMaterial({ color: 0xff6600, emissive: 0xff6600, emissiveIntensity: 0.8, transparent: true, opacity: 0.7 })
+    );
+    glow.position.z = 0.6;
+    gun.add(glow);
+    gun.position.set(-0.58, 1.15, 0.15);
+    group.add(gun);
+    group.userData.gun = gun;
+    group.userData.gunGlow = glow;
+    group.userData.gunChamber = chamber;
+  }
+
+  group.scale.setScalar(scale);
+  return group;
+}
+
+// ============================================================
+// PLAYER
+// ============================================================
+// Skin colors
+const skinColors = {
+  silver: 0x3366aa,
+  gold: 0xffaa00,
+  dark: 0x333355,
+  crystal: 0x22dddd,
+};
+const selectedSkin = localStorage.getItem('knightSkin') || 'silver';
+const player = createKnight(skinColors[selectedSkin], 1, false);
+player.position.set(0, 0, 0);
+scene.add(player);
+
+// Full-size shield bubble for blocking
+const shieldBubble = new THREE.Mesh(
+  new THREE.SphereGeometry(2, 16, 16),
+  new THREE.MeshPhongMaterial({ color: 0x44aaff, transparent: true, opacity: 0.0, side: THREE.DoubleSide, emissive: 0x2266aa, emissiveIntensity: 0.3 })
+);
+shieldBubble.position.copy(player.position);
+scene.add(shieldBubble);
+
+// ============================================================
+// WORLD BUILDING
+// ============================================================
+const worldObjects = [];
+const colliders = []; // AABB colliders: {minX, maxX, minZ, maxZ}
+
+function addCollider(x, z, halfW, halfD) {
+  colliders.push({ minX: x - halfW, maxX: x + halfW, minZ: z - halfD, maxZ: z + halfD });
+}
+
+// Ground for each zone
+function createGround(color, x, z, w, h) {
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshPhongMaterial({ color })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(x, 0, z);
+  ground.receiveShadow = true;
+  scene.add(ground);
+  return ground;
+}
+
+// Zone 1: Medieval Castle & Village (center area)
+createGround(0x3a5a2a, 0, 0, 120, 120);
+
+function createBox(w, h, d, color, x, y, z, collide = true) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshPhongMaterial({ color })
+  );
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  worldObjects.push(mesh);
+  if (collide && h > 1) addCollider(x, z, w / 2 + 0.5, d / 2 + 0.5);
+  return mesh;
+}
+
+// Castle with enterable interior
+function buildCastle(cx, cz) {
+  // Main keep - now hollow with walls instead of solid box
+  // North wall
+  createBox(12, 10, 1, 0x888888, cx, 5, cz - 6);
+  // South wall (has doorway in center)
+  createBox(4, 10, 1, 0x888888, cx - 4, 5, cz + 6);
+  createBox(4, 10, 1, 0x888888, cx + 4, 5, cz + 6);
+  // West wall
+  createBox(1, 10, 12, 0x888888, cx - 6, 5, cz);
+  // East wall
+  createBox(1, 10, 12, 0x888888, cx + 6, 5, cz);
+
+  // Interior floor (stone)
+  const keepFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(11, 11),
+    new THREE.MeshPhongMaterial({ color: 0x666666 })
+  );
+  keepFloor.rotation.x = -Math.PI / 2;
+  keepFloor.position.set(cx, 0.01, cz);
+  keepFloor.receiveShadow = true;
+  scene.add(keepFloor);
+
+  // === THRONE ROOM (center) ===
+  // Throne
+  const throne = createBox(1.5, 2, 1.5, 0xaa8800, cx, 1, cz - 3, false);
+  const throneBack = createBox(1.5, 1.5, 0.3, 0xaa8800, cx, 2.25, cz - 3.6, false);
+  // Red carpet leading to throne
+  const carpet = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 6),
+    new THREE.MeshPhongMaterial({ color: 0x990000 })
+  );
+  carpet.rotation.x = -Math.PI / 2;
+  carpet.position.set(cx, 0.02, cz);
+  scene.add(carpet);
+
+  // === ARMORY (east side) ===
+  // Interior wall dividing armory
+  createBox(1, 8, 4, 0x777777, cx + 3, 4, cz + 2);
+  // Weapon racks (decorative)
+  createBox(0.2, 1.5, 2, 0x553311, cx + 5, 0.75, cz + 3, false);
+  createBox(0.2, 1.5, 2, 0x553311, cx + 5, 0.75, cz + 1, false);
+
+  // === DUNGEON STAIRCASE (west side) ===
+  // Interior wall dividing dungeon entrance
+  createBox(1, 8, 4, 0x777777, cx - 3, 4, cz + 2);
+  // Stairs going down (stepped)
+  for (let i = 0; i < 5; i++) {
+    const step = createBox(2, 0.3, 1, 0x555555, cx - 4.5, -i * 0.3, cz + 4 - i * 0.5, false);
+  }
+
+  // === HALLWAY (connecting south entrance to main hall) ===
+  // Side walls of hallway
+  createBox(1, 8, 3, 0x888888, cx - 2, 4, cz + 3.5);
+  createBox(1, 8, 3, 0x888888, cx + 2, 4, cz + 3.5);
+
+  // === LOOT ITEMS INSIDE ===
+  // Potions in armory
+  spawnPotion(cx + 4.5, cz + 2);
+  // Coins (will be added in Batch 4, placeholder for now)
+
+  // Corner towers
+  for (let dx of [-7, 7]) {
+    for (let dz of [-7, 7]) {
+      createBox(4, 14, 4, 0x777777, cx + dx, 7, cz + dz);
+      // Tower top
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(3, 4, 4),
+        new THREE.MeshPhongMaterial({ color: 0xaa3333 })
+      );
+      cone.position.set(cx + dx, 15, cz + dz);
+      cone.castShadow = true;
+      scene.add(cone);
+    }
+  }
+
+  // Outer walls
+  createBox(24, 6, 1, 0x777777, cx, 3, cz - 12);
+  createBox(24, 6, 1, 0x777777, cx, 3, cz + 12);
+  createBox(1, 6, 24, 0x777777, cx - 12, 3, cz);
+  createBox(1, 6, 24, 0x777777, cx + 12, 3, cz);
+}
+buildCastle(0, -30);
+
+// Village huts with enterable interiors
+function buildHut(x, z) {
+  // Walls with doorway (north side open)
+  createBox(3, 2.5, 0.3, 0x886644, x, 1.25, z - 1.5); // south wall
+  createBox(0.3, 2.5, 3, 0x886644, x - 1.5, 1.25, z); // west wall
+  createBox(0.3, 2.5, 3, 0x886644, x + 1.5, 1.25, z); // east wall
+  createBox(1, 2.5, 0.3, 0x886644, x - 1, 1.25, z + 1.5); // north wall left
+  createBox(1, 2.5, 0.3, 0x886644, x + 1, 1.25, z + 1.5); // north wall right (doorway in center)
+
+  // Interior floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.8, 2.8),
+    new THREE.MeshPhongMaterial({ color: 0x775533 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(x, 0.01, z);
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Furniture: table in center
+  createBox(0.8, 0.6, 0.8, 0x553311, x, 0.3, z, false);
+
+  // Furniture: chest in corner
+  createBox(0.6, 0.4, 0.4, 0x664422, x + 1, 0.2, z - 1, false);
+
+  // Loot items (coins and potions)
+  // Alternate between different loot types
+  const lootType = Math.floor(Math.random() * 3);
+  if (lootType === 0) {
+    spawnPotion(x - 0.8, z + 0.8);
+  }
+  // Coins will be added in Batch 4
+
+  const roof = new THREE.Mesh(
+    new THREE.ConeGeometry(2.8, 2, 4),
+    new THREE.MeshPhongMaterial({ color: 0xaa4422 })
+  );
+  roof.position.set(x, 3.5, z);
+  roof.rotation.y = Math.PI / 4;
+  roof.castShadow = true;
+  scene.add(roof);
+
+  // Colliders for walls only (not entire hut)
+  addCollider(x, z - 1.5, 1.5, 0.3); // south
+  addCollider(x - 1.5, z, 0.3, 1.5); // west
+  addCollider(x + 1.5, z, 0.3, 1.5); // east
+  addCollider(x - 1, z + 1.5, 0.5, 0.3); // north left
+  addCollider(x + 1, z + 1.5, 0.5, 0.3); // north right
+}
+buildHut(10, 5);
+buildHut(15, 8);
+buildHut(-10, 3);
+buildHut(-14, 7);
+buildHut(8, 12);
+buildHut(-8, 14);
+
+// Zone 2: Fantasy Forest (offset east)
+createGround(0x2a4a2a, 80, 0, 100, 100);
+
+function buildTree(x, z, height = 6) {
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.4, height * 0.5, 8),
+    new THREE.MeshPhongMaterial({ color: 0x664422 })
+  );
+  trunk.position.set(x, height * 0.25, z);
+  trunk.castShadow = true;
+  scene.add(trunk);
+  worldObjects.push(trunk);
+  addCollider(x, z, 0.8, 0.8);
+
+  const leaves = new THREE.Mesh(
+    new THREE.SphereGeometry(height * 0.35, 8, 8),
+    new THREE.MeshPhongMaterial({ color: 0x228833 })
+  );
+  leaves.position.set(x, height * 0.6, z);
+  leaves.castShadow = true;
+  scene.add(leaves);
+}
+
+// Dense forest
+for (let i = 0; i < 40; i++) {
+  const x = 50 + Math.random() * 60;
+  const z = -30 + Math.random() * 60;
+  buildTree(x, z, 4 + Math.random() * 5);
+}
+
+// Glowing crystals
+function buildCrystal(x, z, color, powerableId) {
+  const crystal = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.8, 0),
+    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.2, transparent: true, opacity: 0.8 })
+  );
+  crystal.position.set(x, 1.5, z);
+  crystal.castShadow = true;
+  scene.add(crystal);
+  crystal.userData.isPowerable = true;
+  crystal.userData.powered = false;
+  crystal.userData.baseEmissive = 0.2;
+  crystal.userData.id = powerableId;
+  state.powerables.push(crystal);
+
+  // Light that activates
+  const light = new THREE.PointLight(color, 0, 10);
+  light.position.copy(crystal.position);
+  light.position.y += 1;
+  scene.add(light);
+  crystal.userData.light = light;
+  return crystal;
+}
+
+buildCrystal(70, -10, 0x00ffaa, 'crystal1');
+buildCrystal(90, 5, 0xff44ff, 'crystal2');
+buildCrystal(80, 15, 0x44aaff, 'crystal3');
+
+// Ancient ruins
+function buildRuin(x, z) {
+  // Broken pillars
+  for (let i = 0; i < 4; i++) {
+    const h = 2 + Math.random() * 4;
+    const pillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.4, 0.5, h, 8),
+      new THREE.MeshPhongMaterial({ color: 0x998877 })
+    );
+    pillar.position.set(x + (i % 2) * 5 - 2.5, h / 2, z + Math.floor(i / 2) * 5 - 2.5);
+    pillar.castShadow = true;
+    scene.add(pillar);
+    worldObjects.push(pillar);
+  }
+  // Base
+  createBox(7, 0.5, 7, 0x887766, x, 0.25, z);
+}
+buildRuin(75, -20);
+buildRuin(95, 15);
+
+// Zone 3: Floating Islands (offset north)
+createGround(0x2a3a4a, 0, -90, 100, 80);
+
+function buildFloatingIsland(x, y, z, radius) {
+  // Top (grassy)
+  const top = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius * 0.6, 2, 12),
+    new THREE.MeshPhongMaterial({ color: 0x44aa44 })
+  );
+  top.position.set(x, y, z);
+  top.castShadow = true;
+  top.receiveShadow = true;
+  scene.add(top);
+  worldObjects.push(top);
+
+  // Bottom (rocky)
+  const bottom = new THREE.Mesh(
+    new THREE.ConeGeometry(radius * 0.6, 4, 12),
+    new THREE.MeshPhongMaterial({ color: 0x665544 })
+  );
+  bottom.position.set(x, y - 3, z);
+  bottom.rotation.x = Math.PI;
+  scene.add(bottom);
+
+  return top;
+}
+
+const island1 = buildFloatingIsland(0, 8, -80, 8);
+const island2 = buildFloatingIsland(20, 12, -90, 6);
+const island3 = buildFloatingIsland(-15, 15, -95, 5);
+const island4 = buildFloatingIsland(10, 18, -105, 7);
+
+// Bridges between islands
+function buildBridge(from, to) {
+  const dir = new THREE.Vector3().subVectors(to, from);
+  const length = dir.length();
+  const mid = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
+  const bridge = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 0.3, length),
+    new THREE.MeshPhongMaterial({ color: 0x886644 })
+  );
+  bridge.position.copy(mid);
+  bridge.lookAt(to);
+  bridge.receiveShadow = true;
+  scene.add(bridge);
+  worldObjects.push(bridge);
+}
+buildBridge(island1.position, island2.position);
+buildBridge(island2.position, island4.position);
+buildBridge(island1.position, island3.position);
+
+// Ramp up to floating islands
+const ramp = new THREE.Mesh(
+  new THREE.BoxGeometry(4, 0.3, 20),
+  new THREE.MeshPhongMaterial({ color: 0x887755 })
+);
+ramp.position.set(0, 4, -68);
+ramp.rotation.x = -0.35;
+ramp.receiveShadow = true;
+scene.add(ramp);
+worldObjects.push(ramp);
+
+// Powerable platform in floating islands
+const powerPlatform = new THREE.Mesh(
+  new THREE.CylinderGeometry(3, 3, 0.5, 12),
+  new THREE.MeshPhongMaterial({ color: 0x555577 })
+);
+powerPlatform.position.set(10, 10, -105);
+scene.add(powerPlatform);
+powerPlatform.userData.isPowerable = true;
+powerPlatform.userData.powered = false;
+powerPlatform.userData.id = 'platform1';
+state.powerables.push(powerPlatform);
+
+// Powerable drawbridge in castle area
+const drawbridge = new THREE.Mesh(
+  new THREE.BoxGeometry(4, 0.3, 6),
+  new THREE.MeshPhongMaterial({ color: 0x885533 })
+);
+drawbridge.position.set(0, 0.15, -18);
+drawbridge.rotation.x = Math.PI / 3; // Up (not crossed)
+scene.add(drawbridge);
+drawbridge.userData.isPowerable = true;
+drawbridge.userData.powered = false;
+drawbridge.userData.id = 'drawbridge';
+state.powerables.push(drawbridge);
+
+// Decorative: torches, banners along paths
+function addTorch(x, y, z) {
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.05, 0.05, 1.5, 6),
+    new THREE.MeshPhongMaterial({ color: 0x554433 })
+  );
+  pole.position.set(x, y + 0.75, z);
+  scene.add(pole);
+  const flame = new THREE.PointLight(0xff6600, 1, 8);
+  flame.position.set(x, y + 1.6, z);
+  scene.add(flame);
+  // Flame mesh
+  const flameMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 6, 6),
+    new THREE.MeshPhongMaterial({ color: 0xff6600, emissive: 0xff4400, emissiveIntensity: 1 })
+  );
+  flameMesh.position.copy(flame.position);
+  scene.add(flameMesh);
+}
+addTorch(5, 0, -18);
+addTorch(-5, 0, -18);
+addTorch(10, 0, 0);
+addTorch(-10, 0, 0);
+
+// Sky dome (stars)
+const skyGeo = new THREE.BufferGeometry();
+const starPositions = [];
+for (let i = 0; i < 1000; i++) {
+  const r = 200;
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.random() * Math.PI * 0.5;
+  starPositions.push(
+    Math.cos(theta) * Math.sin(phi) * r,
+    Math.cos(phi) * r,
+    Math.sin(theta) * Math.sin(phi) * r
+  );
+}
+skyGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+const stars = new THREE.Points(skyGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, transparent: true, opacity: 0.3 }));
+scene.add(stars);
+
+// Moon
+const moon = new THREE.Mesh(
+  new THREE.SphereGeometry(8, 16, 16),
+  new THREE.MeshPhongMaterial({ color: 0xddddee, emissive: 0xaaaacc, emissiveIntensity: 0.4, transparent: true, opacity: 0 })
+);
+moon.position.set(-80, 60, -80);
+scene.add(moon);
+
+// ============================================================
+// WORLD BORDER — mountains and walls around the entire map
+// ============================================================
+const WORLD = { minX: -62, maxX: 132, minZ: -132, maxZ: 52 };
+
+// Invisible collision walls at borders
+addCollider((WORLD.minX + WORLD.maxX) / 2, WORLD.minZ - 1, (WORLD.maxX - WORLD.minX) / 2, 1); // south
+addCollider((WORLD.minX + WORLD.maxX) / 2, WORLD.maxZ + 1, (WORLD.maxX - WORLD.minX) / 2, 1); // north
+addCollider(WORLD.minX - 1, (WORLD.minZ + WORLD.maxZ) / 2, 1, (WORLD.maxZ - WORLD.minZ) / 2); // west
+addCollider(WORLD.maxX + 1, (WORLD.minZ + WORLD.maxZ) / 2, 1, (WORLD.maxZ - WORLD.minZ) / 2); // east
+
+function buildMountain(x, z, radius, height, color) {
+  const mountain = new THREE.Mesh(
+    new THREE.ConeGeometry(radius, height, 8),
+    new THREE.MeshPhongMaterial({ color, flatShading: true })
+  );
+  mountain.position.set(x, height / 2, z);
+  mountain.castShadow = true;
+  scene.add(mountain);
+  // Snow cap
+  if (height > 14) {
+    const snow = new THREE.Mesh(
+      new THREE.ConeGeometry(radius * 0.3, height * 0.2, 8),
+      new THREE.MeshPhongMaterial({ color: 0xeeeeff, flatShading: true })
+    );
+    snow.position.set(x, height * 0.9, z);
+    scene.add(snow);
+  }
+}
+
+function buildBorderWall(x1, z1, x2, z2) {
+  const dx = x2 - x1, dz = z2 - z1;
+  const len = Math.sqrt(dx * dx + dz * dz);
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(len, 8, 3),
+    new THREE.MeshPhongMaterial({ color: 0x665544 })
+  );
+  wall.position.set((x1 + x2) / 2, 4, (z1 + z2) / 2);
+  wall.rotation.y = Math.atan2(dx, dz);
+  wall.castShadow = true;
+  wall.receiveShadow = true;
+  scene.add(wall);
+  // Battlements
+  const numBattlements = Math.floor(len / 4);
+  for (let i = 0; i < numBattlements; i++) {
+    const t = (i + 0.5) / numBattlements;
+    const bx = x1 + dx * t;
+    const bz = z1 + dz * t;
+    const battlement = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 2, 3.2),
+      new THREE.MeshPhongMaterial({ color: 0x776655 })
+    );
+    battlement.position.set(bx, 9, bz);
+    battlement.rotation.y = Math.atan2(dx, dz);
+    scene.add(battlement);
+  }
+}
+
+// South border (behind floating islands)
+for (let i = 0; i < 12; i++) {
+  const x = WORLD.minX + (WORLD.maxX - WORLD.minX) * (i / 11);
+  const z = WORLD.minZ - 5 + (Math.random() - 0.5) * 8;
+  buildMountain(x, z, 8 + Math.random() * 6, 15 + Math.random() * 15, 0x554433 + Math.floor(Math.random() * 0x111111));
+}
+
+// North border
+buildBorderWall(WORLD.minX, WORLD.maxZ, WORLD.maxX, WORLD.maxZ);
+for (let i = 0; i < 8; i++) {
+  const x = WORLD.minX + (WORLD.maxX - WORLD.minX) * (i / 7);
+  buildMountain(x, WORLD.maxZ + 8, 7 + Math.random() * 5, 12 + Math.random() * 10, 0x445533);
+}
+
+// West border
+buildBorderWall(WORLD.minX, WORLD.minZ, WORLD.minX, WORLD.maxZ);
+for (let i = 0; i < 10; i++) {
+  const z = WORLD.minZ + (WORLD.maxZ - WORLD.minZ) * (i / 9);
+  buildMountain(WORLD.minX - 8, z, 7 + Math.random() * 5, 14 + Math.random() * 12, 0x554433);
+}
+
+// East border
+buildBorderWall(WORLD.maxX, WORLD.minZ, WORLD.maxX, WORLD.maxZ);
+for (let i = 0; i < 10; i++) {
+  const z = WORLD.minZ + (WORLD.maxZ - WORLD.minZ) * (i / 9);
+  buildMountain(WORLD.maxX + 8, z, 7 + Math.random() * 5, 14 + Math.random() * 12, 0x445544);
+}
+
+// Extra ground fill to cover any gaps near borders
+createGround(0x2a3a1a, -60, 0, 20, 200);
+createGround(0x2a3a1a, 130, 0, 20, 200);
+createGround(0x2a3a1a, 35, 50, 200, 20);
+createGround(0x2a3a1a, 35, -130, 200, 20);
+
+// ============================================================
+// COLLISION DETECTION
+// ============================================================
+function checkCollision(x, z, radius = 0.5) {
+  for (const c of colliders) {
+    if (x + radius > c.minX && x - radius < c.maxX &&
+        z + radius > c.minZ && z - radius < c.maxZ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function resolveMovement(oldX, oldZ, newX, newZ) {
+  // Try full movement
+  if (!checkCollision(newX, newZ)) return { x: newX, z: newZ };
+  // Try slide along X only
+  if (!checkCollision(newX, oldZ)) return { x: newX, z: oldZ };
+  // Try slide along Z only
+  if (!checkCollision(oldX, newZ)) return { x: oldX, z: newZ };
+  // Blocked completely
+  return { x: oldX, z: oldZ };
+}
+
+// ============================================================
+// SOUND SYSTEM (Web Audio API — synthesized, no files needed)
+// ============================================================
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playSound(type) {
+  try {
+    const ctx = ensureAudio();
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+
+    if (type === 'sword') {
+      // Quick metallic swoosh
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (type === 'fire') {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.3);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } else if (type === 'ice') {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(400, now + 0.2);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'lightning') {
+      // Electric crackle
+      const bufferSize = ctx.sampleRate * 0.15;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / bufferSize * 3);
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      noise.connect(gain);
+      noise.start(now);
+    } else if (type === 'hit') {
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } else if (type === 'pickup') {
+      // Pleasant chime
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.08);
+      osc.frequency.setValueAtTime(784, now + 0.16);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    } else if (type === 'shield') {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (type === 'jump') {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(500, now + 0.12);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } else if (type === 'land') {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } else if (type === 'enemyDie') {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } else if (type === 'bossRoar') {
+      // Deep rumble
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(60, now);
+      osc.frequency.setValueAtTime(80, now + 0.3);
+      osc.frequency.setValueAtTime(40, now + 0.8);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.setValueAtTime(0.12, now + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 1.1);
+    } else if (type === 'playerHurt') {
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+  } catch(e) { /* audio not available */ }
+}
+
+// ============================================================
+// HEALTH POTION SYSTEM
+// ============================================================
+function spawnPotion(x, z) {
+  const potionGroup = new THREE.Group();
+
+  // Bottle body
+  const bottle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2, 0.25, 0.5, 8),
+    new THREE.MeshPhongMaterial({ color: 0xff2244, transparent: true, opacity: 0.7, shininess: 90 })
+  );
+  bottle.position.y = 0.35;
+  potionGroup.add(bottle);
+
+  // Bottle neck
+  const neck = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.15, 0.2, 8),
+    new THREE.MeshPhongMaterial({ color: 0xff4466, transparent: true, opacity: 0.7, shininess: 90 })
+  );
+  neck.position.y = 0.65;
+  potionGroup.add(neck);
+
+  // Cork
+  const cork = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 0.08, 8),
+    new THREE.MeshPhongMaterial({ color: 0xaa8855 })
+  );
+  cork.position.y = 0.78;
+  potionGroup.add(cork);
+
+  // Glow
+  const glow = new THREE.PointLight(0xff2244, 0.6, 5);
+  glow.position.y = 0.4;
+  potionGroup.add(glow);
+
+  // Floating marker
+  const marker = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 6, 6),
+    new THREE.MeshPhongMaterial({ color: 0xff4466, emissive: 0xff2244, emissiveIntensity: 0.8, transparent: true, opacity: 0.5 })
+  );
+  marker.position.y = 1.2;
+  potionGroup.add(marker);
+
+  potionGroup.position.set(x, 0, z);
+  scene.add(potionGroup);
+  state.potions.push({ mesh: potionGroup, collected: false, healAmount: 35 });
+}
+
+// Scatter potions around the world
+spawnPotion(5, 10);
+spawnPotion(-12, -5);
+spawnPotion(20, -20);
+spawnPotion(75, 0);
+spawnPotion(85, -18);
+spawnPotion(60, 15);
+spawnPotion(-5, -70);
+spawnPotion(15, -80);
+spawnPotion(0, -50);
+spawnPotion(25, 25);
+
+// ============================================================
+// AMMO PICKUP SYSTEM
+// ============================================================
+function spawnAmmo(x, z, type) {
+  const colors = { fire: 0xff6600, ice: 0x44ccff, lightning: 0xffee00 };
+  const color = colors[type];
+
+  const ammoGroup = new THREE.Group();
+
+  // Glowing orb
+  const orb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 12, 12),
+    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.8, transparent: true, opacity: 0.9 })
+  );
+  orb.position.y = 0.5;
+  ammoGroup.add(orb);
+
+  // Glow light
+  const light = new THREE.PointLight(color, 0.8, 6);
+  light.position.y = 0.5;
+  ammoGroup.add(light);
+
+  // Floating marker
+  const marker = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.15, 0),
+    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 1.0 })
+  );
+  marker.position.y = 1.2;
+  ammoGroup.add(marker);
+
+  ammoGroup.position.set(x, 0, z);
+  scene.add(ammoGroup);
+  state.ammoPickups.push({ mesh: ammoGroup, collected: false, type, amount: 10 });
+}
+
+// Place ammo in hidden spots and inside buildings
+spawnAmmo(4.5, -30, 'fire');      // Castle armory
+spawnAmmo(-4.5, -26, 'ice');      // Castle interior
+spawnAmmo(10, 6, 'lightning');    // Village house
+spawnAmmo(75, -18, 'fire');       // Forest ruins
+spawnAmmo(88, 8, 'ice');          // Forest
+spawnAmmo(65, -8, 'lightning');   // Forest
+spawnAmmo(0, -78, 'fire');        // Floating island
+spawnAmmo(18, -88, 'ice');        // Floating island
+spawnAmmo(-12, -93, 'lightning'); // Floating island
+spawnAmmo(-8, -30, 'fire');       // Near castle
+
+// ============================================================
+// COIN SYSTEM
+// ============================================================
+function spawnCoin(x, z) {
+  const coinGroup = new THREE.Group();
+
+  // Coin disc
+  const coin = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16),
+    new THREE.MeshPhongMaterial({ color: 0xffdd00, emissive: 0xffdd00, emissiveIntensity: 0.6, shininess: 100 })
+  );
+  coin.rotation.x = Math.PI / 2;
+  coin.position.y = 0.4;
+  coinGroup.add(coin);
+
+  // Glow
+  const light = new THREE.PointLight(0xffdd00, 0.5, 4);
+  light.position.y = 0.4;
+  coinGroup.add(light);
+
+  coinGroup.position.set(x, 0, z);
+  scene.add(coinGroup);
+  state.coins.push({ mesh: coinGroup, collected: false, value: 1 });
+}
+
+// Scatter coins around the world
+spawnCoin(4.5, -28);      // Castle
+spawnCoin(-3, -32);       // Castle
+spawnCoin(11, 7);         // Village
+spawnCoin(-11, 5);        // Village
+spawnCoin(78, -16);       // Forest
+spawnCoin(88, 6);         // Forest
+spawnCoin(2, -80);        // Floating islands
+spawnCoin(-11, -91);      // Floating islands
+
+// ============================================================
+// BOSS SYSTEM (Multiple Bosses)
+// ============================================================
+const bossesDefeated = { boss1: false, boss2: false, boss3: false };
+let currentBoss = null;
+
+// Boss templates
+const bossTemplates = {
+  darkKnightLord: {
+    name: 'DARK KNIGHT LORD',
+    health: 500,
+    speed: 3.0,
+    color: 0x220022,
+    scale: 2.5,
+    position: [0, 0, 5],
+    killThreshold: 10,
+    attackType: 'darkProjectiles',
+  },
+  frostGiant: {
+    name: 'FROST GIANT',
+    health: 750,
+    speed: 2.5,
+    color: 0x44aaff,
+    scale: 3.5,
+    position: [80, 0, 0],
+    killThreshold: 20,
+    attackType: 'iceSlam',
+  },
+  dragon: {
+    name: 'DRAGON',
+    health: 1000,
+    speed: 4.0,
+    color: 0xff4400,
+    scale: 4.0,
+    position: [0, 18, -105],
+    killThreshold: 30,
+    attackType: 'fireBreath',
+  },
+};
+
+function spawnBoss(bossType) {
+  const template = bossTemplates[bossType];
+  if (!template) return;
+
+  // Create boss mesh
+  const boss = createKnight(template.color, template.scale, true);
+  boss.position.set(...template.position);
+  scene.add(boss);
+
+  // Boss-specific decorations
+  if (bossType === 'darkKnightLord') {
+    const crown = new THREE.Mesh(
+      new THREE.TorusGeometry(0.35, 0.08, 6, 8),
+      new THREE.MeshPhongMaterial({ color: 0xaa00aa, emissive: 0x660066, emissiveIntensity: 0.4 })
+    );
+    crown.position.y = 2.75;
+    crown.rotation.x = Math.PI / 2;
+    crown.scale.setScalar(template.scale);
+    boss.add(crown);
+  } else if (bossType === 'frostGiant') {
+    // Ice crown/horns
+    const horn1 = new THREE.Mesh(
+      new THREE.ConeGeometry(0.15, 0.8, 6),
+      new THREE.MeshPhongMaterial({ color: 0xaaccff, emissive: 0x44aaff, emissiveIntensity: 0.6 })
+    );
+    horn1.position.set(-0.3, 3, 0);
+    horn1.rotation.z = -0.3;
+    horn1.scale.setScalar(template.scale);
+    boss.add(horn1);
+    const horn2 = horn1.clone();
+    horn2.position.set(0.3, 3, 0);
+    horn2.rotation.z = 0.3;
+    boss.add(horn2);
+  } else if (bossType === 'dragon') {
+    // Dragon wings (simple triangle mesh)
+    const wingGeo = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+      0, 0, 0,
+      -2, 0.5, -1,
+      -2, -0.5, -1,
+    ]);
+    wingGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    const wing1 = new THREE.Mesh(
+      wingGeo,
+      new THREE.MeshPhongMaterial({ color: 0xaa2200, emissive: 0xff4400, emissiveIntensity: 0.3, side: THREE.DoubleSide })
+    );
+    wing1.position.set(-0.6, 1.5, -0.3);
+    wing1.scale.setScalar(template.scale);
+    boss.add(wing1);
+    const wing2 = wing1.clone();
+    wing2.scale.x *= -1;
+    wing2.position.x = 0.6;
+    boss.add(wing2);
+  }
+
+  const data = {
+    mesh: boss,
+    health: template.health,
+    maxHealth: template.health,
+    speed: template.speed,
+    attackCooldown: 0,
+    specialCooldown: 3,
+    state: 'chase',
+    patrolCenter: new THREE.Vector3(...template.position),
+    patrolAngle: 0,
+    hitFlash: 0,
+    dead: false,
+    isBoss: true,
+    bossType: bossType,
+    attackType: template.attackType,
+    phase: 1,
+  };
+
+  // Boss health bar
+  const barBg = new THREE.Mesh(
+    new THREE.PlaneGeometry(3, 0.3),
+    new THREE.MeshBasicMaterial({ color: 0x440000, side: THREE.DoubleSide })
+  );
+  barBg.position.y = 7;
+  boss.add(barBg);
+  const bar = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.8, 0.2),
+    new THREE.MeshBasicMaterial({ color: template.color, side: THREE.DoubleSide })
+  );
+  bar.position.y = 7;
+  bar.position.z = 0.01;
+  boss.add(bar);
+  data.healthBar = bar;
+
+  state.enemies.push(data);
+  currentBoss = data;
+
+  playSound('bossRoar');
+  showMessage(`${template.name} HAS APPEARED!`);
+
+  // Create arena markers
+  createArena(...template.position, 15, template.color);
+}
+
+function createArena(x, y, z, radius, color) {
+  // Circular arena boundary markers
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+    const mx = x + Math.cos(angle) * radius;
+    const mz = z + Math.sin(angle) * radius;
+    const marker = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.3, 3, 6),
+      new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.5 })
+    );
+    marker.position.set(mx, y + 1.5, mz);
+    scene.add(marker);
+  }
+}
+
+// ============================================================
+// RESCUABLE FRIENDS (trapped tiny knights)
+// ============================================================
+function spawnRescuable(x, z) {
+  const tiny = createKnight(0x44aa44, 0.5, false);
+  tiny.position.set(x, 0, z);
+  scene.add(tiny);
+
+  // Cage around them
+  const cage = new THREE.Mesh(
+    new THREE.CylinderGeometry(1, 1, 2, 8, 1, true),
+    new THREE.MeshPhongMaterial({ color: 0x886644, wireframe: true })
+  );
+  cage.position.set(x, 1, z);
+  scene.add(cage);
+
+  // Glow marker
+  const marker = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 8, 8),
+    new THREE.MeshPhongMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.6, transparent: true, opacity: 0.6 })
+  );
+  marker.position.set(x, 3.5, z);
+  scene.add(marker);
+
+  state.rescuables.push({ mesh: tiny, cage, marker, x, z, rescued: false });
+}
+
+spawnRescuable(15, 5);
+spawnRescuable(-14, 7);
+spawnRescuable(70, -5);
+spawnRescuable(85, 10);
+spawnRescuable(-5, -75);
+spawnRescuable(15, -85);
+
+// ============================================================
+// ENEMY SYSTEM
+// ============================================================
+function spawnEnemy(x, z) {
+  const enemy = createKnight(0xcc2222, 1, true);
+  enemy.position.set(x, 0, z);
+  scene.add(enemy);
+
+  const data = {
+    mesh: enemy,
+    health: 40,
+    maxHealth: 40,
+    speed: 2.5 + Math.random() * 1.5,
+    attackCooldown: 0,
+    state: 'patrol', // patrol, chase, attack
+    patrolCenter: new THREE.Vector3(x, 0, z),
+    patrolAngle: Math.random() * Math.PI * 2,
+    hitFlash: 0,
+    dead: false,
+  };
+
+  // Health bar above enemy
+  const barBg = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.2, 0.15),
+    new THREE.MeshBasicMaterial({ color: 0x440000, side: THREE.DoubleSide })
+  );
+  barBg.position.y = 3.2;
+  enemy.add(barBg);
+  const bar = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.1, 0.1),
+    new THREE.MeshBasicMaterial({ color: 0xff3333, side: THREE.DoubleSide })
+  );
+  bar.position.y = 3.2;
+  bar.position.z = 0.01;
+  enemy.add(bar);
+  data.healthBar = bar;
+
+  state.enemies.push(data);
+  return data;
+}
+
+// Initial enemies — spread across all zones (no respawning)
+function spawnInitialEnemies() {
+  // Castle area guards
+  spawnEnemy(8, -25);
+  spawnEnemy(-8, -25);
+  spawnEnemy(0, -40);
+  spawnEnemy(5, -35);
+  spawnEnemy(-5, -20);
+  spawnEnemy(12, -30);
+  // Village patrol
+  spawnEnemy(12, 10);
+  spawnEnemy(-12, 8);
+  spawnEnemy(0, 15);
+  // Forest enemies
+  spawnEnemy(65, 0);
+  spawnEnemy(80, -15);
+  spawnEnemy(95, 5);
+  spawnEnemy(70, 10);
+  spawnEnemy(85, -5);
+  spawnEnemy(60, -10);
+  // Floating island enemies
+  spawnEnemy(5, -78);
+  spawnEnemy(-10, -90);
+  spawnEnemy(15, -85);
+}
+
+// ============================================================
+// FRIEND AI (rescued friends that follow and fight)
+// ============================================================
+function addFriend(x, z) {
+  const tiny = createKnight(0x44cc44, 0.6, false);
+  tiny.position.set(x, 0, z);
+  scene.add(tiny);
+  state.friends.push({
+    mesh: tiny,
+    attackCooldown: 0,
+    followOffset: new THREE.Vector3(
+      (Math.random() - 0.5) * 4,
+      0,
+      (Math.random() - 0.5) * 4 + 2
+    ),
+  });
+}
+
+// ============================================================
+// PROJECTILE SYSTEM
+// ============================================================
+function shootProjectile(origin, direction, element, isEnemy = false) {
+  const colors = { fire: 0xff4400, ice: 0x44ccff, lightning: 0xffee00 };
+  const color = isEnemy ? 0xff0000 : colors[element];
+
+  const proj = new THREE.Mesh(
+    new THREE.SphereGeometry(isEnemy ? 0.12 : 0.15, 8, 8),
+    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 1 })
+  );
+  proj.position.copy(origin);
+  scene.add(proj);
+
+  // Trail light
+  const light = new THREE.PointLight(color, 1, 5);
+  proj.add(light);
+
+  state.projectiles.push({
+    mesh: proj,
+    velocity: direction.clone().multiplyScalar(isEnemy ? 20 : 35),
+    element: element,
+    isEnemy,
+    life: 3,
+    damage: isEnemy ? 8 : (element === 'lightning' ? 15 : element === 'fire' ? 20 : 12),
+  });
+}
+
+// ============================================================
+// PARTICLE SYSTEM
+// ============================================================
+function spawnParticles(position, color, count = 10, speed = 3) {
+  for (let i = 0; i < count; i++) {
+    const p = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 4, 4),
+      new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.8 })
+    );
+    p.position.copy(position);
+    scene.add(p);
+    state.particles.push({
+      mesh: p,
+      velocity: new THREE.Vector3(
+        (Math.random() - 0.5) * speed,
+        Math.random() * speed,
+        (Math.random() - 0.5) * speed
+      ),
+      life: 0.5 + Math.random() * 0.5,
+    });
+  }
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+document.addEventListener('keydown', (e) => {
+  // Exit tour on Escape
+  if (e.code === 'Escape' && state.tourActive) {
+    state.tourActive = false;
+    state.tourWaypointIndex = 0;
+    document.getElementById('start-screen').style.display = 'flex';
+    return;
+  }
+
+  // Toggle pause on Escape or P
+  if ((e.code === 'Escape' || e.code === 'KeyP') && state.started && !state.dead && !state.tourActive) {
+    state.paused = !state.paused;
+    if (state.paused) {
+      document.getElementById('pause-screen').style.display = 'flex';
+      document.exitPointerLock();
+    } else {
+      document.getElementById('pause-screen').style.display = 'none';
+      renderer.domElement.requestPointerLock();
+    }
+    return;
+  }
+
+  state.keys[e.code] = true;
+  if (e.code === 'Digit1') { state.element = 'fire'; updateHUD(); }
+  if (e.code === 'Digit2') { state.element = 'ice'; updateHUD(); }
+  if (e.code === 'Digit3') { state.element = 'lightning'; updateHUD(); }
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (state.onGround) {
+      state.playerVelY = 10;
+      state.onGround = false;
+      playSound('jump');
+    }
+  }
+  if (e.code === 'KeyF') {
+    if (state.shieldCooldown <= 0) { state.shieldActive = true; playSound('shield'); }
+  }
+  if (e.code === 'KeyE') handleInteraction();
+});
+document.addEventListener('keyup', (e) => {
+  state.keys[e.code] = false;
+  if (e.code === 'KeyF') {
+    state.shieldActive = false;
+    state.shieldCooldown = 1.0;
+  }
+});
+document.addEventListener('mousemove', (e) => {
+  if (!document.pointerLockElement) return;
+  state.yaw -= e.movementX * 0.003;
+  state.pitch -= e.movementY * 0.003;
+  state.pitch = Math.max(-1.2, Math.min(1.2, state.pitch));
+});
+document.addEventListener('mousedown', (e) => {
+  if (!state.started || state.dead) return;
+  if (e.button === 0) handleSwordAttack();
+  if (e.button === 2) handleGunShoot();
+});
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ============================================================
+// COMBAT ACTIONS
+// ============================================================
+function handleSwordAttack() {
+  if (state.swordCooldown > 0 || state.shieldActive) return;
+  state.swordSwinging = true;
+  state.swordCooldown = 0.5;
+  playSound('sword');
+
+  const sword = player.userData.sword;
+  sword.rotation.x = -Math.PI / 2;
+
+  setTimeout(() => {
+    sword.rotation.x = 0;
+    state.swordSwinging = false;
+  }, 300);
+
+  // Check hits — use yaw (not visual quaternion which is rotated 180)
+  const playerPos = player.position.clone();
+  const aimQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw);
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(aimQuat);
+  state.enemies.forEach((e) => {
+    if (e.dead) return;
+    const dist = playerPos.distanceTo(e.mesh.position);
+    if (dist < 3) {
+      const toEnemy = e.mesh.position.clone().sub(playerPos).normalize();
+      if (forward.dot(toEnemy) > 0.3) {
+        // Sword headshot: player Y close to enemy head height
+        const headY = e.mesh.position.y + (e.isBoss ? 5.5 : 2.2);
+        const swordY = player.position.y + 1.5;
+        const isSwordHead = Math.abs(swordY - headY) < 0.8;
+        const swordDmg = isSwordHead ? 50 : 25;
+        damageEnemy(e, swordDmg);
+        if (isSwordHead) {
+          spawnParticles(e.mesh.position.clone().setY(headY), 0xffff00, 15, 4);
+          showMessage('HEADSHOT! x2 sword damage!');
+        } else {
+          spawnParticles(e.mesh.position.clone().setY(1.5), 0xffffff, 8);
+        }
+      }
+    }
+  });
+}
+
+function handleGunShoot() {
+  if (state.gunCooldown > 0 || state.shieldActive) return;
+
+  // Check ammo
+  if (state.ammo[state.element] <= 0) {
+    showMessage(`Out of ${state.element} ammo!`);
+    return;
+  }
+
+  // Consume ammo
+  state.ammo[state.element]--;
+  updateHUD();
+
+  state.gunCooldown = state.element === 'lightning' ? 0.6 : 0.35;
+  playSound(state.element);
+
+  const aimQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw);
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(aimQuat);
+  const origin = player.position.clone().add(new THREE.Vector3(0, 1.2, 0)).add(forward.clone().multiplyScalar(1));
+  shootProjectile(origin, forward, state.element);
+
+  const colors = { fire: 0xff4400, ice: 0x44ccff, lightning: 0xffee00 };
+  spawnParticles(origin, colors[state.element], 5, 2);
+}
+
+function handleInteraction() {
+  const pp = player.position;
+
+  // Rescue friends
+  state.rescuables.forEach((r) => {
+    if (r.rescued) return;
+    const dist = pp.distanceTo(new THREE.Vector3(r.x, 0, r.z));
+    if (dist < 4) {
+      r.rescued = true;
+      scene.remove(r.cage);
+      scene.remove(r.marker);
+      scene.remove(r.mesh);
+      addFriend(r.x, r.z);
+      playSound('pickup');
+      showMessage('Friend rescued! They will fight with you!');
+      state.score += 50;
+      spawnParticles(new THREE.Vector3(r.x, 1.5, r.z), 0x00ff88, 20, 4);
+      updateHUD();
+    }
+  });
+
+  // Power objects with lightning
+  if (state.element === 'lightning') {
+    state.powerables.forEach((p) => {
+      const dist = pp.distanceTo(p.position);
+      if (dist < 5 && !p.userData.powered) {
+        p.userData.powered = true;
+        spawnParticles(p.position.clone(), 0xffee00, 30, 5);
+
+        if (p.userData.id === 'drawbridge') {
+          // Lower drawbridge
+          p.rotation.x = 0;
+          p.position.y = 0.15;
+          showMessage('⚡ Drawbridge powered! Path opened!');
+        } else if (p.userData.id === 'platform1') {
+          // Raise platform
+          p.material.color.setHex(0x88aaff);
+          p.material.emissive = new THREE.Color(0x4466ff);
+          p.material.emissiveIntensity = 0.5;
+          showMessage('⚡ Platform powered! It glows with energy!');
+        } else {
+          // Crystal
+          p.material.emissiveIntensity = 1.0;
+          if (p.userData.light) p.userData.light.intensity = 2;
+          showMessage('⚡ Crystal powered! Light shines forth!');
+        }
+        state.score += 100;
+        updateHUD();
+      }
+    });
+  }
+}
+
+function damageEnemy(enemy, amount) {
+  enemy.health -= amount;
+  enemy.hitFlash = 0.15;
+  playSound('hit');
+
+  // Update health bar
+  const pct = Math.max(0, enemy.health / enemy.maxHealth);
+  enemy.healthBar.scale.x = pct;
+  enemy.healthBar.position.x = -(1 - pct) * (enemy.isBoss ? 1.4 : 0.55);
+
+  // Boss phase change
+  if (enemy.isBoss && enemy.health < enemy.maxHealth * 0.5 && enemy.phase === 1) {
+    enemy.phase = 2;
+    enemy.speed = 4.5;
+    showMessage('THE DARK LORD GROWS FURIOUS!');
+    playSound('bossRoar');
+  }
+
+  if (enemy.health <= 0) {
+    enemy.dead = true;
+    spawnParticles(enemy.mesh.position.clone().setY(1.5), 0xff4444, 20, 4);
+    const enemyPos = enemy.mesh.position.clone();
+    scene.remove(enemy.mesh);
+    if (enemy.isBoss) {
+      state.score += 1000;
+      state.bossDefeated = true;
+      showMessage('VICTORY! Boss defeated!');
+      // Drop potions on boss death
+      for (let i = 0; i < 3; i++) {
+        spawnPotion(
+          enemyPos.x + (Math.random() - 0.5) * 5,
+          enemyPos.z + (Math.random() - 0.5) * 5
+        );
+      }
+      // Drop boss coins (5-10)
+      const bossCoins = 5 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < bossCoins; i++) {
+        spawnCoin(
+          enemyPos.x + (Math.random() - 0.5) * 6,
+          enemyPos.z + (Math.random() - 0.5) * 6
+        );
+      }
+    } else {
+      state.score += 100;
+      // Drop regular enemy coins (1-3)
+      const coinCount = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < coinCount; i++) {
+        spawnCoin(
+          enemyPos.x + (Math.random() - 0.5) * 3,
+          enemyPos.z + (Math.random() - 0.5) * 3
+        );
+      }
+    }
+    playSound('enemyDie');
+    updateHUD();
+  }
+}
+
+function damagePlayer(amount) {
+  if (state.shieldActive) {
+    spawnParticles(player.position.clone().setY(1.5), 0x44aaff, 10, 3);
+    playSound('shield');
+    return;
+  }
+  state.health = Math.max(0, state.health - amount);
+  playSound('playerHurt');
+  updateHUD();
+  if (state.health <= 0) {
+    state.dead = true;
+    document.getElementById('final-score').textContent = state.score;
+    document.getElementById('game-over').style.display = 'flex';
+    document.exitPointerLock();
+  }
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function updateHUD() {
+  document.getElementById('health-bar').style.width = (state.health / state.maxHealth * 100) + '%';
+  document.getElementById('health-text').textContent = `♥ ${Math.ceil(state.health)} / ${state.maxHealth}`;
+
+  const elNames = { fire: 'FIRE', ice: 'ICE', lightning: 'LIGHTNING' };
+  const elSpan = document.querySelector('#weapon-display .element-name');
+  elSpan.textContent = `${elNames[state.element]} (${state.ammo[state.element]})`;
+  elSpan.className = 'element-name ' + state.element;
+
+  document.getElementById('friends-display').textContent = `👥 Friends: ${state.friends.length}`;
+  const alive = state.enemies.filter(e => !e.dead).length;
+  document.getElementById('enemy-count').textContent = `⚔ Enemies: ${alive}`;
+  document.getElementById('score-display').textContent = `★ Score: ${state.score}`;
+  document.getElementById('coin-display').textContent = `💰 Coins: ${state.totalCoins}`;
+
+  // Gun glow color
+  const glowColors = { fire: 0xff6600, ice: 0x44ccff, lightning: 0xffee00 };
+  if (player.userData.gunGlow) {
+    player.userData.gunGlow.material.color.setHex(glowColors[state.element]);
+    player.userData.gunGlow.material.emissive.setHex(glowColors[state.element]);
+  }
+  if (player.userData.gunChamber) {
+    player.userData.gunChamber.material.color.setHex(glowColors[state.element]);
+    player.userData.gunChamber.material.emissive.setHex(glowColors[state.element]);
+  }
+
+  // Boss health bar
+  if (currentBoss && !currentBoss.dead) {
+    const bossNameEl = document.querySelector('#boss-bar-container > div:first-child');
+    if (bossNameEl && currentBoss.bossType) {
+      bossNameEl.textContent = bossTemplates[currentBoss.bossType].name;
+    }
+    document.getElementById('boss-bar-container').style.display = 'block';
+    document.getElementById('boss-health-bar').style.width = (currentBoss.health / currentBoss.maxHealth * 100) + '%';
+  } else {
+    document.getElementById('boss-bar-container').style.display = 'none';
+  }
+}
+
+let messageTimer = null;
+function showMessage(text) {
+  const el = document.getElementById('message');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function showZone(name) {
+  if (state.currentZone === name) return;
+  state.currentZone = name;
+  const el = document.getElementById('zone-name');
+  el.textContent = name;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+const clock = new THREE.Clock();
+
+function update() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // ---- Tour Mode ----
+  if (state.tourActive) {
+    const wp = tourWaypoints[state.tourWaypointIndex];
+    state.tourProgress += dt;
+
+    // Smooth camera interpolation
+    const t = Math.min(state.tourProgress / wp.duration, 1);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease in-out
+
+    camera.position.set(wp.pos[0], wp.pos[1], wp.pos[2]);
+    camera.lookAt(new THREE.Vector3(wp.look[0], wp.look[1], wp.look[2]));
+
+    // Show message
+    if (state.tourProgress < 0.1) {
+      showMessage(wp.msg);
+    }
+
+    // Move to next waypoint
+    if (state.tourProgress >= wp.duration) {
+      state.tourWaypointIndex++;
+      state.tourProgress = 0;
+
+      if (state.tourWaypointIndex >= tourWaypoints.length) {
+        // Tour finished, return to start screen
+        state.tourActive = false;
+        state.tourWaypointIndex = 0;
+        document.getElementById('start-screen').style.display = 'flex';
+        showMessage('Tour complete! Ready to begin your quest?');
+      }
+    }
+    return;
+  }
+
+  if (!state.started || state.dead || state.paused) return;
+
+  // ---- Player Movement ----
+  const moveSpeed = state.keys['ShiftLeft'] ? 12 : 7;
+  const moveDir = new THREE.Vector3();
+  if (state.keys['KeyW']) moveDir.z -= 1;
+  if (state.keys['KeyS']) moveDir.z += 1;
+  if (state.keys['KeyA']) moveDir.x -= 1;
+  if (state.keys['KeyD']) moveDir.x += 1;
+  moveDir.normalize();
+
+  // Rotate direction by yaw
+  const yawQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw);
+  moveDir.applyQuaternion(yawQuat);
+  // Player model faces opposite direction (model built facing +Z, camera looks at -Z)
+  const playerVisualQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw + Math.PI);
+
+  const movement = moveDir.clone().multiplyScalar(moveSpeed * dt);
+  const newX = player.position.x + movement.x;
+  const newZ = player.position.z + movement.z;
+  const resolved = resolveMovement(player.position.x, player.position.z, newX, newZ);
+  player.position.x = resolved.x;
+  player.position.z = resolved.z;
+
+  // Gravity & Jump
+  const groundY = getGroundHeight(player.position.x, player.position.z);
+  state.playerVelY -= 25 * dt; // gravity
+  player.position.y += state.playerVelY * dt;
+  if (player.position.y <= groundY) {
+    player.position.y = groundY;
+    if (!state.onGround && state.playerVelY < -2) playSound('land');
+    state.playerVelY = 0;
+    state.onGround = true;
+  } else {
+    state.onGround = false;
+  }
+
+  player.quaternion.copy(playerVisualQuat);
+
+  // Leg animation
+  if (moveDir.length() > 0.1) {
+    const t = performance.now() * 0.008;
+    if (player.userData.leftLeg) player.userData.leftLeg.rotation.x = Math.sin(t) * 0.5;
+    if (player.userData.rightLeg) player.userData.rightLeg.rotation.x = -Math.sin(t) * 0.5;
+  } else {
+    if (player.userData.leftLeg) player.userData.leftLeg.rotation.x = 0;
+    if (player.userData.rightLeg) player.userData.rightLeg.rotation.x = 0;
+  }
+
+  // ---- Camera ----
+  const camOffset = new THREE.Vector3(0, 3, 6);
+  camOffset.applyQuaternion(yawQuat);
+  camera.position.lerp(player.position.clone().add(camOffset), 0.1);
+  const lookTarget = player.position.clone().add(new THREE.Vector3(0, 2, 0));
+  lookTarget.add(new THREE.Vector3(0, Math.sin(state.pitch) * 3, 0));
+  camera.lookAt(lookTarget);
+
+  // ---- Shield ----
+  if (state.shieldActive) {
+    shieldBubble.material.opacity = 0.25 + Math.sin(performance.now() * 0.01) * 0.05;
+    shieldBubble.visible = true;
+    player.userData.shield.visible = true;
+    document.getElementById('shield-indicator').textContent = '🛡 Shield: ACTIVE';
+    document.getElementById('shield-indicator').style.borderColor = '#44aaff';
+  } else {
+    shieldBubble.visible = false;
+    player.userData.shield.visible = false;
+    if (state.shieldCooldown > 0) {
+      state.shieldCooldown -= dt;
+      document.getElementById('shield-indicator').textContent = `🛡 Shield: RECHARGING`;
+      document.getElementById('shield-indicator').style.borderColor = '#aa4444';
+    } else {
+      document.getElementById('shield-indicator').textContent = '🛡 Shield: READY';
+      document.getElementById('shield-indicator').style.borderColor = '#4488aa';
+    }
+  }
+  shieldBubble.position.copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
+
+  // ---- Cooldowns ----
+  if (state.swordCooldown > 0) state.swordCooldown -= dt;
+  if (state.gunCooldown > 0) state.gunCooldown -= dt;
+
+  // ---- Zone detection ----
+  const px = player.position.x, pz = player.position.z;
+  if (px > 40) showZone('🌲 Enchanted Forest & Ancient Ruins');
+  else if (pz < -55) showZone('☁️ Floating Islands');
+  else showZone('🏰 Medieval Castle & Village');
+
+  // ---- Enemy AI ----
+  state.enemies.forEach((e) => {
+    if (e.dead) return;
+    const dist = e.mesh.position.distanceTo(player.position);
+
+    // Hit flash
+    if (e.hitFlash > 0) {
+      e.hitFlash -= dt;
+      e.mesh.children.forEach(c => { if (c.material) c.material.emissive = new THREE.Color(0xffffff); });
+    } else {
+      e.mesh.children.forEach(c => { if (c.material && c.material.emissive) c.material.emissive = new THREE.Color(0x000000); });
+    }
+
+    if (dist < 25) {
+      e.state = 'chase';
+      // Move toward player with collision
+      const dir = player.position.clone().sub(e.mesh.position).normalize();
+      dir.y = 0;
+      const emove = dir.multiplyScalar(e.speed * dt);
+      const enx = e.mesh.position.x + emove.x;
+      const enz = e.mesh.position.z + emove.z;
+      const eres = resolveMovement(e.mesh.position.x, e.mesh.position.z, enx, enz);
+      e.mesh.position.x = eres.x;
+      e.mesh.position.z = eres.z;
+      e.mesh.position.y = getGroundHeight(e.mesh.position.x, e.mesh.position.z);
+
+      // Face player (rotate 180 because model faces +Z but lookAt aims +Z at target)
+      const lookAt = player.position.clone();
+      lookAt.y = e.mesh.position.y;
+      e.mesh.lookAt(lookAt);
+      e.mesh.rotateY(Math.PI);
+
+      // Leg animation
+      const t = performance.now() * 0.008;
+      if (e.mesh.userData.leftLeg) e.mesh.userData.leftLeg.rotation.x = Math.sin(t) * 0.5;
+      if (e.mesh.userData.rightLeg) e.mesh.userData.rightLeg.rotation.x = -Math.sin(t) * 0.5;
+
+      // Boss special attacks (unique per boss)
+      if (e.isBoss && e.specialCooldown !== undefined && e.attackType) {
+        e.specialCooldown -= dt;
+        if (e.specialCooldown <= 0) {
+          const bossDir = player.position.clone().sub(e.mesh.position).normalize();
+          const bossOrigin = e.mesh.position.clone().add(new THREE.Vector3(0, 3, 0)).add(bossDir.clone().multiplyScalar(2));
+
+          if (e.attackType === 'darkProjectiles') {
+            // Dark Knight Lord: dark projectiles
+            e.specialCooldown = e.phase === 2 ? 1.5 : 3.0;
+            shootProjectile(bossOrigin, bossDir, 'fire', true);
+            spawnParticles(bossOrigin, 0xff00ff, 8, 3);
+            if (e.phase === 2) {
+              const left = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), 0.3);
+              const right = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -0.3);
+              shootProjectile(bossOrigin.clone(), left, 'fire', true);
+              shootProjectile(bossOrigin.clone(), right, 'fire', true);
+            }
+          } else if (e.attackType === 'iceSlam') {
+            // Frost Giant: ice slam AoE
+            e.specialCooldown = 4.0;
+            if (dist < 12) {
+              damagePlayer(15);
+              spawnParticles(player.position.clone().setY(0.5), 0x44ccff, 30, 6);
+              showMessage('Ice Slam!');
+              // Slow player temporarily
+              setTimeout(() => {}, 2000);
+            }
+            spawnParticles(e.mesh.position.clone().setY(0.5), 0x44ccff, 50, 8);
+          } else if (e.attackType === 'fireBreath') {
+            // Dragon: fire breath cone
+            e.specialCooldown = 3.5;
+            for (let i = 0; i < 5; i++) {
+              const spread = (i - 2) * 0.15;
+              const fireDir = bossDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), spread);
+              shootProjectile(bossOrigin.clone(), fireDir, 'fire', true);
+            }
+            spawnParticles(bossOrigin, 0xff4400, 20, 4);
+          }
+        }
+      }
+
+      // Melee attack
+      const meleeRange = e.isBoss ? 5 : 2.5;
+      const meleeDamage = e.isBoss ? 20 : 10;
+      if (dist < meleeRange) {
+        e.attackCooldown -= dt;
+        if (e.attackCooldown <= 0) {
+          damagePlayer(meleeDamage);
+          e.attackCooldown = e.isBoss ? 0.8 : 1.2;
+          spawnParticles(player.position.clone().setY(1.5), 0xff4444, 5, 2);
+          // Sword swing anim
+          if (e.mesh.userData.sword) {
+            e.mesh.userData.sword.rotation.x = -Math.PI / 2;
+            setTimeout(() => { if (e.mesh.userData.sword) e.mesh.userData.sword.rotation.x = 0; }, 200);
+          }
+        }
+      }
+    } else {
+      e.state = 'patrol';
+      e.patrolAngle += dt * 0.5;
+      const px2 = e.patrolCenter.x + Math.cos(e.patrolAngle) * 5;
+      const pz2 = e.patrolCenter.z + Math.sin(e.patrolAngle) * 5;
+      const target = new THREE.Vector3(px2, 0, pz2);
+      const pdir = target.sub(e.mesh.position).normalize();
+      const pmove = pdir.clone().multiplyScalar(e.speed * 0.5 * dt);
+      const pnx = e.mesh.position.x + pmove.x;
+      const pnz = e.mesh.position.z + pmove.z;
+      const pres = resolveMovement(e.mesh.position.x, e.mesh.position.z, pnx, pnz);
+      e.mesh.position.x = pres.x;
+      e.mesh.position.z = pres.z;
+      e.mesh.position.y = getGroundHeight(e.mesh.position.x, e.mesh.position.z);
+      const lookPos = e.mesh.position.clone().add(pdir);
+      lookPos.y = e.mesh.position.y;
+      e.mesh.lookAt(lookPos);
+      e.mesh.rotateY(Math.PI);
+
+      if (e.mesh.userData.leftLeg) e.mesh.userData.leftLeg.rotation.x = Math.sin(performance.now() * 0.004) * 0.3;
+      if (e.mesh.userData.rightLeg) e.mesh.userData.rightLeg.rotation.x = -Math.sin(performance.now() * 0.004) * 0.3;
+    }
+  });
+
+  // ---- Friend AI ----
+  state.friends.forEach((f, i) => {
+    // Follow player with offset — use yaw quaternion, not visual (which is flipped 180)
+    const followQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw);
+    const targetPos = player.position.clone().add(
+      f.followOffset.clone().applyQuaternion(followQuat)
+    );
+    targetPos.y = 0;
+    const dir = targetPos.sub(f.mesh.position);
+    if (dir.length() > 1) {
+      dir.normalize();
+      f.mesh.position.add(dir.multiplyScalar(6 * dt));
+    }
+    f.mesh.position.y = getGroundHeight(f.mesh.position.x, f.mesh.position.z);
+
+    // Face movement direction
+    if (dir.length() > 0.1) {
+      const lookPos = f.mesh.position.clone().add(dir);
+      lookPos.y = f.mesh.position.y;
+      f.mesh.lookAt(lookPos);
+      f.mesh.rotateY(Math.PI);
+    }
+
+    // Attack nearest enemy (melee only)
+    f.attackCooldown -= dt;
+    let nearestEnemy = null;
+    let nearestDist = 4;
+    state.enemies.forEach(e => {
+      if (e.dead) return;
+      const d = f.mesh.position.distanceTo(e.mesh.position);
+      if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+    });
+
+    if (nearestEnemy && f.attackCooldown <= 0) {
+      damageEnemy(nearestEnemy, 8);
+      f.attackCooldown = 1.5;
+      spawnParticles(nearestEnemy.mesh.position.clone().setY(1.5), 0x44cc44, 5, 2);
+      if (f.mesh.userData.sword) {
+        f.mesh.userData.sword.rotation.x = -Math.PI / 2;
+        setTimeout(() => { if (f.mesh.userData.sword) f.mesh.userData.sword.rotation.x = 0; }, 200);
+      }
+    }
+
+    // Leg animation
+    const t = performance.now() * 0.008 + i;
+    if (f.mesh.userData.leftLeg) f.mesh.userData.leftLeg.rotation.x = Math.sin(t) * 0.4;
+    if (f.mesh.userData.rightLeg) f.mesh.userData.rightLeg.rotation.x = -Math.sin(t) * 0.4;
+  });
+
+  // ---- Projectiles ----
+  state.projectiles = state.projectiles.filter((p) => {
+    p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));
+    p.life -= dt;
+
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      return false;
+    }
+
+    if (!p.isEnemy) {
+      // Hit enemies
+      for (const e of state.enemies) {
+        if (e.dead) continue;
+        const enemyCenter = e.mesh.position.clone().setY(1.5);
+        const hitRadius = e.isBoss ? 3 : 1.5;
+        if (p.mesh.position.distanceTo(enemyCenter) < hitRadius) {
+          // Headshot check: projectile Y > enemy head height
+          const headY = e.mesh.position.y + (e.isBoss ? 5.5 : 2.2);
+          const isHeadshot = p.mesh.position.y > headY - 0.5 && p.mesh.position.y < headY + 0.5;
+          const finalDamage = isHeadshot ? Math.floor(p.damage * 2.5) : p.damage;
+
+          damageEnemy(e, finalDamage);
+          const colors = { fire: 0xff4400, ice: 0x44ccff, lightning: 0xffee00 };
+          if (isHeadshot) {
+            spawnParticles(p.mesh.position.clone(), 0xffff00, 20, 5);
+            showMessage('HEADSHOT! x2.5 damage!');
+          } else {
+            spawnParticles(p.mesh.position.clone(), colors[p.element], 12, 3);
+          }
+
+          // Ice: slow enemy
+          if (p.element === 'ice') {
+            e.speed = Math.max(1, e.speed * 0.5);
+            setTimeout(() => { e.speed = Math.min(4, e.speed * 2); }, 3000);
+          }
+
+          scene.remove(p.mesh);
+          return false;
+        }
+      }
+    } else {
+      // Hit player
+      if (p.mesh.position.distanceTo(player.position.clone().setY(1.5)) < 1.5) {
+        damagePlayer(p.damage);
+        scene.remove(p.mesh);
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // ---- Particles ----
+  state.particles = state.particles.filter((p) => {
+    p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));
+    p.velocity.y -= 5 * dt;
+    p.life -= dt;
+    p.mesh.material.opacity = p.life * 2;
+    p.mesh.material.transparent = true;
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      return false;
+    }
+    return true;
+  });
+
+  // No enemy respawning — finite enemies only
+
+  // ---- Rescuable marker bobbing ----
+  state.rescuables.forEach(r => {
+    if (!r.rescued && r.marker) {
+      r.marker.position.y = 3.5 + Math.sin(performance.now() * 0.003) * 0.3;
+      r.marker.rotation.y += dt * 2;
+    }
+  });
+
+  // ---- Powerable crystal animation ----
+  state.powerables.forEach(p => {
+    if (p.geometry.type === 'OctahedronGeometry') {
+      p.rotation.y += dt;
+    }
+  });
+
+  // ---- Health potion pickup ----
+  state.potions.forEach(p => {
+    if (p.collected) return;
+    p.mesh.rotation.y += dt * 2;
+    p.mesh.children.forEach(c => {
+      if (c.position && c.position.y > 1) {
+        c.position.y = 1.2 + Math.sin(performance.now() * 0.004) * 0.15;
+      }
+    });
+    const dist = player.position.distanceTo(p.mesh.position);
+    if (dist < 2) {
+      p.collected = true;
+      scene.remove(p.mesh);
+      state.health = Math.min(state.maxHealth, state.health + p.healAmount);
+      playSound('pickup');
+      showMessage(`+${p.healAmount} Health!`);
+      spawnParticles(player.position.clone().setY(1.5), 0xff4466, 15, 3);
+      updateHUD();
+    }
+  });
+
+  // ---- Ammo pickup ----
+  state.ammoPickups.forEach(a => {
+    if (a.collected) return;
+    a.mesh.rotation.y += dt * 2;
+    a.mesh.children.forEach(c => {
+      if (c.geometry && c.geometry.type === 'OctahedronGeometry') {
+        c.position.y = 1.2 + Math.sin(performance.now() * 0.005) * 0.2;
+        c.rotation.y += dt * 3;
+      }
+    });
+    const dist = player.position.distanceTo(a.mesh.position);
+    if (dist < 2.5) {
+      a.collected = true;
+      scene.remove(a.mesh);
+      state.ammo[a.type] += a.amount;
+      playSound('pickup');
+      const ammoNames = { fire: 'Fire', ice: 'Ice', lightning: 'Lightning' };
+      showMessage(`+${a.amount} ${ammoNames[a.type]} Ammo!`);
+      const colors = { fire: 0xff6600, ice: 0x44ccff, lightning: 0xffee00 };
+      spawnParticles(player.position.clone().setY(1.5), colors[a.type], 15, 3);
+      updateHUD();
+    }
+  });
+
+  // ---- Coin pickup ----
+  state.coins.forEach(c => {
+    if (c.collected) return;
+    c.mesh.rotation.y += dt * 3;
+    c.mesh.children.forEach(child => {
+      if (child.geometry && child.geometry.type === 'CylinderGeometry') {
+        child.position.y = 0.4 + Math.sin(performance.now() * 0.006) * 0.15;
+      }
+    });
+    const dist = player.position.distanceTo(c.mesh.position);
+    if (dist < 2) {
+      c.collected = true;
+      scene.remove(c.mesh);
+      state.totalCoins += c.value;
+      localStorage.setItem('totalCoins', state.totalCoins.toString());
+      playSound('pickup');
+      showMessage(`+${c.value} Coin!`);
+      spawnParticles(player.position.clone().setY(1.5), 0xffdd00, 10, 3);
+      updateHUD();
+    }
+  });
+
+  // ---- Health regeneration (slow) ----
+  if (state.health > 0 && state.health < state.maxHealth) {
+    state.health = Math.min(state.maxHealth, state.health + 1 * dt);
+    updateHUD();
+  }
+
+  // ---- Sequential Boss Spawns ----
+  const killed = state.enemies.filter(e => e.dead && !e.isBoss).length;
+  const anyBossAlive = state.enemies.some(e => e.isBoss && !e.dead);
+
+  if (!anyBossAlive) {
+    if (killed >= 30 && !bossesDefeated.boss3) {
+      spawnBoss('dragon');
+      bossesDefeated.boss3 = true;
+    } else if (killed >= 20 && !bossesDefeated.boss2) {
+      spawnBoss('frostGiant');
+      bossesDefeated.boss2 = true;
+    } else if (killed >= 10 && !bossesDefeated.boss1) {
+      spawnBoss('darkKnightLord');
+      bossesDefeated.boss1 = true;
+    }
+    if (currentBoss && !currentBoss.dead) updateHUD();
+  }
+
+  // ---- Day/Night Cycle ----
+  // Cycle time: 5 minutes = 300 seconds
+  state.timeOfDay += dt / 300;
+  if (state.timeOfDay >= 1.0) state.timeOfDay -= 1.0;
+
+  // Calculate lighting based on time of day
+  // 0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk
+  let sunIntensity, sunColor, ambientIntensity, skyColor, moonOpacity, starOpacity;
+
+  if (state.timeOfDay < 0.25) {
+    // Night to dawn (0 -> 0.25)
+    const t = state.timeOfDay / 0.25;
+    sunIntensity = 0.3 + t * 0.9;
+    sunColor = new THREE.Color().lerpColors(new THREE.Color(0x4444aa), new THREE.Color(0xffeedd), t);
+    ambientIntensity = 0.2 + t * 0.4;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x0a0a1e), new THREE.Color(0x1a1a2e), t);
+    moonOpacity = 1.0 - t;
+    starOpacity = 0.8 - t * 0.5;
+  } else if (state.timeOfDay < 0.5) {
+    // Dawn to noon (0.25 -> 0.5)
+    const t = (state.timeOfDay - 0.25) / 0.25;
+    sunIntensity = 1.2;
+    sunColor = new THREE.Color(0xffeedd);
+    ambientIntensity = 0.6;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x1a1a2e), new THREE.Color(0x2a3a5e), t);
+    moonOpacity = 0;
+    starOpacity = 0;
+  } else if (state.timeOfDay < 0.75) {
+    // Noon to dusk (0.5 -> 0.75)
+    const t = (state.timeOfDay - 0.5) / 0.25;
+    sunIntensity = 1.2 - t * 0.7;
+    sunColor = new THREE.Color().lerpColors(new THREE.Color(0xffeedd), new THREE.Color(0xff8844), t);
+    ambientIntensity = 0.6 - t * 0.2;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x2a3a5e), new THREE.Color(0x3a2a2e), t);
+    moonOpacity = 0;
+    starOpacity = t * 0.3;
+  } else {
+    // Dusk to night (0.75 -> 1.0)
+    const t = (state.timeOfDay - 0.75) / 0.25;
+    sunIntensity = 0.5 - t * 0.2;
+    sunColor = new THREE.Color().lerpColors(new THREE.Color(0xff8844), new THREE.Color(0x4444aa), t);
+    ambientIntensity = 0.4 - t * 0.2;
+    skyColor = new THREE.Color().lerpColors(new THREE.Color(0x3a2a2e), new THREE.Color(0x0a0a1e), t);
+    moonOpacity = t;
+    starOpacity = 0.3 + t * 0.5;
+  }
+
+  // Apply lighting changes
+  sunLight.intensity = sunIntensity;
+  sunLight.color = sunColor;
+  ambientLight.intensity = ambientIntensity;
+  scene.background = skyColor;
+  scene.fog.color = skyColor;
+
+  // Moon and stars
+  moon.material.opacity = moonOpacity;
+  stars.material.opacity = starOpacity;
+}
+
+// Simple ground height function
+function getGroundHeight(x, z) {
+  // Floating islands zone - check if on island
+  if (z < -60) {
+    const islands = [
+      { x: 0, z: -80, y: 8, r: 8 },
+      { x: 20, z: -90, y: 12, r: 6 },
+      { x: -15, z: -95, y: 15, r: 5 },
+      { x: 10, z: -105, y: 18, r: 7 },
+    ];
+    for (const isl of islands) {
+      const dist = Math.sqrt((x - isl.x) ** 2 + (z - isl.z) ** 2);
+      if (dist < isl.r) return isl.y + 1;
+    }
+    // Ramp
+    if (x > -2 && x < 2 && z > -78 && z < -58) {
+      return Math.max(0, (-58 - z) / 20 * 9);
+    }
+    // Bridges (approximate)
+    return 0;
+  }
+  return 0;
+}
+
+// ============================================================
+// RENDER LOOP
+// ============================================================
+function animate() {
+  requestAnimationFrame(animate);
+  update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ============================================================
+// START / RESTART
+// ============================================================
+document.getElementById('start-btn').addEventListener('click', () => {
+  document.getElementById('start-screen').style.display = 'none';
+  renderer.domElement.requestPointerLock();
+  state.started = true;
+  clock.start();
+  spawnInitialEnemies();
+  updateHUD();
+  showMessage('Welcome, brave knight! Explore the realm!');
+});
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  location.reload();
+});
+
+document.getElementById('resume-btn').addEventListener('click', () => {
+  state.paused = false;
+  document.getElementById('pause-screen').style.display = 'none';
+  renderer.domElement.requestPointerLock();
+});
+
+document.getElementById('pause-restart-btn').addEventListener('click', () => {
+  location.reload();
+});
+
+document.getElementById('tour-btn').addEventListener('click', () => {
+  document.getElementById('start-screen').style.display = 'none';
+  state.tourActive = true;
+  state.tourWaypointIndex = 0;
+  state.tourProgress = 0;
+  clock.start();
+  showMessage('Welcome to the Castle Tour! Press ESC to exit anytime.');
+});
+
+// Skin selection
+document.querySelectorAll('.skin-btn').forEach(btn => {
+  const skin = btn.getAttribute('data-skin');
+  // Set initial selected state
+  if (skin === (localStorage.getItem('knightSkin') || 'silver')) {
+    btn.style.borderColor = '#fff';
+  }
+  btn.addEventListener('click', () => {
+    localStorage.setItem('knightSkin', skin);
+    document.querySelectorAll('.skin-btn').forEach(b => b.style.borderColor = 'transparent');
+    btn.style.borderColor = '#fff';
+  });
+});
+
+// Re-lock pointer on click
+renderer.domElement.addEventListener('click', () => {
+  if (state.started && !state.dead && !document.pointerLockElement) {
+    renderer.domElement.requestPointerLock();
+  }
+  // Exit tour on click
+  if (state.tourActive) {
+    state.tourActive = false;
+    state.tourWaypointIndex = 0;
+    document.getElementById('start-screen').style.display = 'flex';
+  }
+});
+</script>
+</body>
+</html>
