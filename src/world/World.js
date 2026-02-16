@@ -54,6 +54,8 @@ export class World {
       this._buildCrystalCavernsMap();
     } else if (levelIndex === 9) {
       this._buildTheVoidMap();
+    } else if (levelIndex === 10) {
+      this._buildPartyMap();
     }
   }
 
@@ -112,6 +114,7 @@ export class World {
       { r: 0.15, g: 0.25, b: 0.08 },   // swamp green
       { r: 0.35, g: 0.2, b: 0.45 },    // crystal purple
       { r: 0.03, g: 0.01, b: 0.05 },   // void black
+      { r: 0.95, g: 0.85, b: 0.2 },     // party gold
     ];
     const c = groundColors[levelIndex] || groundColors[0];
 
@@ -1659,5 +1662,135 @@ export class World {
     abyss.material = abyssMat;
 
     // No houses on void map
+  }
+
+  // ===================== PARTY DECORATIONS (added on top of any map) =====================
+  addPartyDecorations() {
+    // Bright overhead light
+    const partyLight = this._trackLight(new BABYLON.HemisphericLight(
+      'partyHemi', new BABYLON.Vector3(0, 1, 0), this.scene
+    ));
+    partyLight.intensity = 2.0;
+    partyLight.diffuse = new BABYLON.Color3(1, 1, 1);
+    partyLight.groundColor = new BABYLON.Color3(0.8, 0.7, 0.5);
+
+    // Colorful spinning point lights around the arena
+    const lightColors = [
+      new BABYLON.Color3(1, 0.2, 0.2),   // red
+      new BABYLON.Color3(0.2, 0.5, 1),   // blue
+      new BABYLON.Color3(0.2, 1, 0.3),   // green
+      new BABYLON.Color3(1, 0.8, 0.1),   // gold
+      new BABYLON.Color3(0.8, 0.2, 1),   // purple
+      new BABYLON.Color3(1, 0.5, 0.1),   // orange
+    ];
+
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const pl = this._trackLight(new BABYLON.PointLight(
+        'partyPL' + i, new BABYLON.Vector3(Math.cos(angle) * 20, 8, Math.sin(angle) * 20), this.scene
+      ));
+      pl.diffuse = lightColors[i];
+      pl.intensity = 3.0;
+      pl.range = 50;
+    }
+
+    // Giant golden trophy in the center
+    const trophyBase = this._track(BABYLON.MeshBuilder.CreateCylinder('trophyBase', {
+      height: 2, diameterTop: 3, diameterBottom: 4, tessellation: 24
+    }, this.scene));
+    trophyBase.position.y = 1;
+    const goldMat = new BABYLON.StandardMaterial('goldMat', this.scene);
+    goldMat.diffuseColor = new BABYLON.Color3(1, 0.85, 0.1);
+    goldMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0.05);
+    goldMat.specularColor = new BABYLON.Color3(1, 1, 0.8);
+    trophyBase.material = goldMat;
+
+    const trophyCup = this._track(BABYLON.MeshBuilder.CreateCylinder('trophyCup', {
+      height: 3, diameterTop: 4, diameterBottom: 1.5, tessellation: 24
+    }, this.scene));
+    trophyCup.position.y = 4.5;
+    trophyCup.material = goldMat;
+
+    // Star on top of trophy
+    const star = this._track(BABYLON.MeshBuilder.CreateTorus('trophyStar', {
+      diameter: 2, thickness: 0.4, tessellation: 5
+    }, this.scene));
+    star.position.y = 7;
+    const starMat = new BABYLON.StandardMaterial('starMat', this.scene);
+    starMat.diffuseColor = new BABYLON.Color3(1, 1, 0.3);
+    starMat.emissiveColor = new BABYLON.Color3(0.8, 0.7, 0.1);
+    star.material = starMat;
+
+    // Colorful pillars around the arena like a celebration hall
+    const pillarColors = [
+      { r: 1, g: 0.2, b: 0.2 },
+      { r: 0.2, g: 0.6, b: 1 },
+      { r: 0.2, g: 1, b: 0.3 },
+      { r: 1, g: 0.8, b: 0.1 },
+      { r: 0.8, g: 0.2, b: 1 },
+      { r: 1, g: 0.5, b: 0.1 },
+      { r: 0.1, g: 1, b: 1 },
+      { r: 1, g: 0.3, b: 0.6 },
+    ];
+
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = 25;
+      const pillar = this._track(BABYLON.MeshBuilder.CreateCylinder('partyPillar' + i, {
+        height: 12, diameter: 2, tessellation: 12
+      }, this.scene));
+      pillar.position = new BABYLON.Vector3(Math.cos(angle) * r, 6, Math.sin(angle) * r);
+      const pMat = new BABYLON.StandardMaterial('pillarMat' + i, this.scene);
+      const pc = pillarColors[i];
+      pMat.diffuseColor = new BABYLON.Color3(pc.r, pc.g, pc.b);
+      pMat.emissiveColor = new BABYLON.Color3(pc.r * 0.4, pc.g * 0.4, pc.b * 0.4);
+      pillar.material = pMat;
+
+      // Glowing orb on top of each pillar
+      const orb = this._track(BABYLON.MeshBuilder.CreateSphere('pillarOrb' + i, {
+        diameter: 1.5, segments: 12
+      }, this.scene));
+      orb.position = new BABYLON.Vector3(Math.cos(angle) * r, 13, Math.sin(angle) * r);
+      const orbMat = new BABYLON.StandardMaterial('orbMat' + i, this.scene);
+      orbMat.diffuseColor = new BABYLON.Color3(pc.r, pc.g, pc.b);
+      orbMat.emissiveColor = new BABYLON.Color3(pc.r * 0.8, pc.g * 0.8, pc.b * 0.8);
+      orbMat.alpha = 0.85;
+      orb.material = orbMat;
+    }
+
+    // Confetti-like colored boxes scattered on the ground
+    for (let i = 0; i < 80; i++) {
+      const confetti = this._track(BABYLON.MeshBuilder.CreateBox('confetti' + i, {
+        width: 0.3 + Math.random() * 0.3,
+        height: 0.05,
+        depth: 0.3 + Math.random() * 0.3
+      }, this.scene));
+      confetti.position = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 50,
+        0.1,
+        (Math.random() - 0.5) * 50
+      );
+      confetti.rotation.y = Math.random() * Math.PI * 2;
+      const cMat = new BABYLON.StandardMaterial('confettiMat' + i, this.scene);
+      cMat.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+      cMat.emissiveColor = cMat.diffuseColor.scale(0.5);
+      confetti.material = cMat;
+    }
+
+    // Festive arches between pillars
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2 + Math.PI / 8;
+      const r = 25;
+      const arch = this._track(BABYLON.MeshBuilder.CreateTorus('partyArch' + i, {
+        diameter: 8, thickness: 0.6, tessellation: 24
+      }, this.scene));
+      arch.position = new BABYLON.Vector3(Math.cos(angle) * r, 10, Math.sin(angle) * r);
+      arch.rotation.z = Math.PI / 2;
+      arch.rotation.y = angle;
+      const archMat = new BABYLON.StandardMaterial('archMat' + i, this.scene);
+      archMat.diffuseColor = new BABYLON.Color3(1, 0.85, 0.1);
+      archMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0.05);
+      arch.material = archMat;
+    }
   }
 }
