@@ -709,6 +709,44 @@ body {
 .gift-btn:hover {
   background: linear-gradient(to bottom, #ff88cc, #dd44aa) !important;
 }
+#shop-bottom-btns {
+  display: flex; gap: 10px; justify-content: center; margin-top: 15px;
+}
+#redeem-gift-btn {
+  padding: 12px 24px; font-size: 16px;
+  background: linear-gradient(to bottom, #ff66aa, #cc3388);
+  border: 2px solid #ff88cc; border-radius: 8px; cursor: pointer;
+  color: #fff; font-weight: bold;
+}
+#redeem-gift-btn:hover { transform: scale(1.05); }
+#gift-popup {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8); display: flex; align-items: center;
+  justify-content: center; z-index: 9999;
+}
+.gift-popup-inner {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 2px solid #ffd700; border-radius: 16px; padding: 30px 40px;
+  text-align: center; color: #fff; max-width: 400px;
+}
+.gift-popup-inner h2 { color: #ffd700; margin-bottom: 10px; }
+.gift-popup-inner p { color: #ccc; margin: 8px 0; }
+.gift-code {
+  font-size: 32px; color: #ffd700; font-weight: bold; letter-spacing: 6px;
+  background: #0a0a1e; padding: 12px 20px; border-radius: 8px;
+  border: 2px solid #ffd700; margin: 15px 0; font-family: monospace;
+  user-select: all;
+}
+#gift-copy-btn, #gift-close-btn, #redeem-submit-btn, #redeem-cancel-btn {
+  padding: 10px 20px; font-size: 14px; border: none; border-radius: 8px;
+  cursor: pointer; margin: 5px; font-weight: bold;
+}
+#gift-copy-btn, #redeem-submit-btn {
+  background: linear-gradient(to bottom, #44cc44, #228822); color: #fff;
+}
+#gift-close-btn, #redeem-cancel-btn {
+  background: linear-gradient(to bottom, #666, #444); color: #fff;
+}
 #shop-back-btn, #achievements-back-btn {
   padding: 12px 36px; font-size: 18px;
   background: linear-gradient(to bottom, #ff6644, #cc2200);
