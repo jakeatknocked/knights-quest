@@ -1995,32 +1995,76 @@ export class World {
       flame.material = flameMat;
     }
 
-    // === TRAMPOLINES (bouncy pads) ===
+    // === TRAMPOLINES (bouncy pads — big and glowing!) ===
     const trampPositions = [
       [-15, 0, 15], [15, 0, 15], [-15, 0, -15], [15, 0, -15]
     ];
     const trampMat = new BABYLON.StandardMaterial('trampMat', this.scene);
-    trampMat.diffuseColor = new BABYLON.Color3(0.2, 0.5, 1);
-    trampMat.emissiveColor = new BABYLON.Color3(0.1, 0.25, 0.5);
+    trampMat.diffuseColor = new BABYLON.Color3(0.1, 0.6, 1);
+    trampMat.emissiveColor = new BABYLON.Color3(0.1, 0.4, 0.8);
 
     const trampRingMat = new BABYLON.StandardMaterial('trampRingMat', this.scene);
-    trampRingMat.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8);
-    trampRingMat.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    trampRingMat.diffuseColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+    trampRingMat.emissiveColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+
+    const trampLegMat = new BABYLON.StandardMaterial('trampLegMat', this.scene);
+    trampLegMat.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.5);
+    trampLegMat.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.15);
 
     trampPositions.forEach((tp, i) => {
-      // Bouncy pad
+      // 4 legs
+      for (let l = 0; l < 4; l++) {
+        const la = (l / 4) * Math.PI * 2;
+        const leg = this._track(BABYLON.MeshBuilder.CreateCylinder('trampLeg' + i + '_' + l, {
+          height: 1, diameter: 0.2, tessellation: 8
+        }, this.scene));
+        leg.position = new BABYLON.Vector3(tp[0] + Math.cos(la) * 1.8, 0.5, tp[2] + Math.sin(la) * 1.8);
+        leg.material = trampLegMat;
+      }
+
+      // Bouncy pad (bigger, raised on legs)
       const pad = this._track(BABYLON.MeshBuilder.CreateCylinder('tramp' + i, {
-        height: 0.15, diameter: 3, tessellation: 24
+        height: 0.2, diameter: 4.5, tessellation: 24
       }, this.scene));
-      pad.position = new BABYLON.Vector3(tp[0], 0.3, tp[2]);
+      pad.position = new BABYLON.Vector3(tp[0], 1.0, tp[2]);
       pad.material = trampMat;
 
-      // Ring around it
+      // Glowing ring
       const ring = this._track(BABYLON.MeshBuilder.CreateTorus('trampRing' + i, {
-        diameter: 3, thickness: 0.2, tessellation: 24
+        diameter: 4.5, thickness: 0.25, tessellation: 24
       }, this.scene));
-      ring.position = new BABYLON.Vector3(tp[0], 0.3, tp[2]);
+      ring.position = new BABYLON.Vector3(tp[0], 1.0, tp[2]);
       ring.material = trampRingMat;
+
+      // Glow light under each trampoline
+      const tl = this._trackLight(new BABYLON.PointLight(
+        'trampLight' + i, new BABYLON.Vector3(tp[0], 1.5, tp[2]), this.scene
+      ));
+      tl.diffuse = new BABYLON.Color3(0.2, 0.5, 1);
+      tl.intensity = 2;
+      tl.range = 10;
+
+      // "BOUNCE!" sign floating above
+      const sign = this._track(BABYLON.MeshBuilder.CreatePlane('trampSign' + i, {
+        width: 3, height: 0.8
+      }, this.scene));
+      sign.position = new BABYLON.Vector3(tp[0], 3.5, tp[2]);
+      sign.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+      const signTex = new BABYLON.DynamicTexture('trampTex' + i, { width: 256, height: 64 }, this.scene);
+      const ctx = signTex.getContext();
+      ctx.clearRect(0, 0, 256, 64);
+      ctx.font = 'bold 40px Arial';
+      ctx.fillStyle = '#00ccff';
+      ctx.textAlign = 'center';
+      ctx.fillText('BOUNCE!', 128, 46);
+      signTex.update();
+      const signMat = new BABYLON.StandardMaterial('trampSignMat' + i, this.scene);
+      signMat.diffuseTexture = signTex;
+      signMat.emissiveTexture = signTex;
+      signMat.opacityTexture = signTex;
+      signMat.backFaceCulling = false;
+      signMat.disableLighting = true;
+      sign.material = signMat;
     });
 
     // === SPINNING PLATFORMS ===
