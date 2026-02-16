@@ -102,12 +102,16 @@ export class Shop {
 
     const items = this.items[this.currentTab] || [];
     const equippedWeapon = localStorage.getItem('equippedWeapon') || 'pistol';
+    const equippedPet = localStorage.getItem('equippedPet') || '';
 
     items.forEach(item => {
       const owned = !!this.purchases[item.id];
       const canAfford = this.coins >= item.cost;
       const isWeapon = this.currentTab === 'weapons';
+      const isPet = this.currentTab === 'pets';
       const isEquipped = isWeapon && equippedWeapon === item.id;
+      const petType = isPet ? item.id.replace('pet_', '') : '';
+      const isPetEquipped = isPet && equippedPet === petType;
 
       const div = document.createElement('div');
       div.className = 'shop-item';
@@ -115,6 +119,11 @@ export class Shop {
       let btnHtml;
       if (item.info) {
         btnHtml = '';
+      } else if (owned && isPet) {
+        // Pet: show equip/unequip button
+        btnHtml = isPetEquipped
+          ? `<button class="buy-btn equipped" data-action="unequip-pet" data-pet="${petType}">EQUIPPED &#10003;</button>`
+          : `<button class="buy-btn equip" data-action="equip-pet" data-pet="${petType}">EQUIP</button>`;
       } else if (owned && !item.consumable) {
         btnHtml = `<button class="buy-btn owned">OWNED</button>`;
       } else {
@@ -129,8 +138,14 @@ export class Shop {
       `;
 
       const btn = div.querySelector('.buy-btn');
-      if (btn && !owned && canAfford && !item.info) {
-        btn.addEventListener('click', () => this.buy(item));
+      if (btn) {
+        if (btn.dataset.action === 'equip-pet') {
+          btn.addEventListener('click', () => this.equipPet(btn.dataset.pet));
+        } else if (btn.dataset.action === 'unequip-pet') {
+          btn.addEventListener('click', () => this.unequipPet());
+        } else if (!owned && canAfford && !item.info) {
+          btn.addEventListener('click', () => this.buy(item));
+        }
       }
 
       container.appendChild(div);
@@ -139,6 +154,16 @@ export class Shop {
 
   equipWeapon(weaponId) {
     localStorage.setItem('equippedWeapon', weaponId);
+    this.render();
+  }
+
+  equipPet(petType) {
+    localStorage.setItem('equippedPet', petType);
+    this.render();
+  }
+
+  unequipPet() {
+    localStorage.removeItem('equippedPet');
     this.render();
   }
 
@@ -227,11 +252,13 @@ export class Shop {
       state.selectedWeapon = 'pistol';
     }
 
-    // Pets
-    if (p.pet_wolf) state.pet = 'wolf';
-    if (p.pet_dragon) state.pet = 'dragon';
-    if (p.pet_fairy) state.pet = 'fairy';
-    if (p.pet_ghost) state.pet = 'ghost';
+    // Pet — use equipped pet (only 1 at a time)
+    const equippedPet = localStorage.getItem('equippedPet') || '';
+    if (equippedPet && p['pet_' + equippedPet]) {
+      state.pet = equippedPet;
+    } else {
+      state.pet = null;
+    }
 
     // Potion — start with extra HP
     if (p.potion) {

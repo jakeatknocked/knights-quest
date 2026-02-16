@@ -107,6 +107,28 @@ body {
   border: 2px solid #aa8800;
 }
 
+#pet-display {
+  position: absolute;
+  top: 90px; right: 20px;
+  color: #88ddff; font-size: 13px;
+  background: rgba(0,0,0,0.6);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #4488aa;
+  display: none;
+}
+
+#playtime-display {
+  position: absolute;
+  bottom: 50px; right: 20px;
+  color: #ffcc66; font-size: 12px;
+  background: rgba(0,0,0,0.5);
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #aa8833;
+  display: none;
+}
+
 #rank-display {
   position: absolute;
   top: 92px; right: 20px;
@@ -667,9 +689,14 @@ body {
   color: #fff; cursor: pointer;
 }
 .buy-btn.equip-btn:hover { transform: scale(1.05); }
+.buy-btn.equip {
+  background: linear-gradient(to bottom, #4488ff, #2244aa);
+  color: #fff; cursor: pointer;
+}
+.buy-btn.equip:hover { transform: scale(1.05); }
 .buy-btn.equipped {
   background: linear-gradient(to bottom, #ffd700, #aa8800);
-  color: #222; cursor: default; font-weight: bold;
+  color: #222; cursor: pointer; font-weight: bold;
 }
 #shop-back-btn, #achievements-back-btn {
   padding: 12px 36px; font-size: 18px;
@@ -836,3 +863,112 @@ body {
   transition: transform 0.15s;
 }
 #trailer-btn:hover { transform: scale(1.05); }
+
+#practice-btn {
+  padding: 14px 36px; font-size: 20px;
+  background: linear-gradient(to bottom, #44cc44, #228822);
+  border: none; border-radius: 10px; cursor: pointer;
+  color: #fff; font-weight: bold;
+  transition: transform 0.15s;
+}
+#practice-btn:hover { transform: scale(1.05); }
+
+#coop-btn, #pvp-btn {
+  padding: 14px 36px; font-size: 20px;
+  background: linear-gradient(to bottom, #4488ff, #2244cc);
+  border: none; border-radius: 10px; cursor: pointer;
+  color: #fff; font-weight: bold;
+  transition: transform 0.15s;
+}
+#coop-btn:hover, #pvp-btn:hover { transform: scale(1.05); }
+
+/* Practice HUD */
+#practice-hud {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  text-align: center; z-index: 200; pointer-events: none;
+}
+#practice-title {
+  font-size: 22px; color: #44ff44; font-weight: bold;
+  text-shadow: 0 0 10px #22aa22;
+  margin-bottom: 6px;
+}
+#practice-stats {
+  display: flex; gap: 20px; justify-content: center;
+  color: #fff; font-size: 16px;
+  background: rgba(0,0,0,0.6); padding: 6px 16px; border-radius: 8px;
+}
+#practice-hint {
+  color: #aaa; font-size: 12px; margin-top: 4px;
+}
+
+/* Multiplayer Lobby */
+#multiplayer-lobby {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(135deg, #0a0a1a, #1a1a3a);
+  z-index: 100; flex-direction: column; align-items: center;
+  justify-content: center; color: #fff; font-family: Arial, sans-serif;
+}
+#multiplayer-lobby h1 {
+  font-size: 42px; color: #ffd700; margin-bottom: 20px;
+  text-shadow: 0 0 15px #aa8800;
+}
+#room-code-display {
+  font-size: 56px; letter-spacing: 10px; color: #ffd700;
+  font-weight: bold; margin: 15px 0;
+  text-shadow: 0 0 20px #aa8800;
+}
+#room-code-input {
+  font-size: 36px; text-align: center; letter-spacing: 6px;
+  width: 240px; padding: 10px; border-radius: 8px;
+  border: 2px solid #ffd700; background: rgba(0,0,0,0.5);
+  color: #ffd700; text-transform: uppercase;
+}
+#lobby-buttons {
+  display: flex; gap: 15px; margin: 20px 0;
+}
+#host-btn, #join-btn, #join-room-btn {
+  padding: 14px 36px; font-size: 18px;
+  background: linear-gradient(to bottom, #4488ff, #2244cc);
+  border: none; border-radius: 10px; cursor: pointer;
+  color: #fff; font-weight: bold;
+}
+#host-btn:hover, #join-btn:hover, #join-room-btn:hover { transform: scale(1.05); }
+#lobby-back-btn {
+  padding: 12px 30px; font-size: 16px; margin-top: 15px;
+  background: linear-gradient(to bottom, #666, #444);
+  border: none; border-radius: 8px; cursor: pointer; color: #fff;
+}
+#lobby-status, #join-status {
+  color: #88aaff; font-size: 14px; margin-top: 8px;
+}
+
+/* PvP Score */
+#pvp-score {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.7); padding: 8px 24px; border-radius: 10px;
+  color: #fff; font-size: 24px; font-weight: bold; z-index: 50;
+  border: 2px solid #ffd700; text-align: center;
+}
+#pvp-host-score, #pvp-client-score {
+  color: #ffd700; font-size: 32px; margin: 0 8px;
+}
+#pvp-host-name, #pvp-client-name {
+  color: #88aaff; font-size: 14px;
+}
+#pvp-goal { color: #aaa; font-size: 12px; }
+
+/* PvP End */
+#pvp-end {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); z-index: 100;
+  flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; font-family: Arial, sans-serif;
+}
+#pvp-end h1 { font-size: 52px; color: #ffd700; }
+#pvp-end p { font-size: 20px; color: #aaa; margin: 10px 0 20px; }
+#pvp-restart-btn {
+  padding: 14px 36px; font-size: 20px;
+  background: linear-gradient(to bottom, #44ff44, #228822);
+  border: none; border-radius: 10px; cursor: pointer;
+  color: #fff; font-weight: bold;
+}

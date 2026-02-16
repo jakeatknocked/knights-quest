@@ -55,6 +55,35 @@ export class HUD {
     document.getElementById('score-display').textContent = `Score: ${s.score}`;
     document.getElementById('coin-display').textContent = `Coins: ${s.totalCoins}`;
 
+    // Pet display
+    const petEl = document.getElementById('pet-display');
+    if (petEl) {
+      const petIcons = { wolf: '\u{1F43A}', dragon: '\u{1F409}', fairy: '\u{1F9DA}', ghost: '\u{1F47B}' };
+      const petNames = { wolf: 'Wolf Pup', dragon: 'Baby Dragon', fairy: 'Healing Fairy', ghost: 'Ghost Buddy' };
+      if (s.pet) {
+        petEl.textContent = `${petIcons[s.pet] || ''} ${petNames[s.pet] || s.pet}`;
+        petEl.style.display = 'block';
+      } else {
+        petEl.style.display = 'none';
+      }
+    }
+
+    // Play time tracker
+    const ptEl = document.getElementById('playtime-display');
+    if (ptEl) {
+      const totalSec = parseFloat(localStorage.getItem('totalPlayTime') || '0');
+      const targetSec = 3600; // Knight Addict = 1 hour
+      if (totalSec < targetSec) {
+        const remaining = targetSec - totalSec;
+        const mins = Math.floor(remaining / 60);
+        const secs = Math.floor(remaining % 60);
+        ptEl.textContent = `\u{23F0} Knight Addict: ${mins}m ${secs < 10 ? '0' : ''}${secs}s left`;
+        ptEl.style.display = 'block';
+      } else {
+        ptEl.style.display = 'none';
+      }
+    }
+
     // Level
     const levelEl = document.getElementById('level-display');
     if (levelEl && s.levelName) {

@@ -489,6 +489,7 @@ export class EnemyManager {
       if (this.activeBoss.mesh) this.activeBoss.mesh.dispose();
       this.activeBoss = null;
     }
+    this.bossDefeated = true; // Prevent boss from respawning
   }
 
   getAliveEnemies() {

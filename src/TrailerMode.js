@@ -134,9 +134,11 @@ export class TrailerMode {
     // Hide HUD
     this.game.hud.hide();
 
-    // Hide player mesh
+    // Hide player mesh and make invincible
     this.game.player.mesh.getChildMeshes().forEach(c => { c.isVisible = false; });
     this.game.player.mesh.isVisible = false;
+    this._savedHealth = this.game.player.health;
+    this.game.player.invincible = true;
 
     // Start music
     this.game.soundManager.init();
@@ -162,6 +164,10 @@ export class TrailerMode {
 
     // Stop music
     this.game.soundManager.stopMusic();
+
+    // Restore player
+    this.game.player.invincible = false;
+    this.game.player.health = this._savedHealth || this.game.player.maxHealth;
 
     // Clean up enemies
     this.game.enemyManager.clearAll();

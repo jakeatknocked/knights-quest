@@ -15,6 +15,11 @@ import { Shop } from './ui/Shop.js';
 import { ChatSystem } from './ui/ChatSystem.js';
 import { Achievements } from './ui/Achievements.js';
 import { TrailerMode } from './TrailerMode.js';
+import { Pet } from './entities/Pet.js';
+import { PracticeMode } from './modes/PracticeMode.js';
+import NetworkManager from './network/NetworkManager.js';
+import { RemotePlayer } from './entities/RemotePlayer.js';
+import { PvPArena } from './network/PvPArena.js';
 
 // Make CANNON available globally for Babylon.js
 window.CANNON = CANNON;
@@ -105,7 +110,7 @@ export class Game {
     this.enemyManager = new EnemyManager(this.scene, this.player);
 
     // Create combat system
-    this.combatSystem = new CombatSystem(this.scene, this.player, this.enemyManager, this.state);
+    this.combatSystem = new CombatSystem(this.scene, this.player, this.enemyManager, this.state, this);
 
     // Pickup manager
     this.pickupManager = new PickupManager(this.scene, this.player);
@@ -181,6 +186,22 @@ export class Game {
     this.survivalMode = false;
     this.survivalTimer = 0;
     this.survivalTimerEl = document.getElementById('survival-timer');
+
+    // Multiplayer state
+    this.network = new NetworkManager();
+    this.remotePlayer = null;
+    this.pvpArena = null;
+    this._multiplayerMode = null; // 'coop' or 'pvp'
+    this._networkSendTimer = 0;
+    this._enemySendTimer = 0;
+    this.pvpScores = { host: 0, client: 0 };
+    this.pvpRespawnTimer = 0;
+    this.pvpDead = false;
+
+    // Wire network callbacks
+    this.network.onConnected = () => this._onPeerConnected();
+    this.network.onDisconnected = () => this._onPeerDisconnected();
+    this.network.onMessage = (type, data) => this._onNetworkMessage(type, data);
 
     // Death replay (killcam) recording
     this.replayBuffer = [];       // stores { px, py, pz, yaw, pitch, time }
@@ -281,6 +302,87 @@ export class Game {
     });
 
     // Trailer mode button
+    // Practice mode
+    this.practice = new PracticeMode(this);
+    document.getElementById('practice-btn').addEventListener('click', () => {
+      const nameVal = (usernameInput.value || '').trim() || 'Knight';
+      this.state.username = nameVal;
+      document.getElementById('start-screen').style.display = 'none';
+      this.state.started = true;
+      this.shop.applyUpgrades(this.state, this.player);
+      this.soundManager.init();
+      this.hud.show();
+      this.practice.start();
+      this.canvas.requestPointerLock();
+    });
+
+    // Multiplayer buttons (lobby)
+    document.getElementById('coop-btn').addEventListener('click', () => {
+      this._multiplayerMode = 'coop';
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('multiplayer-lobby').style.display = 'flex';
+      document.getElementById('lobby-title').textContent = 'CO-OP MODE';
+      document.getElementById('lobby-host-panel').style.display = 'none';
+      document.getElementById('lobby-join-panel').style.display = 'none';
+      document.getElementById('lobby-buttons').style.display = 'flex';
+    });
+    document.getElementById('pvp-btn').addEventListener('click', () => {
+      this._multiplayerMode = 'pvp';
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('multiplayer-lobby').style.display = 'flex';
+      document.getElementById('lobby-title').textContent = '1v1 PVP';
+      document.getElementById('lobby-host-panel').style.display = 'none';
+      document.getElementById('lobby-join-panel').style.display = 'none';
+      document.getElementById('lobby-buttons').style.display = 'flex';
+    });
+    document.getElementById('lobby-back-btn').addEventListener('click', () => {
+      this.network.disconnect();
+      document.getElementById('multiplayer-lobby').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'flex';
+    });
+
+    // Host button
+    document.getElementById('host-btn').addEventListener('click', async () => {
+      document.getElementById('lobby-buttons').style.display = 'none';
+      document.getElementById('lobby-host-panel').style.display = 'block';
+      document.getElementById('lobby-status').textContent = 'Creating room...';
+      try {
+        const code = await this.network.host(this._multiplayerMode);
+        document.getElementById('room-code-display').textContent = code;
+        document.getElementById('lobby-status').textContent = 'Waiting for player...';
+      } catch (err) {
+        document.getElementById('lobby-status').textContent = 'Error: ' + err.message;
+      }
+    });
+
+    // Join button (show input)
+    document.getElementById('join-btn').addEventListener('click', () => {
+      document.getElementById('lobby-buttons').style.display = 'none';
+      document.getElementById('lobby-join-panel').style.display = 'block';
+      document.getElementById('join-status').textContent = '';
+    });
+
+    // Join room button
+    document.getElementById('join-room-btn').addEventListener('click', async () => {
+      const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+      if (code.length !== 6) {
+        document.getElementById('join-status').textContent = 'Code must be 6 letters!';
+        return;
+      }
+      document.getElementById('join-status').textContent = 'Connecting...';
+      try {
+        await this.network.join(code, this._multiplayerMode);
+        // Connection established — onConnected callback will start the game
+      } catch (err) {
+        document.getElementById('join-status').textContent = 'Failed: ' + err.message;
+      }
+    });
+
+    // PvP restart
+    document.getElementById('pvp-restart-btn').addEventListener('click', () => {
+      location.reload();
+    });
+
     document.getElementById('trailer-btn').addEventListener('click', () => {
       document.getElementById('start-screen').style.display = 'none';
       this.trailerMode = new TrailerMode(this);
@@ -469,10 +571,26 @@ export class Game {
     // No free ammo — find elemental pistols in chests!
     // Heal player
     this.state.health = this.state.maxHealth;
+
+    // Spawn equipped pet
+    this._spawnPet();
+
     // Save progress
     localStorage.setItem('savedLevel', levelIndex.toString());
     localStorage.setItem('savedScore', this.state.score.toString());
     this.hud.update();
+  }
+
+  _spawnPet() {
+    // Dispose old pet
+    if (this.activePet) {
+      this.activePet.dispose();
+      this.activePet = null;
+    }
+    // Spawn if player has a pet equipped
+    if (this.state.pet) {
+      this.activePet = new Pet(this.scene, this.player, this.state.pet);
+    }
   }
 
   startSurvivalLevel(levelIndex) {
@@ -510,6 +628,9 @@ export class Game {
     // Full health, no ammo (can't fight)
     this.state.health = this.state.maxHealth;
     this.state.ammo = { fire: 0, ice: 0, lightning: 0 };
+
+    // Spawn equipped pet
+    this._spawnPet();
 
     // Show survival timer
     if (this.survivalTimerEl) {
@@ -756,6 +877,7 @@ export class Game {
 
   damagePlayer(amount) {
     if (this.state.dead) return;
+    if (this.player && this.player.invincible) return;
 
     if (this.state.shieldActive) {
       this.achievements.unlock('shield_block', this.hud);
@@ -769,6 +891,15 @@ export class Game {
 
     if (this.state.health <= 0) {
       this.state.dead = true;
+
+      // PvP mode: auto-respawn after 3 seconds instead of game over
+      if (this._multiplayerMode === 'pvp' && this.network.connected) {
+        this.pvpDead = true;
+        this.pvpRespawnTimer = 3;
+        this.hud.showMessage('Respawning in 3...');
+        return;
+      }
+
       this.deathCount++;
       localStorage.setItem('deathCount', this.deathCount.toString());
       this.achievements.unlock('died_first', this.hud);
@@ -1048,11 +1179,25 @@ export class Game {
     // Update friends
     this.friendManager.update(deltaTime, this);
 
+    // Update practice mode
+    if (this.practice && this.practice.active) {
+      this.practice.update(deltaTime);
+    }
+
+    // Update pet
+    if (this.activePet) {
+      this.activePet.update(deltaTime, this.enemyManager, this.state);
+      if (this.activePet.petGotKill) {
+        this.activePet.petGotKill = false;
+        this.achievements.unlock('pet_kill', this.hud);
+      }
+    }
+
     // Track alive enemies
     this.state.enemiesAlive = this.enemyManager.getAliveEnemies().length;
 
-    // Check level complete (not in survival mode)
-    if (!this.survivalMode) {
+    // Check level complete (not in survival or practice mode)
+    if (!this.survivalMode && !this.practiceMode) {
       this.checkLevelComplete();
     }
 
@@ -1169,8 +1314,340 @@ export class Game {
     if (rescued >= 3) this.achievements.unlock('rescue_3', this.hud);
     if (rescued >= 6) this.achievements.unlock('rescue_all', this.hud);
 
+    // Multiplayer: send player state and update remote player
+    if (this.network.connected) {
+      this._updateMultiplayer(deltaTime);
+    }
+
     // Update HUD
     this.hud.update();
     this.hud.updateMinimap(this.player, this.enemyManager);
+  }
+
+  // ==================== MULTIPLAYER ====================
+
+  _onPeerConnected() {
+    // Hide lobby
+    document.getElementById('multiplayer-lobby').style.display = 'none';
+
+    // Send handshake
+    this.network.send('hs', {
+      username: this.state.username,
+      skin: localStorage.getItem('knightSkin') || 'silver',
+      mode: this._multiplayerMode,
+    });
+
+    if (this._multiplayerMode === 'pvp') {
+      this._startPvP();
+    } else {
+      this._startCoop();
+    }
+  }
+
+  _onPeerDisconnected() {
+    if (this.remotePlayer) {
+      this.remotePlayer.dispose();
+      this.remotePlayer = null;
+    }
+    if (this.pvpArena) {
+      this.pvpArena.dispose();
+      this.pvpArena = null;
+    }
+    this.hud.showMessage('Other player disconnected!');
+    // After 3 seconds, return to menu
+    setTimeout(() => {
+      document.getElementById('start-screen').style.display = 'flex';
+      this.state.started = false;
+      this.hud.hide();
+      document.exitPointerLock();
+      document.getElementById('pvp-score').style.display = 'none';
+    }, 3000);
+  }
+
+  _onNetworkMessage(type, data) {
+    switch (type) {
+      case 'hs': // Handshake
+        if (!this.remotePlayer) {
+          this.remotePlayer = new RemotePlayer(this.scene, data.username, data.skin);
+        }
+        break;
+
+      case 'ps': // Player state
+        if (this.remotePlayer) {
+          this.remotePlayer.setTarget(
+            { x: data.x, y: data.y, z: data.z },
+            data.ry
+          );
+          this.remotePlayer.health = data.hp;
+        }
+        break;
+
+      case 'de': // Damage event — other player hit us
+        if (this._multiplayerMode === 'pvp') {
+          this.damagePlayer(data.amount);
+          if (this.state.dead) {
+            this.network.send('pd', {});
+            this.pvpDead = true;
+            this.pvpRespawnTimer = 3;
+            // Other player scored
+            if (this.network.isHost) {
+              this.pvpScores.client++;
+            } else {
+              this.pvpScores.host++;
+            }
+            this._updatePvPScore();
+            this._checkPvPWin();
+          }
+        }
+        break;
+
+      case 'pd': // Other player died
+        if (this.remotePlayer) {
+          this.remotePlayer.die();
+          // We scored!
+          if (this.network.isHost) {
+            this.pvpScores.host++;
+          } else {
+            this.pvpScores.client++;
+          }
+          this._updatePvPScore();
+          this._checkPvPWin();
+          this.hud.showMessage('KILL!');
+        }
+        break;
+
+      case 'pr': // Other player respawned
+        if (this.remotePlayer) {
+          this.remotePlayer.respawn({ x: data.x, y: data.y, z: data.z });
+        }
+        break;
+
+      case 'pj': // Remote projectile (visual only)
+        this._spawnRemoteProjectile(data);
+        break;
+
+      case 'sa': // Remote sword attack (visual only)
+        // Could add sword swing animation here
+        break;
+
+      case 'ch': // Chat message
+        if (this.chat) {
+          this.chat.addMessage(data.username, data.text);
+        }
+        break;
+
+      case 'pw': // PvP win notification
+        this._showPvPEnd(false);
+        break;
+    }
+  }
+
+  _startPvP() {
+    // Reset scores
+    this.pvpScores = { host: 0, client: 0 };
+    this.pvpDead = false;
+
+    // Build arena
+    this.world.dispose();
+    this.pvpArena = new PvPArena(this.scene);
+    this.pvpArena.build();
+
+    // Start the game
+    this.state.started = true;
+    this.state.dead = false;
+    this.state.health = this.state.maxHealth;
+    this.state.ammo = { fire: 9999, ice: 9999, lightning: 9999 };
+
+    // Teleport to spawn
+    const spawn = this.network.isHost ? this.pvpArena.spawnA : this.pvpArena.spawnB;
+    this.player.mesh.position.copyFrom(spawn);
+    if (this.player.mesh.physicsImpostor) {
+      this.player.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+    }
+
+    // Create remote player if not yet
+    if (!this.remotePlayer) {
+      this.remotePlayer = new RemotePlayer(this.scene, 'Opponent', 'red');
+    }
+    const remoteSpawn = this.network.isHost ? this.pvpArena.spawnB : this.pvpArena.spawnA;
+    this.remotePlayer.respawn(remoteSpawn);
+
+    // Show PvP score
+    const pvpScore = document.getElementById('pvp-score');
+    pvpScore.style.display = 'block';
+    document.getElementById('pvp-host-name').textContent = this.network.isHost ? this.state.username : 'Opponent';
+    document.getElementById('pvp-client-name').textContent = this.network.isHost ? 'Opponent' : this.state.username;
+    this._updatePvPScore();
+
+    // Show HUD and lock pointer
+    this.hud.show();
+    this.canvas.requestPointerLock();
+    this.hud.showMessage('1v1 PVP — First to 5 kills wins!');
+  }
+
+  _startCoop() {
+    // Start level 0 together
+    this.state.started = true;
+    this.state.dead = false;
+    this.startLevel(0);
+
+    // Give ammo for co-op
+    this.state.ammo = { fire: 50, ice: 50, lightning: 50 };
+
+    // Create remote player if not yet
+    if (!this.remotePlayer) {
+      this.remotePlayer = new RemotePlayer(this.scene, 'Ally', 'blue');
+    }
+    this.remotePlayer.respawn(new BABYLON.Vector3(2, 2, 10));
+
+    this.hud.show();
+    this.canvas.requestPointerLock();
+    this.hud.showMessage('CO-OP MODE — Fight together!');
+  }
+
+  _updateMultiplayer(deltaTime) {
+    // Send player state at 20Hz (rate limited by NetworkManager)
+    this.network.send('ps', {
+      x: this.player.mesh.position.x,
+      y: this.player.mesh.position.y,
+      z: this.player.mesh.position.z,
+      ry: this._cameraYaw,
+      hp: this.state.health,
+    });
+
+    // Update remote player interpolation
+    if (this.remotePlayer) {
+      this.remotePlayer.update(deltaTime);
+    }
+
+    // PvP respawn timer
+    if (this.pvpDead && this.pvpRespawnTimer > 0) {
+      this.pvpRespawnTimer -= deltaTime;
+      if (this.pvpRespawnTimer <= 0) {
+        this._pvpRespawn();
+      }
+    }
+
+    // PvP: check if our projectiles/sword hit the remote player
+    if (this._multiplayerMode === 'pvp' && this.remotePlayer && this.remotePlayer.alive) {
+      this._checkRemotePlayerHits();
+    }
+  }
+
+  _checkRemotePlayerHits() {
+    if (!this.remotePlayer || !this.remotePlayer.alive) return;
+
+    const remotePos = this.remotePlayer.root.position;
+
+    // Check projectiles
+    if (this.combatSystem.projectiles) {
+      for (const proj of this.combatSystem.projectiles) {
+        if (proj.isRemote) continue; // Don't check remote projectiles
+        const dist = BABYLON.Vector3.Distance(proj.mesh.position, remotePos);
+        if (dist < 1.5) {
+          const damage = proj.damage || 15;
+          this.network.send('de', { amount: damage });
+          this.remotePlayer.takeDamage(damage);
+          // Remove projectile
+          if (proj.mesh) proj.mesh.dispose();
+          proj.dead = true;
+        }
+      }
+    }
+
+    // Check sword attack
+    if (this.combatSystem.swordAnim > 0) {
+      const playerPos = this.player.mesh.position;
+      const dist = BABYLON.Vector3.Distance(playerPos, remotePos);
+      if (dist < 3.0 && !this._swordHitThisSwing) {
+        const damage = 25;
+        this.network.send('de', { amount: damage });
+        this.remotePlayer.takeDamage(damage);
+        this._swordHitThisSwing = true;
+        // Reset on next frame when not swinging
+      }
+    } else {
+      this._swordHitThisSwing = false;
+    }
+  }
+
+  _pvpRespawn() {
+    this.pvpDead = false;
+    this.state.dead = false;
+    this.state.health = this.state.maxHealth;
+    this.state.ammo = { fire: 9999, ice: 9999, lightning: 9999 };
+
+    // Teleport to spawn
+    const spawn = this.network.isHost ? this.pvpArena.spawnA : this.pvpArena.spawnB;
+    this.player.mesh.position.copyFrom(spawn);
+    if (this.player.mesh.physicsImpostor) {
+      this.player.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+    }
+
+    // Hide game over screen
+    document.getElementById('game-over').style.display = 'none';
+    this.hud.show();
+    this.canvas.requestPointerLock();
+
+    // Tell other player we respawned
+    this.network.send('pr', { x: spawn.x, y: spawn.y, z: spawn.z });
+    this.hud.showMessage('Respawned!');
+  }
+
+  _updatePvPScore() {
+    document.getElementById('pvp-host-score').textContent = this.pvpScores.host;
+    document.getElementById('pvp-client-score').textContent = this.pvpScores.client;
+  }
+
+  _checkPvPWin() {
+    const myScore = this.network.isHost ? this.pvpScores.host : this.pvpScores.client;
+    const theirScore = this.network.isHost ? this.pvpScores.client : this.pvpScores.host;
+    if (myScore >= 5) {
+      this.network.send('pw', {});
+      this._showPvPEnd(true);
+    } else if (theirScore >= 5) {
+      this._showPvPEnd(false);
+    }
+  }
+
+  _showPvPEnd(won) {
+    document.getElementById('pvp-score').style.display = 'none';
+    document.getElementById('pvp-result').textContent = won ? 'VICTORY!' : 'DEFEATED!';
+    document.getElementById('pvp-final-score').textContent =
+      `${this.pvpScores.host} - ${this.pvpScores.client}`;
+    document.getElementById('pvp-end').style.display = 'flex';
+    this.state.started = false;
+    this.hud.hide();
+    document.exitPointerLock();
+    this.network.disconnect();
+  }
+
+  _spawnRemoteProjectile(data) {
+    // Create a visual-only projectile from the remote player
+    const sphere = BABYLON.MeshBuilder.CreateSphere('remoteProj', { diameter: 0.3 }, this.scene);
+    sphere.position = new BABYLON.Vector3(data.x, data.y, data.z);
+    const mat = new BABYLON.StandardMaterial('remoteProjMat', this.scene);
+    const colors = {
+      fire: new BABYLON.Color3(1, 0.3, 0),
+      ice: new BABYLON.Color3(0.3, 0.6, 1),
+      lightning: new BABYLON.Color3(1, 1, 0.3),
+    };
+    mat.emissiveColor = colors[data.element] || colors.fire;
+    mat.disableLighting = true;
+    sphere.material = mat;
+
+    const dir = new BABYLON.Vector3(data.dx, data.dy, data.dz);
+    const speed = 40;
+    let life = 2;
+    const obs = this.scene.onBeforeRenderObservable.add(() => {
+      const dt = this.engine.getDeltaTime() / 1000;
+      life -= dt;
+      sphere.position.addInPlace(dir.scale(speed * dt));
+      if (life <= 0) {
+        this.scene.onBeforeRenderObservable.remove(obs);
+        mat.dispose();
+        sphere.dispose();
+      }
+    });
   }
 }

@@ -104,6 +104,9 @@ export class Achievements {
       { id: 'chat_msg', name: 'Social Knight', desc: 'Send a chat message', icon: '&#x1F4AC;' },
       { id: 'play_time_30', name: 'Dedicated Knight', desc: 'Play for 30 minutes total', icon: '&#x23F0;' },
       { id: 'play_time_60', name: 'Knight Addict', desc: 'Play for 1 hour total', icon: '&#x1F55B;' },
+
+      // Pets
+      { id: 'pet_kill', name: 'Good Boy!', desc: 'Your pet killed an enemy', icon: '&#x1F43E;' },
     ];
 
     this.setupUI();

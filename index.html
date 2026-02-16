@@ -43,10 +43,19 @@
 
   <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 14px;">
     <button id="start-btn">&#9876; START QUEST</button>
-    <button id="survival-btn">&#128128; SURVIVAL MODE</button>
-    <button id="shop-btn">&#128176; SHOP</button>
-    <button id="achievements-btn">&#127942; ACHIEVEMENTS</button>
-    <button id="trailer-btn">&#127916; WATCH TRAILER</button>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+      <button id="survival-btn">&#128128; SURVIVAL</button>
+      <button id="practice-btn">&#127919; PRACTICE</button>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+      <button id="coop-btn">&#127760; CO-OP</button>
+      <button id="pvp-btn">&#9876;&#65039; 1v1 PVP</button>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+      <button id="shop-btn">&#128176; SHOP</button>
+      <button id="achievements-btn">&#127942; ACHIEVEMENTS</button>
+      <button id="trailer-btn">&#127916; TRAILER</button>
+    </div>
   </div>
 </div>
 
@@ -86,6 +95,8 @@
   <div id="friends-display">Friends: 0</div>
   <div id="score-display">Score: 0</div>
   <div id="coin-display">Coins: 0</div>
+  <div id="pet-display"></div>
+  <div id="playtime-display"></div>
   <div id="rank-display"></div>
   <div id="username-display"></div>
   <div id="level-display"></div>
@@ -152,6 +163,43 @@
   <h2>60 seconds of pure chaos!</h2>
   <p>Score: <span id="survival-score">0</span></p>
   <button id="survival-restart-btn">&#128260; PLAY AGAIN</button>
+</div>
+
+<!-- ==================== MULTIPLAYER LOBBY ==================== -->
+<div id="multiplayer-lobby">
+  <h1 id="lobby-title">MULTIPLAYER</h1>
+  <div id="lobby-host-panel" style="display:none;">
+    <p style="color:#aaa;">Share this code with your friend:</p>
+    <div id="room-code-display"></div>
+    <p id="lobby-status">Waiting for player...</p>
+  </div>
+  <div id="lobby-join-panel" style="display:none;">
+    <p style="color:#aaa;">Enter your friend's room code:</p>
+    <input type="text" id="room-code-input" maxlength="6" placeholder="ABCXYZ">
+    <br><br>
+    <button id="join-room-btn">&#9876; JOIN</button>
+    <p id="join-status"></p>
+  </div>
+  <div id="lobby-buttons">
+    <button id="host-btn">&#127968; HOST GAME</button>
+    <button id="join-btn">&#128279; JOIN GAME</button>
+  </div>
+  <button id="lobby-back-btn">&#11013; BACK</button>
+</div>
+
+<!-- ==================== PVP SCORE ==================== -->
+<div id="pvp-score" style="display:none;">
+  <span id="pvp-host-name">Host</span>
+  <span id="pvp-host-score">0</span> - <span id="pvp-client-score">0</span>
+  <span id="pvp-client-name">Client</span>
+  <div id="pvp-goal">First to 5 wins!</div>
+</div>
+
+<!-- ==================== PVP END ==================== -->
+<div id="pvp-end">
+  <h1 id="pvp-result">VICTORY!</h1>
+  <p id="pvp-final-score"></p>
+  <button id="pvp-restart-btn">&#128260; PLAY AGAIN</button>
 </div>
 
 <!-- ==================== EMOTE WHEEL ==================== -->

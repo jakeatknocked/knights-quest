@@ -2,11 +2,12 @@ import * as BABYLON from '@babylonjs/core';
 import { Projectile } from '../entities/Projectile.js';
 
 export class CombatSystem {
-  constructor(scene, player, enemyManager, gameState) {
+  constructor(scene, player, enemyManager, gameState, game) {
     this.scene = scene;
     this.player = player;
     this.enemyManager = enemyManager;
     this.gameState = gameState;
+    this.game = game;
     this.camera = null;
     this.projectiles = [];
 
@@ -534,6 +535,25 @@ export class CombatSystem {
         }
       }
     }
+
+    // Practice mode: check sword hits on targets
+    if (this.game && this.game.practice && this.game.practice.active) {
+      this.game.practice.registerShot();
+      // Check each target in sword range
+      for (const target of this.game.practice.targets) {
+        const tPos = target.hitboxWorldPos();
+        const dist = BABYLON.Vector3.Distance(this.player.mesh.position, tPos);
+        if (dist < attackRange) {
+          const toTarget = tPos.subtract(this.player.mesh.position);
+          toTarget.normalize();
+          const dot = BABYLON.Vector3.Dot(forward, toTarget);
+          if (dot > 0.3) {
+            this.game.practice.checkHit(tPos, 25);
+            this.createHitEffect(tPos.clone());
+          }
+        }
+      }
+    }
   }
 
   getAimDirection() {
@@ -581,6 +601,11 @@ export class CombatSystem {
     this.gunAnim = 1.0; // trigger recoil animation
     this.gunFiredThisFrame = true;
 
+    // Track shot for practice mode accuracy
+    if (this.game && this.game.practice && this.game.practice.active) {
+      this.game.practice.registerShot();
+    }
+
     switch (weapon) {
       case 'shotgun':
         this.shootShotgun(element);
@@ -597,6 +622,17 @@ export class CombatSystem {
       default:
         this.shootPistol(element);
         break;
+    }
+
+    // Send projectile info over network
+    if (this.game && this.game.network && this.game.network.connected) {
+      const forward = this.getAimDirection();
+      const pos = this.player.mesh.position;
+      this.game.network.send('pj', {
+        x: pos.x, y: pos.y + 1.5, z: pos.z,
+        dx: forward.x, dy: forward.y, dz: forward.z,
+        element: element,
+      });
     }
   }
 
@@ -799,6 +835,9 @@ export class CombatSystem {
       if (!proj.dead && !proj.isEnemy) {
         this.checkProjectileEnemyCollision(proj);
       }
+      if (!proj.dead && !proj.isEnemy) {
+        this.checkProjectileTargetCollision(proj);
+      }
     }
 
     // Remove dead projectiles
@@ -958,6 +997,16 @@ export class CombatSystem {
         }
         projectile.destroy();
       }
+    }
+  }
+
+  checkProjectileTargetCollision(projectile) {
+    if (projectile.dead || !projectile.mesh) return;
+    if (!this.game || !this.game.practice || !this.game.practice.active) return;
+    const hit = this.game.practice.checkHit(projectile.mesh.position, projectile.damage);
+    if (hit) {
+      this.createHitEffect(projectile.mesh.position.clone());
+      projectile.destroy();
     }
   }
 
