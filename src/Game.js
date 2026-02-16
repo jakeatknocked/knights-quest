@@ -130,11 +130,10 @@ export class Game {
     // Shop
     this.shop = new Shop();
 
-    // Gift system — wire shop to network
+    // Gift system — wire shop to network (also sends over network if connected)
     this.shop.onGift = (item) => {
       if (this.network && this.network.connected) {
         this.network.send('gi', { itemId: item.id, username: this.state.username, itemName: item.name });
-        this.hud.showMessage(`Gifted ${item.name}!`);
       }
     };
     this.shop.onGiftReceived = (item, fromUsername) => {
@@ -280,6 +279,7 @@ export class Game {
       this.state.username = nameVal;
       localStorage.setItem('username', nameVal);
 
+      this.checkGiftInbox();
       document.getElementById('start-screen').style.display = 'none';
       this.state.started = true;
       this.shop.applyUpgrades(this.state, this.player);
@@ -301,6 +301,7 @@ export class Game {
       this.state.username = nameVal;
       localStorage.setItem('username', nameVal);
 
+      this.checkGiftInbox();
       document.getElementById('start-screen').style.display = 'none';
       this.state.started = true;
       this.survivalMode = true;
@@ -323,6 +324,7 @@ export class Game {
     document.getElementById('practice-btn').addEventListener('click', () => {
       const nameVal = (usernameInput.value || '').trim() || 'Knight';
       this.state.username = nameVal;
+      this.checkGiftInbox();
       document.getElementById('start-screen').style.display = 'none';
       this.state.started = true;
       this.shop.applyUpgrades(this.state, this.player);
@@ -715,6 +717,79 @@ export class Game {
     // Keep top 10
     const top = lb.slice(0, 10);
     localStorage.setItem('leaderboard', JSON.stringify(top));
+  }
+
+  async checkGiftInbox() {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+    const username = this.state.username.toLowerCase();
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/gifts?recipient=eq.${encodeURIComponent(username)}&claimed=eq.false&select=id,item_id,item_name,from_username`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      if (!res.ok) return;
+      const gifts = await res.json();
+      if (!gifts || gifts.length === 0) return;
+
+      // Add each gifted item to purchases and auto-equip weapons
+      const purchases = JSON.parse(localStorage.getItem('shopPurchases') || '{}');
+      const giftMessages = [];
+      const currentWeapon = localStorage.getItem('equippedWeapon') || 'pistol';
+      let bestWeapon = currentWeapon;
+      let bestTier = Shop.WEAPON_TIER[currentWeapon] || 0;
+      const ids = [];
+
+      for (const gift of gifts) {
+        purchases[gift.item_id] = true;
+        giftMessages.push(`${gift.item_name} from ${gift.from_username}`);
+        ids.push(gift.id);
+
+        // Auto-equip if it's a better weapon
+        const weaponTier = Shop.WEAPON_TIER[gift.item_id];
+        if (weaponTier !== undefined && weaponTier > bestTier) {
+          bestWeapon = gift.item_id;
+          bestTier = weaponTier;
+        }
+      }
+      if (bestWeapon !== currentWeapon) {
+        localStorage.setItem('equippedWeapon', bestWeapon);
+      }
+      localStorage.setItem('shopPurchases', JSON.stringify(purchases));
+      this.shop.purchases = purchases;
+
+      // Mark as claimed in Supabase
+      await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=in.(${ids.join(',')})`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ claimed: true }),
+      });
+
+      // Show notification popup
+      const popup = document.createElement('div');
+      popup.id = 'gift-received-popup';
+      popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      popup.innerHTML = `
+        <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:3px solid #ffd700;border-radius:16px;padding:30px 40px;text-align:center;max-width:400px;">
+          <h2 style="color:#ffd700;font-size:24px;margin-bottom:16px;">&#x1F381; You got gifts!</h2>
+          <div style="color:#fff;font-size:16px;margin-bottom:20px;">
+            ${giftMessages.map(m => `<div style="margin:8px 0;padding:8px;background:rgba(255,215,0,0.1);border-radius:8px;">${m}</div>`).join('')}
+          </div>
+          <button id="gift-received-ok" style="padding:10px 30px;font-size:16px;background:#ffd700;color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">AWESOME!</button>
+        </div>
+      `;
+      document.body.appendChild(popup);
+      document.getElementById('gift-received-ok').addEventListener('click', () => {
+        popup.remove();
+      });
+    } catch (e) {
+      // Silently fail — gifts will be picked up next time
+    }
   }
 
   renderLeaderboard() {

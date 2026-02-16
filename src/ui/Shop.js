@@ -1,3 +1,6 @@
+const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
 export class Shop {
   // Weapon power ranking (higher = better)
   static WEAPON_TIER = {
@@ -111,6 +114,7 @@ export class Shop {
     // Shop button on start screen
     document.getElementById('shop-btn').addEventListener('click', () => {
       this.coins = parseInt(localStorage.getItem('totalCoins') || '0');
+      this._checkGiftInboxForShop();
       document.getElementById('start-screen').style.display = 'none';
       document.getElementById('shop-screen').style.display = 'flex';
       this.render();
@@ -216,57 +220,119 @@ export class Shop {
     let popup = document.getElementById('gift-popup');
     if (popup) popup.remove();
 
-    const isConnected = this._networkConnected;
-
     popup = document.createElement('div');
     popup.id = 'gift-popup';
 
-    if (isConnected) {
-      // Connected in multiplayer — gift directly to the other player
-      popup.innerHTML = `
-        <div class="gift-popup-inner">
-          <h2>&#x1F381; Gift ${item.name}</h2>
-          <p>Send <strong>${item.name}</strong> to the other player?</p>
-          <p style="color:#aaa; font-size:12px;">Cost: ${item.cost} coins</p>
-          <br>
-          <button id="gift-send-btn">&#x1F381; SEND GIFT</button>
-          <button id="gift-cancel-btn">CANCEL</button>
-          <p id="gift-status" style="margin-top: 10px;"></p>
-        </div>
-      `;
-      document.body.appendChild(popup);
+    popup.innerHTML = `
+      <div class="gift-popup-inner">
+        <h2>&#x1F381; Gift ${item.name}</h2>
+        <p>Send <strong>${item.name}</strong> to a friend!</p>
+        <p style="color:#aaa; font-size:12px;">Cost: ${item.cost} coins</p>
+        <input type="text" id="gift-recipient-input" placeholder="Enter their username..."
+          style="width:80%; padding:10px; font-size:16px; border:2px solid #ffd700; border-radius:8px; background:#222; color:#fff; text-align:center; margin:12px 0;" />
+        <br>
+        <button id="gift-send-btn">&#x1F381; SEND GIFT</button>
+        <button id="gift-cancel-btn">CANCEL</button>
+        <p id="gift-status" style="margin-top: 10px;"></p>
+      </div>
+    `;
+    document.body.appendChild(popup);
 
-      document.getElementById('gift-send-btn').addEventListener('click', () => {
-        this.coins -= item.cost;
+    // Focus the input
+    document.getElementById('gift-recipient-input').focus();
+
+    document.getElementById('gift-send-btn').addEventListener('click', async () => {
+      const recipient = (document.getElementById('gift-recipient-input').value || '').trim();
+      if (!recipient) {
+        document.getElementById('gift-status').style.color = '#ff4444';
+        document.getElementById('gift-status').textContent = 'Enter a username!';
+        return;
+      }
+
+      const sender = localStorage.getItem('username') || 'Knight';
+      if (recipient.toLowerCase() === sender.toLowerCase()) {
+        document.getElementById('gift-status').style.color = '#ff4444';
+        document.getElementById('gift-status').textContent = "You can't gift yourself!";
+        return;
+      }
+
+      // Deduct coins
+      this.coins -= item.cost;
+      localStorage.setItem('totalCoins', this.coins.toString());
+
+      // Send gift to Supabase
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/gifts`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipient: recipient.toLowerCase(),
+            item_id: item.id,
+            item_name: item.name,
+            from_username: sender,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to send');
+      } catch (e) {
+        // Refund coins if send failed
+        this.coins += item.cost;
         localStorage.setItem('totalCoins', this.coins.toString());
-        if (this.onGift) this.onGift(item);
-        document.getElementById('gift-status').style.color = '#44ff44';
-        document.getElementById('gift-status').textContent = `Sent ${item.name}!`;
-        setTimeout(() => { popup.remove(); this.render(); }, 1500);
-      });
-    } else {
-      // Not connected — tell them to join multiplayer first
-      popup.innerHTML = `
-        <div class="gift-popup-inner">
-          <h2>&#x1F381; Gift ${item.name}</h2>
-          <p>To gift items you need to be<br>connected to another player!</p>
-          <p style="color:#ffd700; font-size:14px; margin-top:12px;">
-            <strong>How to gift:</strong><br>
-            1. Go to the main menu<br>
-            2. Click <strong>CO-OP</strong> or <strong>1v1 PVP</strong><br>
-            3. Connect with your friend<br>
-            4. Open the shop and gift them!
-          </p>
-          <br>
-          <button id="gift-cancel-btn">GOT IT</button>
-        </div>
-      `;
-      document.body.appendChild(popup);
-    }
+        document.getElementById('gift-status').style.color = '#ff4444';
+        document.getElementById('gift-status').textContent = 'Failed to send gift! Try again.';
+        return;
+      }
+
+      // Also send over network if connected
+      if (this.onGift) this.onGift(item);
+
+      document.getElementById('gift-status').style.color = '#44ff44';
+      document.getElementById('gift-status').textContent = `Sent ${item.name} to ${recipient}!`;
+      setTimeout(() => { popup.remove(); this.render(); }, 1500);
+    });
 
     document.getElementById('gift-cancel-btn').addEventListener('click', () => {
       popup.remove();
     });
+  }
+
+  async _checkGiftInboxForShop() {
+    const username = (localStorage.getItem('username') || 'Knight').toLowerCase();
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/gifts?recipient=eq.${encodeURIComponent(username)}&claimed=eq.false&select=id,item_id,item_name,from_username`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      if (!res.ok) return;
+      const gifts = await res.json();
+      if (!gifts || gifts.length === 0) return;
+
+      // Add gifted items to purchases
+      const ids = [];
+      for (const gift of gifts) {
+        this.purchases[gift.item_id] = true;
+        ids.push(gift.id);
+      }
+      localStorage.setItem('shopPurchases', JSON.stringify(this.purchases));
+
+      // Mark as claimed
+      await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=in.(${ids.join(',')})`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ claimed: true }),
+      });
+
+      this.render();
+    } catch (e) {
+      // Silently fail — gifts will be picked up next time
+    }
   }
 
   receiveGift(itemId, fromUsername) {
