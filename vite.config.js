@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/knights-quest/',
+  base: process.env.BUILD_FOR_PAGES ? '/knights-quest/' : '/',
 });
