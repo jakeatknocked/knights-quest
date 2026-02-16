@@ -53,6 +53,11 @@ export class Player {
       rainbow: new BABYLON.Color3(1, 0, 0),
       lava: new BABYLON.Color3(1, 0.2, 0),
       ice: new BABYLON.Color3(0.4, 0.7, 1),
+      shadow: new BABYLON.Color3(0.05, 0.05, 0.08),
+      emerald: new BABYLON.Color3(0.1, 0.75, 0.3),
+      royal: new BABYLON.Color3(0.5, 0.15, 0.8),
+      candy: new BABYLON.Color3(1, 0.4, 0.7),
+      galaxy: new BABYLON.Color3(0.3, 0.0, 0.6),
     };
     this.isRainbow = skinColor === 'rainbow';
     const baseColor = colors[skinColor] || colors.silver;

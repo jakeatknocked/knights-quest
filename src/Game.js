@@ -429,6 +429,11 @@ export class Game {
         { id: 'rainbow', name: 'Rainbow', shopId: 'skin_rainbow' },
         { id: 'lava', name: 'Lava', shopId: 'skin_lava' },
         { id: 'ice', name: 'Frost', shopId: 'skin_ice' },
+        { id: 'shadow', name: 'Shadow', shopId: 'skin_shadow' },
+        { id: 'emerald', name: 'Emerald', shopId: 'skin_emerald' },
+        { id: 'royal', name: 'Royal', shopId: 'skin_royal' },
+        { id: 'candy', name: 'Candy', shopId: 'skin_candy' },
+        { id: 'galaxy', name: 'Galaxy', shopId: 'skin_galaxy' },
       ];
 
       // Only show skins the player owns (silver is always owned)

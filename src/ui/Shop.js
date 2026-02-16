@@ -18,6 +18,8 @@ export class Shop {
         { id: 'rocket', name: 'Rocket Launcher', desc: 'Huge explosion damage! Uses 5 ammo.', cost: 300, icon: '<div style="font-size:36px">&#x1F680;</div>' },
         { id: 'minigun', name: 'Minigun', desc: 'Rapid fire! 5 shots per second.', cost: 400, icon: '<div style="font-size:36px">&#x2699;&#xFE0F;</div>' },
         { id: 'laser', name: 'Laser Beam', desc: 'Instant hit laser! Best weapon.', cost: 500, icon: '<div style="font-size:36px">&#x1F4A0;</div>' },
+        { id: 'crossbow', name: 'Crossbow', desc: 'Slow but devastating! 3x headshot damage.', cost: 200, icon: '<div style="font-size:36px">&#x1F3F9;</div>' },
+        { id: 'flamethrower', name: 'Flamethrower', desc: 'Spray fire in a cone! Burns enemies.', cost: 450, icon: '<div style="font-size:36px">&#x1F525;</div>' },
       ],
       powers: [
         { id: 'doublejump', name: 'Double Jump', desc: 'Jump again in mid-air!', cost: 150, icon: '<div style="font-size:36px">&#x1F998;</div>' },
@@ -26,12 +28,19 @@ export class Shop {
         { id: 'firetrail', name: 'Fire Trail', desc: 'Leave fire behind you that burns enemies!', cost: 250, icon: '<div style="font-size:36px">&#x1F525;</div>' },
         { id: 'vampiric', name: 'Vampiric Strike', desc: 'Sword hits heal you for 10 HP!', cost: 200, icon: '<div style="font-size:36px">&#x1F9DB;</div>' },
         { id: 'explosiveammo', name: 'Explosive Ammo', desc: 'Bullets explode on impact!', cost: 300, icon: '<div style="font-size:36px">&#x1F4A3;</div>' },
+        { id: 'dashattack', name: 'Dash Attack', desc: 'Double-tap SHIFT to dash forward and damage enemies!', cost: 200, icon: '<div style="font-size:36px">&#x1F4A8;</div>' },
+        { id: 'thorns', name: 'Thorns Armor', desc: 'Enemies take 15 damage when they hit you!', cost: 175, icon: '<div style="font-size:36px">&#x1F335;</div>' },
+        { id: 'lifesteal', name: 'Life Steal Bullets', desc: 'Gun shots heal you for 5 HP on hit!', cost: 350, icon: '<div style="font-size:36px">&#x1F489;</div>' },
+        { id: 'frostwave', name: 'Frost Wave', desc: 'Press G to freeze all nearby enemies for 3s! 30s cooldown.', cost: 400, icon: '<div style="font-size:36px">&#x2744;&#xFE0F;</div>' },
       ],
       pets: [
         { id: 'pet_wolf', name: 'Wolf Pup', desc: 'Attacks nearby enemies for you!', cost: 250, icon: '<div style="font-size:36px">&#x1F43A;</div>' },
         { id: 'pet_dragon', name: 'Baby Dragon', desc: 'Flies around and breathes fire!', cost: 500, icon: '<div style="font-size:36px">&#x1F409;</div>' },
         { id: 'pet_fairy', name: 'Healing Fairy', desc: 'Slowly heals you over time!', cost: 200, icon: '<div style="font-size:36px">&#x1F9DA;</div>' },
         { id: 'pet_ghost', name: 'Ghost Buddy', desc: 'Scares enemies, making them run away!', cost: 300, icon: '<div style="font-size:36px">&#x1F47B;</div>' },
+        { id: 'pet_phoenix', name: 'Baby Phoenix', desc: 'Revives you once per level when you die!', cost: 750, icon: '<div style="font-size:36px">&#x1F426;&#x200D;&#x1F525;</div>' },
+        { id: 'pet_golem', name: 'Mini Golem', desc: 'Tanks hits for you! Takes damage instead.', cost: 600, icon: '<div style="font-size:36px">&#x1FAA8;</div>' },
+        { id: 'pet_cat', name: 'Shadow Cat', desc: 'Finds hidden coins and loot near you!', cost: 350, icon: '<div style="font-size:36px">&#x1F408;&#x200D;&#x2B1B;</div>' },
       ],
       upgrades: [
         { id: 'dmg1', name: 'Damage Boost I', desc: '+25% damage', cost: 50, icon: '<div style="font-size:36px">&#x2694;&#xFE0F;</div>' },
@@ -44,12 +53,23 @@ export class Shop {
         { id: 'speed2', name: 'Speed Boost II', desc: '+40% speed!', cost: 250, icon: '<div style="font-size:36px">&#x1F3C3;&#x1F4A8;</div>' },
         { id: 'shield', name: 'Shield Upgrade', desc: 'Halved cooldown', cost: 125, icon: '<div style="font-size:36px">&#x1F6E1;&#xFE0F;</div>' },
         { id: 'ammo', name: 'Ammo Boost', desc: '+50% starting ammo each level', cost: 175, icon: '<div style="font-size:36px">&#x1F4E6;</div>' },
+        { id: 'regen', name: 'Health Regen', desc: 'Slowly regenerate 2 HP per second!', cost: 300, icon: '<div style="font-size:36px">&#x1F49A;</div>' },
+        { id: 'critchance', name: 'Critical Hit', desc: '20% chance to deal double damage!', cost: 250, icon: '<div style="font-size:36px">&#x1F4A5;</div>' },
+        { id: 'armor1', name: 'Armor I', desc: 'Take 15% less damage', cost: 100, icon: '<div style="font-size:36px">&#x1F6E1;&#xFE0F;</div>' },
+        { id: 'armor2', name: 'Armor II', desc: 'Take 30% less damage!', cost: 300, icon: '<div style="font-size:36px">&#x1F9CA;</div>' },
+        { id: 'xpboost', name: 'XP Boost', desc: '+50% score from all kills!', cost: 200, icon: '<div style="font-size:36px">&#x2B50;</div>' },
+        { id: 'luckycharm', name: 'Lucky Charm', desc: 'Enemies drop 2x more coins!', cost: 350, icon: '<div style="font-size:36px">&#x1F340;</div>' },
       ],
       potions: [
         { id: 'potion', name: 'Health Potion', desc: 'Start with +50 HP', cost: 20, consumable: true, icon: '<div style="font-size:36px">&#x1F9EA;</div>' },
         { id: 'jump', name: 'Super Jump', desc: '+50% jump force', cost: 30, consumable: true, icon: '<div style="font-size:36px">&#x1F680;</div>' },
         { id: 'megapotion', name: 'Mega Potion', desc: 'Start with +100 HP!', cost: 50, consumable: true, icon: '<div style="font-size:36px">&#x1F48A;</div>' },
         { id: 'ammopack', name: 'Ammo Pack', desc: 'Double ammo this round!', cost: 40, consumable: true, icon: '<div style="font-size:36px">&#x1F4E6;&#x1F525;</div>' },
+        { id: 'rage', name: 'Rage Potion', desc: '+75% damage for 30 seconds!', cost: 60, consumable: true, icon: '<div style="font-size:36px">&#x1F621;</div>' },
+        { id: 'shield_potion', name: 'Shield Potion', desc: 'Absorbs next 50 damage!', cost: 35, consumable: true, icon: '<div style="font-size:36px">&#x1F6E1;&#xFE0F;</div>' },
+        { id: 'speed_potion', name: 'Speed Potion', desc: '+60% speed for 20 seconds!', cost: 25, consumable: true, icon: '<div style="font-size:36px">&#x26A1;</div>' },
+        { id: 'giant_potion', name: 'Giant Potion', desc: 'Become 2x bigger with 2x damage for 15s!', cost: 75, consumable: true, icon: '<div style="font-size:36px">&#x1F9CC;</div>' },
+        { id: 'invis_potion', name: 'Invisibility Potion', desc: 'Enemies cant see you for 15 seconds!', cost: 45, consumable: true, icon: '<div style="font-size:36px">&#x1F440;</div>' },
       ],
       skins: [
         { id: 'skin_gold', name: 'Gold Knight', desc: 'Golden armor', cost: 100, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#ffd700,#aa8800);border-radius:4px;border:2px solid #ffee88;position:relative"><div style="width:20px;height:20px;background:#ffd700;border-radius:50%;margin:-12px auto 0;border:2px solid #ffee88"></div></div>' },
@@ -58,6 +78,11 @@ export class Shop {
         { id: 'skin_rainbow', name: 'Rainbow Knight', desc: 'Color-shifting armor', cost: 500, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(90deg,red,orange,yellow,green,blue,violet);border-radius:4px;border:2px solid #fff;position:relative"><div style="width:20px;height:20px;background:linear-gradient(90deg,red,blue);border-radius:50%;margin:-12px auto 0;border:2px solid #fff"></div></div>' },
         { id: 'skin_lava', name: 'Lava Knight', desc: 'Glowing red-hot armor!', cost: 350, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#ff4400,#aa2200);border-radius:4px;border:2px solid #ff8844;position:relative"><div style="width:20px;height:20px;background:#ff3300;border-radius:50%;margin:-12px auto 0;border:2px solid #ff8844"></div></div>' },
         { id: 'skin_ice', name: 'Frost Knight', desc: 'Icy blue frozen armor!', cost: 350, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#66bbff,#3388cc);border-radius:4px;border:2px solid #99ddff;position:relative"><div style="width:20px;height:20px;background:#55aaee;border-radius:50%;margin:-12px auto 0;border:2px solid #99ddff"></div></div>' },
+        { id: 'skin_shadow', name: 'Shadow Knight', desc: 'Pure darkness with glowing red eyes!', cost: 400, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#111,#000);border-radius:4px;border:2px solid #333;position:relative"><div style="width:20px;height:20px;background:#111;border-radius:50%;margin:-12px auto 0;border:2px solid #ff0000"></div></div>' },
+        { id: 'skin_emerald', name: 'Emerald Knight', desc: 'Shining green gemstone armor!', cost: 300, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#22cc55,#118833);border-radius:4px;border:2px solid #44ff77;position:relative"><div style="width:20px;height:20px;background:#22bb44;border-radius:50%;margin:-12px auto 0;border:2px solid #44ff77"></div></div>' },
+        { id: 'skin_royal', name: 'Royal Knight', desc: 'Purple and gold royal armor!', cost: 450, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#8833cc,#552288);border-radius:4px;border:2px solid #ffd700;position:relative"><div style="width:20px;height:20px;background:#7722bb;border-radius:50%;margin:-12px auto 0;border:2px solid #ffd700"></div></div>' },
+        { id: 'skin_candy', name: 'Candy Knight', desc: 'Sweet pink and white candy armor!', cost: 250, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(#ff88cc,#ff44aa);border-radius:4px;border:2px solid #ffaadd;position:relative"><div style="width:20px;height:20px;background:#ff66bb;border-radius:50%;margin:-12px auto 0;border:2px solid #ffaadd"></div></div>' },
+        { id: 'skin_galaxy', name: 'Galaxy Knight', desc: 'Stars and nebula cosmic armor! LEGENDARY!', cost: 1000, icon: '<div style="width:40px;height:50px;margin:0 auto;background:linear-gradient(135deg,#0a0020,#4400aa,#ff00ff,#0044ff);border-radius:4px;border:2px solid #cc88ff;position:relative"><div style="width:20px;height:20px;background:linear-gradient(135deg,#220066,#ff44ff);border-radius:50%;margin:-12px auto 0;border:2px solid #cc88ff"></div></div>' },
       ],
     };
 
@@ -292,9 +317,26 @@ export class Shop {
       localStorage.setItem('shopPurchases', JSON.stringify(this.purchases));
     }
 
-    // Skins
-    if (p.skin_rainbow) localStorage.setItem('knightSkin', 'rainbow');
-    if (p.skin_lava) localStorage.setItem('knightSkin', 'lava');
-    if (p.skin_ice) localStorage.setItem('knightSkin', 'ice');
+    // Armor upgrades
+    if (p.armor2) state.armorReduction = 0.3;
+    else if (p.armor1) state.armorReduction = 0.15;
+
+    // Crit chance
+    if (p.critchance) state.critChance = 0.2;
+
+    // XP boost
+    if (p.xpboost) state.scoreMultiplier = 1.5;
+
+    // Lucky charm (double coin drops)
+    if (p.luckycharm) state.coinMultiplier = 2;
+
+    // Health regen
+    if (p.regen) state.healthRegen = 2;
+
+    // Thorns
+    if (p.thorns) state.thorns = 15;
+
+    // Life steal bullets
+    if (p.lifesteal) state.lifeSteal = 5;
   }
 }
