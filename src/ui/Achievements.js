@@ -107,6 +107,80 @@ export class Achievements {
 
       // Pets
       { id: 'pet_kill', name: 'Good Boy!', desc: 'Your pet killed an enemy', icon: '&#x1F43E;' },
+
+      // HARD achievements — good luck!
+      { id: 'kills_1000', name: 'Genocide', desc: 'Kill 1000 enemies total', icon: '&#x1F571;&#xFE0F;' },
+      { id: 'kills_2500', name: 'Extinction Event', desc: 'Kill 2500 enemies total', icon: '&#x2620;&#xFE0F;' },
+      { id: 'kills_5000', name: 'Death Incarnate', desc: 'Kill 5000 enemies total', icon: '&#x1F47F;' },
+      { id: 'sword_100', name: 'Blade Deity', desc: 'Get 100 sword kills', icon: '&#x1F5E1;&#xFE0F;' },
+      { id: 'sword_250', name: 'Sword of Legend', desc: 'Get 250 sword kills', icon: '&#x2694;&#xFE0F;' },
+      { id: 'headshot_100', name: 'One Shot Wonder', desc: 'Get 100 headshots', icon: '&#x1F3AF;' },
+      { id: 'headshot_250', name: 'Never Miss', desc: 'Get 250 headshots', icon: '&#x1F52B;' },
+      { id: 'boss_25', name: 'Boss Nightmare', desc: 'Defeat 25 bosses', icon: '&#x1F479;' },
+      { id: 'boss_50', name: 'Boss Extinction', desc: 'Defeat 50 bosses', icon: '&#x1F480;' },
+      { id: 'coins_5000', name: 'Millionaire Knight', desc: 'Collect 5000 coins total', icon: '&#x1F4B0;' },
+      { id: 'coins_10000', name: 'Jeff Bezos', desc: 'Collect 10000 coins total', icon: '&#x1F48E;' },
+      { id: 'play_time_180', name: 'No Life Knight', desc: 'Play for 3 hours total', icon: '&#x1F634;' },
+      { id: 'play_time_600', name: 'Touch Grass?', desc: 'Play for 10 hours total', icon: '&#x1F33F;' },
+      { id: 'died_50', name: 'Professional Dier', desc: 'Die 50 times', icon: '&#x1FAA6;' },
+      { id: 'died_100', name: 'Immortal (Ironic)', desc: 'Die 100 times', icon: '&#x1F47B;' },
+      { id: 'kill_streak_15', name: 'UNSTOPPABLE!', desc: 'Kill 15 enemies in 20 seconds', icon: '&#x1F4A2;' },
+      { id: 'kill_streak_20', name: 'GODLIKE!', desc: 'Kill 20 enemies in 30 seconds', icon: '&#x1F31F;' },
+      { id: 'no_damage_3', name: 'Untouchable x3', desc: 'Beat 3 levels without taking damage', icon: '&#x1F6E1;&#xFE0F;' },
+      { id: 'speed_run_60', name: 'Lightning Fast', desc: 'Beat a level in under 60 seconds', icon: '&#x26A1;' },
+      { id: 'speed_run_30', name: 'Are You Hacking?!', desc: 'Beat a level in under 30 seconds', icon: '&#x1F3CE;&#xFE0F;' },
+      { id: 'buy_10', name: 'Shopping Spree', desc: 'Buy 10 items from the shop', icon: '&#x1F6D2;' },
+      { id: 'buy_25', name: 'Own Everything', desc: 'Buy 25 items from the shop', icon: '&#x1F451;' },
+      { id: 'beat_game_no_shop', name: 'True Warrior', desc: 'Beat the game with no shop items', icon: '&#x1F9D8;' },
+      { id: 'survive_no_damage', name: 'Ghost', desc: 'Beat survival mode without taking damage', icon: '&#x1F47B;' },
+      // Weapon mastery
+      { id: 'shotgun_kills_25', name: 'Boomstick', desc: 'Get 25 kills with the shotgun', icon: '&#x1F52B;' },
+      { id: 'rocket_kills_25', name: 'Rocket Man', desc: 'Get 25 kills with the rocket launcher', icon: '&#x1F680;' },
+      { id: 'laser_kills_25', name: 'Pew Pew Pew', desc: 'Get 25 kills with the laser', icon: '&#x1F4A0;' },
+      { id: 'minigun_kills_25', name: 'Bullet Storm', desc: 'Get 25 kills with the minigun', icon: '&#x2699;&#xFE0F;' },
+      { id: 'crossbow_kills_25', name: 'Crossbow Expert', desc: 'Get 25 kills with the crossbow', icon: '&#x1F3F9;' },
+      { id: 'flamethrower_kills_25', name: 'Pyromaniac', desc: 'Get 25 kills with the flamethrower', icon: '&#x1F525;' },
+      { id: 'all_weapons', name: 'Arsenal', desc: 'Own every weapon in the shop', icon: '&#x1F52B;' },
+
+      // Pet collection
+      { id: 'pet_2', name: 'Pet Lover', desc: 'Own 2 pets', icon: '&#x1F436;' },
+      { id: 'pet_4', name: 'Pet Hoarder', desc: 'Own 4 pets', icon: '&#x1F431;' },
+      { id: 'pet_all', name: 'Zoo Keeper', desc: 'Own every pet', icon: '&#x1F418;' },
+
+      // Skin collection
+      { id: 'skin_3', name: 'Fashionista', desc: 'Own 3 skins', icon: '&#x1F454;' },
+      { id: 'skin_6', name: 'Wardrobe King', desc: 'Own 6 skins', icon: '&#x1F451;' },
+      { id: 'skin_all', name: 'Fashion Legend', desc: 'Own every skin', icon: '&#x1F48E;' },
+
+      // Combat style
+      { id: 'multi_element', name: 'Element Mixer', desc: 'Use all 3 elements in one level', icon: '&#x1F300;' },
+      { id: 'shield_master', name: 'Shield Master', desc: 'Block 50 attacks with your shield', icon: '&#x1F6E1;&#xFE0F;' },
+      { id: 'dash_kill', name: 'Dash Destroyer', desc: 'Kill an enemy with dash attack', icon: '&#x1F4A8;' },
+      { id: 'frost_freeze_10', name: 'Ice Age', desc: 'Freeze 10 enemies with Frost Wave', icon: '&#x2744;&#xFE0F;' },
+      { id: 'fire_trail_kill', name: 'Hot Pursuit', desc: 'Kill an enemy with fire trail', icon: '&#x1F525;' },
+
+      // Survival challenges
+      { id: 'survive_half_hp', name: 'Half Dead', desc: 'Beat survival with under 50% HP', icon: '&#x1F494;' },
+      { id: 'survive_3', name: 'Survivor Pro', desc: 'Beat survival mode 3 times', icon: '&#x1F3C5;' },
+      { id: 'survive_5', name: 'Unkillable', desc: 'Beat survival mode 5 times', icon: '&#x1F9BE;' },
+
+      // Miscellaneous fun
+      { id: 'fall_death', name: 'Gravity Check', desc: 'Die by falling', icon: '&#x1FA82;' },
+      { id: 'max_rank', name: 'LEGEND', desc: 'Reach Legend rank', icon: '&#x1F31F;' },
+      { id: 'potion_5', name: 'Potion Addict', desc: 'Use 5 potions total', icon: '&#x1F9EA;' },
+      { id: 'potion_20', name: 'Alchemist', desc: 'Use 20 potions total', icon: '&#x2697;&#xFE0F;' },
+      { id: 'coin_magnet_500', name: 'Magnet Master', desc: 'Collect 500 coins with coin magnet active', icon: '&#x1F9F2;' },
+      { id: 'invisible_kill', name: 'Assassin', desc: 'Kill an enemy while invisible', icon: '&#x1F977;' },
+      { id: 'giant_kill', name: 'Fee-Fi-Fo-Fum', desc: 'Kill an enemy while giant', icon: '&#x1F9CC;' },
+      { id: 'full_upgrades', name: 'Maxed Out', desc: 'Buy all damage, health, and speed upgrades', icon: '&#x1F4AA;' },
+      { id: 'win_pvp', name: 'PvP Victor', desc: 'Win a 1v1 PvP match', icon: '&#x1F94A;' },
+      { id: 'win_pvp_5', name: 'PvP Champion', desc: 'Win 5 PvP matches', icon: '&#x1F3C6;' },
+      { id: 'win_pvp_flawless', name: 'Flawless Victory', desc: 'Win a PvP match 5-0', icon: '&#x1F947;' },
+      { id: 'gift_send', name: 'Generous Knight', desc: 'Gift an item to someone', icon: '&#x1F381;' },
+      { id: 'gift_send_5', name: 'Santa Claus', desc: 'Gift 5 items to others', icon: '&#x1F385;' },
+      { id: 'gift_receive', name: 'Lucky Knight', desc: 'Receive a gift from someone', icon: '&#x1F381;' },
+
+      { id: 'all_achievements', name: 'Completionist', desc: 'Unlock every other achievement', icon: '&#x1F3C6;' },
     ];
 
     this.setupUI();
@@ -140,6 +214,14 @@ export class Achievements {
 
     const achievement = this.list.find(a => a.id === id);
     if (!achievement) return;
+
+    // Check if all other achievements are unlocked (completionist)
+    const otherAchievements = this.list.filter(a => a.id !== 'all_achievements');
+    const allUnlocked = otherAchievements.every(a => this.unlocked[a.id]);
+    if (allUnlocked && !this.unlocked['all_achievements']) {
+      this.unlocked['all_achievements'] = Date.now();
+      localStorage.setItem('achievements', JSON.stringify(this.unlocked));
+    }
 
     // Show popup
     this.showPopup(achievement);
