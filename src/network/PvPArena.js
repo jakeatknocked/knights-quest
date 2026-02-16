@@ -15,8 +15,8 @@ export class PvPArena {
       width: 60, height: 60
     }, this.scene);
     const groundMat = new BABYLON.StandardMaterial('pvpGroundMat', this.scene);
-    groundMat.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.25);
-    groundMat.emissiveColor = new BABYLON.Color3(0.03, 0.03, 0.04);
+    groundMat.diffuseColor = new BABYLON.Color3(0.45, 0.45, 0.5);
+    groundMat.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.12);
     groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
     ground.material = groundMat;
     ground.physicsImpostor = new BABYLON.PhysicsImpostor(
@@ -28,8 +28,8 @@ export class PvPArena {
     // Boundary walls (4 sides)
     const wallH = 4, wallThick = 0.5;
     const wallMat = new BABYLON.StandardMaterial('pvpWallMat', this.scene);
-    wallMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.2);
-    wallMat.emissiveColor = new BABYLON.Color3(0.02, 0.02, 0.03);
+    wallMat.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.5);
+    wallMat.emissiveColor = new BABYLON.Color3(0.08, 0.08, 0.1);
 
     const wallConfigs = [
       { w: 60, d: wallThick, x: 0, z: 30 },
@@ -52,8 +52,8 @@ export class PvPArena {
 
     // Cover walls (cross pattern around center)
     const coverMat = new BABYLON.StandardMaterial('pvpCoverMat', this.scene);
-    coverMat.diffuseColor = new BABYLON.Color3(0.3, 0.25, 0.2);
-    coverMat.emissiveColor = new BABYLON.Color3(0.04, 0.03, 0.02);
+    coverMat.diffuseColor = new BABYLON.Color3(0.5, 0.45, 0.35);
+    coverMat.emissiveColor = new BABYLON.Color3(0.1, 0.08, 0.06);
 
     const covers = [
       { x: 0, z: 10, rotY: 0 },
@@ -77,8 +77,8 @@ export class PvPArena {
 
     // Corner pillars
     const pillarMat = new BABYLON.StandardMaterial('pvpPillarMat', this.scene);
-    pillarMat.diffuseColor = new BABYLON.Color3(0.35, 0.3, 0.25);
-    pillarMat.emissiveColor = new BABYLON.Color3(0.04, 0.03, 0.03);
+    pillarMat.diffuseColor = new BABYLON.Color3(0.55, 0.5, 0.4);
+    pillarMat.emissiveColor = new BABYLON.Color3(0.1, 0.08, 0.07);
 
     const pillars = [
       { x: 20, z: 20 }, { x: -20, z: 20 },
@@ -99,22 +99,22 @@ export class PvPArena {
 
     // Atmospheric lighting
     const hemiLight = new BABYLON.HemisphericLight('pvpHemi', new BABYLON.Vector3(0, 1, 0), this.scene);
-    hemiLight.intensity = 0.4;
-    hemiLight.diffuse = new BABYLON.Color3(0.6, 0.6, 0.7);
+    hemiLight.intensity = 1.2;
+    hemiLight.diffuse = new BABYLON.Color3(0.9, 0.9, 1.0);
     this.lights.push(hemiLight);
 
     // Red light on one side (spawn A)
     const redLight = new BABYLON.PointLight('pvpRedLight', new BABYLON.Vector3(-25, 6, 0), this.scene);
-    redLight.diffuse = new BABYLON.Color3(1, 0.2, 0.1);
-    redLight.intensity = 1.5;
-    redLight.range = 35;
+    redLight.diffuse = new BABYLON.Color3(1, 0.4, 0.3);
+    redLight.intensity = 2.0;
+    redLight.range = 40;
     this.lights.push(redLight);
 
     // Blue light on other side (spawn B)
     const blueLight = new BABYLON.PointLight('pvpBlueLight', new BABYLON.Vector3(25, 6, 0), this.scene);
-    blueLight.diffuse = new BABYLON.Color3(0.1, 0.3, 1);
-    blueLight.intensity = 1.5;
-    blueLight.range = 35;
+    blueLight.diffuse = new BABYLON.Color3(0.3, 0.5, 1);
+    blueLight.intensity = 2.0;
+    blueLight.range = 40;
     this.lights.push(blueLight);
   }
 
