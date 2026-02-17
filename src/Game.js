@@ -3797,7 +3797,10 @@ export class Game {
     if (this._adminFrozenScene) return;
 
     // Update player — pass yaw for movement direction
-    this.player.update(deltaTime, this.inputManager, this.camera, this._cameraYaw);
+    // Skip normal player movement when fly mode is active (fly handles its own movement)
+    if (!(this._adminPowers && this._adminPowers.flyMode)) {
+      this.player.update(deltaTime, this.inputManager, this.camera, this._cameraYaw);
+    }
 
     // Position camera — third-person during emotes, first-person otherwise
     const playerPos = this.player.mesh.position;
