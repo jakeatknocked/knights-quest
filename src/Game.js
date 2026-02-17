@@ -1352,29 +1352,29 @@ export class Game {
       }
     }
 
-    // Fly mode — WASD moves in look direction, space goes up, shift goes down
-    if (p.flyMode && this.player.mesh.physicsImpostor) {
-      const flySpeed = 25;
-      const vel = new BABYLON.Vector3(0, 0, 0);
+    // Fly mode — move position directly (physics mass=0 ignores velocity)
+    if (p.flyMode && this.player.mesh) {
+      const flySpeed = 25 * deltaTime;
+      const move = new BABYLON.Vector3(0, 0, 0);
       if (this.inputManager.isKeyDown('w')) {
-        vel.x += Math.sin(this._cameraYaw) * flySpeed;
-        vel.z += Math.cos(this._cameraYaw) * flySpeed;
+        move.x += Math.sin(this._cameraYaw) * flySpeed;
+        move.z += Math.cos(this._cameraYaw) * flySpeed;
       }
       if (this.inputManager.isKeyDown('s')) {
-        vel.x -= Math.sin(this._cameraYaw) * flySpeed;
-        vel.z -= Math.cos(this._cameraYaw) * flySpeed;
+        move.x -= Math.sin(this._cameraYaw) * flySpeed;
+        move.z -= Math.cos(this._cameraYaw) * flySpeed;
       }
       if (this.inputManager.isKeyDown('a')) {
-        vel.x += Math.cos(this._cameraYaw) * flySpeed;
-        vel.z -= Math.sin(this._cameraYaw) * flySpeed;
+        move.x += Math.cos(this._cameraYaw) * flySpeed;
+        move.z -= Math.sin(this._cameraYaw) * flySpeed;
       }
       if (this.inputManager.isKeyDown('d')) {
-        vel.x -= Math.cos(this._cameraYaw) * flySpeed;
-        vel.z += Math.sin(this._cameraYaw) * flySpeed;
+        move.x -= Math.cos(this._cameraYaw) * flySpeed;
+        move.z += Math.sin(this._cameraYaw) * flySpeed;
       }
-      if (this.inputManager.isKeyDown(' ')) vel.y = flySpeed;
-      if (this.inputManager.isKeyDown('shift')) vel.y = -flySpeed;
-      this.player.mesh.physicsImpostor.setLinearVelocity(vel);
+      if (this.inputManager.isKeyDown(' ')) move.y = flySpeed;
+      if (this.inputManager.isKeyDown('shift')) move.y = -flySpeed;
+      this.player.mesh.position.addInPlace(move);
     }
 
     // Infinite ammo
