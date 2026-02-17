@@ -197,6 +197,86 @@ export class RemotePlayer {
     belt.isPickable = false;
     this.meshes.push(belt);
 
+    // Belt buckle (gold)
+    const buckleMat = new BABYLON.StandardMaterial('rBuckleMat_' + this.username, this.scene);
+    buckleMat.diffuseColor = new BABYLON.Color3(1, 0.85, 0.2);
+    buckleMat.emissiveColor = new BABYLON.Color3(0.3, 0.25, 0.05);
+    this.materials.push(buckleMat);
+    const buckle = BABYLON.MeshBuilder.CreateBox('rBuckle_' + this.username, {
+      width: 0.15, height: 0.1, depth: 0.08
+    }, this.scene);
+    buckle.position.set(0, -0.1, 0.27);
+    buckle.parent = this.root;
+    buckle.material = buckleMat;
+    buckle.isPickable = false;
+    this.meshes.push(buckle);
+
+    // Knee pads
+    const kneeL = BABYLON.MeshBuilder.CreateSphere('rKneeL_' + this.username, { diameter: 0.18 }, this.scene);
+    kneeL.position.set(-0.2, -0.35, 0.15);
+    kneeL.scaling = new BABYLON.Vector3(1, 0.8, 0.7);
+    kneeL.parent = this.root;
+    kneeL.material = armorMat;
+    kneeL.isPickable = false;
+    this.meshes.push(kneeL);
+
+    const kneeR = BABYLON.MeshBuilder.CreateSphere('rKneeR_' + this.username, { diameter: 0.18 }, this.scene);
+    kneeR.position.set(0.2, -0.35, 0.15);
+    kneeR.scaling = new BABYLON.Vector3(1, 0.8, 0.7);
+    kneeR.parent = this.root;
+    kneeR.material = armorMat;
+    kneeR.isPickable = false;
+    this.meshes.push(kneeR);
+
+    // Cape
+    const capeMat = new BABYLON.StandardMaterial('rCapeMat_' + this.username, this.scene);
+    capeMat.diffuseColor = new BABYLON.Color3(baseColor.r * 0.6, baseColor.g * 0.4, baseColor.b * 0.5);
+    capeMat.emissiveColor = new BABYLON.Color3(baseColor.r * 0.1, baseColor.g * 0.07, baseColor.b * 0.08);
+    capeMat.backFaceCulling = false;
+    this.materials.push(capeMat);
+    const cape = BABYLON.MeshBuilder.CreateBox('rCape_' + this.username, {
+      width: 0.7, height: 0.9, depth: 0.05
+    }, this.scene);
+    cape.position.set(0, 0.15, -0.28);
+    cape.parent = this.root;
+    cape.material = capeMat;
+    cape.isPickable = false;
+    this.meshes.push(cape);
+
+    // Visor glow
+    const visorGlowMat = new BABYLON.StandardMaterial('rVisorGlow_' + this.username, this.scene);
+    visorGlowMat.diffuseColor = new BABYLON.Color3(0.2, 0.5, 1);
+    visorGlowMat.emissiveColor = new BABYLON.Color3(0.15, 0.3, 0.6);
+    visorGlowMat.alpha = 0.6;
+    this.materials.push(visorGlowMat);
+    const visorGlow = BABYLON.MeshBuilder.CreateBox('rVisorGlow_' + this.username, {
+      width: 0.4, height: 0.06, depth: 0.04
+    }, this.scene);
+    visorGlow.position.set(0, 1.02, 0.3);
+    visorGlow.parent = this.root;
+    visorGlow.material = visorGlowMat;
+    visorGlow.isPickable = false;
+    this.meshes.push(visorGlow);
+
+    // Boots
+    const bootL = BABYLON.MeshBuilder.CreateBox('rBootL_' + this.username, {
+      width: 0.3, height: 0.2, depth: 0.35
+    }, this.scene);
+    bootL.position.set(-0.2, -0.85, 0.03);
+    bootL.parent = this.root;
+    bootL.material = material;
+    bootL.isPickable = false;
+    this.meshes.push(bootL);
+
+    const bootR = BABYLON.MeshBuilder.CreateBox('rBootR_' + this.username, {
+      width: 0.3, height: 0.2, depth: 0.35
+    }, this.scene);
+    bootR.position.set(0.2, -0.85, 0.03);
+    bootR.parent = this.root;
+    bootR.material = material;
+    bootR.isPickable = false;
+    this.meshes.push(bootR);
+
     // Sword (thin box, attached to right arm area)
     const swordMat = new BABYLON.StandardMaterial('rSwordMat_' + this.username, this.scene);
     swordMat.diffuseColor = new BABYLON.Color3(0.75, 0.75, 0.8);
