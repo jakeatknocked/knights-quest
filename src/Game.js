@@ -222,6 +222,10 @@ export class Game {
     // Setup UI event listeners
     this.setupUI();
 
+    // Admin panel (Ctrl key)
+    this._godMode = false;
+    this._setupAdminPanel();
+
     // Show admin label if active
     if (this.state.isAdmin) {
       const adminLabel = document.getElementById('admin-label');
@@ -626,6 +630,417 @@ export class Game {
       if (evt.code === 'Digit6' && this.state.hasLaser) { this.state.selectedWeapon = this.state.selectedWeapon === 'laser' ? 'pistol' : 'laser'; this.hud.update(); }
       if (evt.code === 'Digit7' && this.state.hasMinigun) { this.state.selectedWeapon = this.state.selectedWeapon === 'minigun' ? 'pistol' : 'minigun'; this.hud.update(); }
     });
+  }
+
+  // ==================== ADMIN PANEL ====================
+  _setupAdminPanel() {
+    const ADMIN_NAMES = ['ggamer', 'weclyfrec'];
+    this._adminPanelOpen = false;
+    this._adminTab = 'spawn';
+
+    // Ctrl key opens admin panel (only for admin usernames)
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'ControlLeft' || e.code === 'ControlRight') {
+        if (!this.state.started) return;
+        if (!ADMIN_NAMES.includes((this.state.username || '').toLowerCase())) return;
+        e.preventDefault();
+        if (this._adminPanelOpen) {
+          this._closeAdminPanel();
+        } else {
+          this._openAdminPanel();
+        }
+      }
+    });
+
+    // Tab switching
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        this._adminTab = tab.dataset.tab;
+        this._renderAdminTab();
+      });
+    });
+
+    // Close button
+    document.getElementById('admin-close-btn').addEventListener('click', () => {
+      this._closeAdminPanel();
+    });
+  }
+
+  _openAdminPanel() {
+    this._adminPanelOpen = true;
+    document.getElementById('admin-panel').style.display = 'flex';
+    document.exitPointerLock();
+    this._renderAdminTab();
+  }
+
+  _closeAdminPanel() {
+    this._adminPanelOpen = false;
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('admin-status').textContent = '';
+    // Re-lock pointer for gameplay
+    const canvas = document.getElementById('gameCanvas');
+    if (canvas) canvas.requestPointerLock();
+  }
+
+  _adminStatus(msg) {
+    const el = document.getElementById('admin-status');
+    if (el) {
+      el.textContent = msg;
+      setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+    }
+  }
+
+  _renderAdminTab() {
+    const content = document.getElementById('admin-content');
+    if (!content) return;
+
+    switch (this._adminTab) {
+      case 'spawn': this._renderAdminSpawn(content); break;
+      case 'give': this._renderAdminGive(content); break;
+      case 'player': this._renderAdminPlayer(content); break;
+      case 'world': this._renderAdminWorld(content); break;
+    }
+  }
+
+  _renderAdminSpawn(el) {
+    el.innerHTML = `
+      <div class="admin-row">
+        <div class="admin-row-label">Enemy <small>(spawns near you)</small></div>
+        <input class="admin-input" id="admin-spawn-count" type="number" value="1" min="1" max="50">
+        <button class="admin-btn" id="admin-spawn-enemy">SPAWN</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Boss <small>(big boss enemy)</small></div>
+        <button class="admin-btn" id="admin-spawn-boss">SPAWN BOSS</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Coins <small>(drop near you)</small></div>
+        <input class="admin-input" id="admin-coin-amount" type="number" value="1000" min="1">
+        <button class="admin-btn gold" id="admin-spawn-coins">DROP</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Health Pickup</div>
+        <button class="admin-btn green" id="admin-spawn-health">SPAWN</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Ammo Crate</div>
+        <button class="admin-btn green" id="admin-spawn-ammo">SPAWN</button>
+      </div>
+    `;
+
+    document.getElementById('admin-spawn-enemy').onclick = () => {
+      const count = parseInt(document.getElementById('admin-spawn-count').value) || 1;
+      const pos = this.player.mesh.position;
+      for (let i = 0; i < Math.min(count, 50); i++) {
+        const offset = new BABYLON.Vector3((Math.random()-0.5)*10, 0, (Math.random()-0.5)*10);
+        this.enemyManager.spawnEnemy(pos.add(offset));
+      }
+      this._adminStatus(`Spawned ${Math.min(count,50)} enemies!`);
+    };
+
+    document.getElementById('admin-spawn-boss').onclick = () => {
+      this.enemyManager.spawnBoss(this);
+      this._adminStatus('Boss spawned!');
+    };
+
+    document.getElementById('admin-spawn-coins').onclick = () => {
+      const amount = parseInt(document.getElementById('admin-coin-amount').value) || 1000;
+      this.state.coins += amount;
+      localStorage.setItem('totalCoins', this.state.coins.toString());
+      this.hud.update();
+      this._adminStatus(`Added ${amount.toLocaleString()} coins!`);
+    };
+
+    document.getElementById('admin-spawn-health').onclick = () => {
+      this.state.health = this.state.maxHealth;
+      this.hud.update();
+      this._adminStatus('Health fully restored!');
+    };
+
+    document.getElementById('admin-spawn-ammo').onclick = () => {
+      this.state.ammo = { fire: 999, ice: 999, lightning: 999 };
+      this.hud.update();
+      this._adminStatus('Ammo maxed out!');
+    };
+  }
+
+  _renderAdminGive(el) {
+    // Build list of all shop items
+    const allItems = [];
+    for (const cat of Object.keys(this.shop.items)) {
+      for (const item of this.shop.items[cat]) {
+        if (!item.consumable) {
+          allItems.push({ ...item, category: cat });
+        }
+      }
+    }
+
+    let html = `
+      <div class="admin-row">
+        <div class="admin-row-label">Give ALL shop items</div>
+        <button class="admin-btn gold" id="admin-give-all">GIVE ALL</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Give ALL skins</div>
+        <button class="admin-btn gold" id="admin-give-skins">ALL SKINS</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Give ALL emotes</div>
+        <button class="admin-btn gold" id="admin-give-emotes">ALL EMOTES</button>
+      </div>
+      <div style="color:#888;font-size:12px;padding:8px;margin-top:6px;">Individual Items:</div>
+    `;
+
+    allItems.forEach(item => {
+      const owned = !!this.shop.purchases[item.id];
+      html += `
+        <div class="admin-row">
+          <div class="admin-row-label">${item.name} <small>(${item.category})</small></div>
+          <button class="admin-btn ${owned ? 'green' : ''}" data-give-id="${item.id}">${owned ? 'OWNED' : 'GIVE'}</button>
+        </div>
+      `;
+    });
+
+    el.innerHTML = html;
+
+    // Give all
+    document.getElementById('admin-give-all').onclick = () => {
+      allItems.forEach(item => { this.shop.purchases[item.id] = true; });
+      localStorage.setItem('shopPurchases', JSON.stringify(this.shop.purchases));
+      this.shop.applyUpgrades(this.state, this.player);
+      this._adminStatus('All shop items unlocked!');
+      this._renderAdminTab();
+    };
+
+    // Give all skins
+    document.getElementById('admin-give-skins').onclick = () => {
+      const skinIds = ['skin_silver','skin_gold','skin_dark','skin_crystal','skin_rainbow','skin_lava','skin_frost','skin_shadow','skin_emerald','skin_royal','skin_candy','skin_galaxy','skin_neon','skin_sunset','skin_ocean','skin_void','skin_diamond','skin_chrome','skin_inferno'];
+      skinIds.forEach(id => { this.shop.purchases[id] = true; });
+      localStorage.setItem('shopPurchases', JSON.stringify(this.shop.purchases));
+      this._adminStatus('All skins unlocked!');
+      this._renderAdminTab();
+    };
+
+    // Give all emotes
+    document.getElementById('admin-give-emotes').onclick = () => {
+      const emoteItems = this.shop.items.emotes || [];
+      emoteItems.forEach(item => { this.shop.purchases[item.id] = true; });
+      localStorage.setItem('shopPurchases', JSON.stringify(this.shop.purchases));
+      this._adminStatus('All emotes unlocked!');
+      this._renderAdminTab();
+    };
+
+    // Individual give buttons
+    el.querySelectorAll('[data-give-id]').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.giveId;
+        this.shop.purchases[id] = true;
+        localStorage.setItem('shopPurchases', JSON.stringify(this.shop.purchases));
+        this.shop.applyUpgrades(this.state, this.player);
+        btn.textContent = 'OWNED';
+        btn.classList.add('green');
+        this._adminStatus(`Gave ${id}!`);
+      };
+    });
+  }
+
+  _renderAdminPlayer(el) {
+    el.innerHTML = `
+      <div class="admin-row">
+        <div class="admin-row-label">Health</div>
+        <input class="admin-input" id="admin-health" type="number" value="${this.state.health}" min="1">
+        <button class="admin-btn green" id="admin-set-health">SET</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Max Health</div>
+        <input class="admin-input" id="admin-max-health" type="number" value="${this.state.maxHealth}" min="1">
+        <button class="admin-btn green" id="admin-set-max-health">SET</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Coins</div>
+        <input class="admin-input" id="admin-coins" type="number" value="${this.state.coins}" min="0">
+        <button class="admin-btn gold" id="admin-set-coins">SET</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Score</div>
+        <input class="admin-input" id="admin-score" type="number" value="${this.state.score}" min="0">
+        <button class="admin-btn" id="admin-set-score">SET</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">God Mode <small>(invincible)</small></div>
+        <button class="admin-btn ${this._godMode ? 'green' : ''}" id="admin-god">${this._godMode ? 'ON' : 'OFF'}</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Speed Multiplier</div>
+        <input class="admin-input" id="admin-speed" type="number" value="${this.state.speedMultiplier || 1}" min="0.5" max="10" step="0.25">
+        <button class="admin-btn" id="admin-set-speed">SET</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Damage Multiplier</div>
+        <input class="admin-input" id="admin-dmg" type="number" value="${this.state.damageMultiplier || 1}" min="0.5" max="100" step="0.5">
+        <button class="admin-btn" id="admin-set-dmg">SET</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Teleport to Spawn</div>
+        <button class="admin-btn" id="admin-tp-spawn">TELEPORT</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Kill All Enemies</div>
+        <button class="admin-btn" id="admin-kill-all">KILL ALL</button>
+      </div>
+    `;
+
+    document.getElementById('admin-set-health').onclick = () => {
+      this.state.health = parseInt(document.getElementById('admin-health').value) || 100;
+      this.hud.update();
+      this._adminStatus(`Health set to ${this.state.health}`);
+    };
+
+    document.getElementById('admin-set-max-health').onclick = () => {
+      this.state.maxHealth = parseInt(document.getElementById('admin-max-health').value) || 100;
+      this.state.health = Math.min(this.state.health, this.state.maxHealth);
+      this.hud.update();
+      this._adminStatus(`Max health set to ${this.state.maxHealth}`);
+    };
+
+    document.getElementById('admin-set-coins').onclick = () => {
+      this.state.coins = parseInt(document.getElementById('admin-coins').value) || 0;
+      localStorage.setItem('totalCoins', this.state.coins.toString());
+      this.hud.update();
+      this._adminStatus(`Coins set to ${this.state.coins.toLocaleString()}`);
+    };
+
+    document.getElementById('admin-set-score').onclick = () => {
+      this.state.score = parseInt(document.getElementById('admin-score').value) || 0;
+      this.hud.update();
+      this._adminStatus(`Score set to ${this.state.score.toLocaleString()}`);
+    };
+
+    document.getElementById('admin-god').onclick = () => {
+      this._godMode = !this._godMode;
+      this._adminStatus(`God Mode: ${this._godMode ? 'ON' : 'OFF'}`);
+      this._renderAdminTab();
+    };
+
+    document.getElementById('admin-set-speed').onclick = () => {
+      this.state.speedMultiplier = parseFloat(document.getElementById('admin-speed').value) || 1;
+      this._adminStatus(`Speed set to ${this.state.speedMultiplier}x`);
+    };
+
+    document.getElementById('admin-set-dmg').onclick = () => {
+      this.state.damageMultiplier = parseFloat(document.getElementById('admin-dmg').value) || 1;
+      this._adminStatus(`Damage set to ${this.state.damageMultiplier}x`);
+    };
+
+    document.getElementById('admin-tp-spawn').onclick = () => {
+      this.player.mesh.position = new BABYLON.Vector3(0, 2, 0);
+      if (this.player.mesh.physicsImpostor) {
+        this.player.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+      }
+      this._adminStatus('Teleported to spawn!');
+    };
+
+    document.getElementById('admin-kill-all').onclick = () => {
+      const count = this.enemyManager.enemies.length;
+      this.enemyManager.clearAll();
+      this._adminStatus(`Killed ${count} enemies!`);
+    };
+  }
+
+  _renderAdminWorld(el) {
+    const levels = ['Castle', 'Forest', 'Sky Battle', 'Lava Fortress', 'Frozen Depths', 'Shadow Realm', 'Storm Peaks', 'Poison Swamp', 'Crystal Caverns', 'The Void'];
+    let html = '<div style="color:#888;font-size:12px;padding:8px;">Jump to Level:</div>';
+    levels.forEach((name, i) => {
+      html += `
+        <div class="admin-row">
+          <div class="admin-row-label">${i+1}. ${name}</div>
+          <button class="admin-btn" data-level="${i}">GO</button>
+        </div>
+      `;
+    });
+
+    html += `
+      <div style="color:#888;font-size:12px;padding:8px;margin-top:10px;">Other:</div>
+      <div class="admin-row">
+        <div class="admin-row-label">Complete Current Level</div>
+        <button class="admin-btn green" id="admin-complete-level">COMPLETE</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Time of Day</div>
+        <select class="admin-input" id="admin-time" style="width:120px;">
+          <option value="day">Day</option>
+          <option value="sunset">Sunset</option>
+          <option value="night">Night</option>
+          <option value="bright">Super Bright</option>
+        </select>
+        <button class="admin-btn" id="admin-set-time">SET</button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">Fog</div>
+        <button class="admin-btn" id="admin-fog-off">OFF</button>
+        <button class="admin-btn" id="admin-fog-on">ON</button>
+      </div>
+    `;
+
+    el.innerHTML = html;
+
+    // Level jump buttons
+    el.querySelectorAll('[data-level]').forEach(btn => {
+      btn.onclick = () => {
+        const lvl = parseInt(btn.dataset.level);
+        this._closeAdminPanel();
+        this.startLevel(lvl);
+        this._adminStatus(`Jumped to level ${lvl + 1}!`);
+      };
+    });
+
+    document.getElementById('admin-complete-level').onclick = () => {
+      this.enemyManager.clearAll();
+      this.state.enemiesRemaining = 0;
+      this._adminStatus('Level completed!');
+      this.checkLevelComplete();
+    };
+
+    document.getElementById('admin-set-time').onclick = () => {
+      const time = document.getElementById('admin-time').value;
+      if (this.sunLight) {
+        switch (time) {
+          case 'day':
+            this.sunLight.intensity = 1.5;
+            this.sunLight.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
+            this.scene.clearColor = new BABYLON.Color4(0.5, 0.7, 1.0, 1);
+            break;
+          case 'sunset':
+            this.sunLight.intensity = 1.0;
+            this.sunLight.diffuse = new BABYLON.Color3(1, 0.5, 0.2);
+            this.scene.clearColor = new BABYLON.Color4(0.8, 0.4, 0.2, 1);
+            break;
+          case 'night':
+            this.sunLight.intensity = 0.3;
+            this.sunLight.diffuse = new BABYLON.Color3(0.3, 0.3, 0.5);
+            this.scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.08, 1);
+            break;
+          case 'bright':
+            this.sunLight.intensity = 4.0;
+            this.sunLight.diffuse = new BABYLON.Color3(1, 1, 1);
+            this.scene.clearColor = new BABYLON.Color4(0.6, 0.8, 1.0, 1);
+            break;
+        }
+      }
+      this._adminStatus(`Time set to ${time}!`);
+    };
+
+    document.getElementById('admin-fog-off').onclick = () => {
+      this.scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+      this._adminStatus('Fog disabled!');
+    };
+
+    document.getElementById('admin-fog-on').onclick = () => {
+      this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+      this._adminStatus('Fog enabled!');
+    };
   }
 
   toggleMap() {
@@ -2308,6 +2723,9 @@ export class Game {
       if (this.shieldBlocks >= 50) this.achievements.unlock('shield_master', this.hud);
       return;
     }
+
+    // God mode — admin invincibility
+    if (this._godMode) return;
 
     this.damageTakenThisLevel = true;
     this.state.health = Math.max(0, this.state.health - amount);
