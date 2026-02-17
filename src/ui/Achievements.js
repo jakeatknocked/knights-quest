@@ -460,6 +460,135 @@ export class Achievements {
       { id: 'first_shield', name: 'First Block', desc: 'Use your shield for the first time', icon: '&#x1F6E1;&#xFE0F;' },
       { id: 'pick_username', name: 'Identity', desc: 'Set a custom username', icon: '&#x1F3F7;&#xFE0F;' },
 
+      // Practice mode
+      { id: 'practice_start', name: 'Target Practice', desc: 'Enter practice mode', icon: '&#x1F3AF;' },
+      { id: 'practice_bullseye_5', name: 'Bullseye x5', desc: 'Hit 5 bullseyes in practice', icon: '&#x1F3AF;' },
+      { id: 'practice_bullseye_25', name: 'Bullseye Master', desc: 'Hit 25 bullseyes in practice', icon: '&#x1F3AF;' },
+      { id: 'practice_bullseye_100', name: 'Never Miss the Center', desc: 'Hit 100 bullseyes in practice', icon: '&#x1F3AF;' },
+      { id: 'practice_accuracy_80', name: 'Sharp Shooter', desc: 'Get 80% accuracy in practice (10+ shots)', icon: '&#x1F52B;' },
+      { id: 'practice_accuracy_100', name: 'Perfect Aim', desc: 'Get 100% accuracy in practice (10+ shots)', icon: '&#x2B50;' },
+      { id: 'practice_50_shots', name: 'Range Day', desc: 'Fire 50 shots in one practice session', icon: '&#x1F4A5;' },
+      { id: 'practice_100_shots', name: 'Ammo Dump', desc: 'Fire 100 shots in one practice session', icon: '&#x1F4A3;' },
+
+      // Emote fun
+      { id: 'emote_5_session', name: 'Dance Party', desc: 'Use 5 different emotes in one session', icon: '&#x1F483;' },
+      { id: 'emote_10', name: 'Emote Fan', desc: 'Use emotes 10 times total', icon: '&#x1F57A;' },
+      { id: 'emote_50', name: 'Emote Addict', desc: 'Use emotes 50 times total', icon: '&#x1F483;' },
+      { id: 'emote_100', name: 'Dance Machine', desc: 'Use emotes 100 times total', icon: '&#x1F3B6;' },
+      { id: 'emote_500', name: 'Dance Legend', desc: 'Use emotes 500 times total', icon: '&#x1F451;' },
+      { id: 'buy_emote', name: 'First Moves', desc: 'Buy your first emote from the shop', icon: '&#x1F57A;' },
+      { id: 'buy_all_emotes', name: 'Full Repertoire', desc: 'Buy every emote in the shop', icon: '&#x1F3AD;' },
+
+      // Weird / funny achievements
+      { id: 'shoot_ceiling', name: 'Aiming Practice?', desc: 'Shoot straight up 10 times', icon: '&#x2B06;&#xFE0F;' },
+      { id: 'walk_backwards', name: 'Moonwalker', desc: 'Walk backwards for 30 seconds', icon: '&#x1F31C;' },
+      { id: 'spin_100', name: 'Tornado Knight', desc: 'Spin around 100 times total', icon: '&#x1F300;' },
+      { id: 'jump_off_map', name: 'Leap of Faith', desc: 'Jump off the edge of the map', icon: '&#x1F3A2;' },
+      { id: 'stand_still_5min', name: 'AFK Knight', desc: 'Stand still for 5 minutes', icon: '&#x1F634;' },
+      { id: 'sprint_into_wall', name: 'Wall Runner', desc: 'Sprint into a wall 20 times', icon: '&#x1F9F1;' },
+      { id: 'die_5_seconds', name: 'Any% Speedrun Death', desc: 'Die within 5 seconds 3 times', icon: '&#x1F4A8;' },
+      { id: 'switch_element_rapid', name: 'Can\'t Decide', desc: 'Switch elements 10 times in 10 seconds', icon: '&#x1F500;' },
+
+      // Dedication streaks
+      { id: 'play_2_days', name: 'Coming Back', desc: 'Play on 2 different days', icon: '&#x1F4C5;' },
+      { id: 'play_5_days', name: 'Loyal Knight', desc: 'Play on 5 different days', icon: '&#x1F4C5;' },
+      { id: 'play_10_days', name: 'Devoted Knight', desc: 'Play on 10 different days', icon: '&#x1F4C6;' },
+      { id: 'play_30_days', name: 'Monthly Knight', desc: 'Play on 30 different days', icon: '&#x1F4C6;' },
+      { id: 'play_100_days', name: '100 Days of Quest', desc: 'Play on 100 different days!', icon: '&#x1F3C5;' },
+      { id: 'play_365_days', name: 'Year of the Knight', desc: 'Play on 365 different days!!', icon: '&#x1F389;' },
+
+      // Multi-kill combos
+      { id: 'quad_kill', name: 'Quad Kill', desc: 'Kill 4 enemies within 2 seconds', icon: '&#x1F4A2;' },
+      { id: 'penta_kill', name: 'PENTA KILL', desc: 'Kill 5 enemies within 3 seconds', icon: '&#x1F525;' },
+      { id: 'chain_kill_10', name: 'Chain Reaction', desc: 'Kill 10 enemies without stopping for 5 seconds', icon: '&#x26D3;&#xFE0F;' },
+      { id: 'overkill_1000', name: 'MEGA Overkill', desc: 'Deal 1000+ damage in one hit', icon: '&#x1F4A5;' },
+      { id: 'overkill_5000', name: 'ULTRA Overkill', desc: 'Deal 5000+ damage in one hit', icon: '&#x2604;&#xFE0F;' },
+
+      // Secret level challenges
+      { id: 'beat_castle_sword', name: 'Knight\'s Honor', desc: 'Beat the Castle using only the sword', icon: '&#x2694;&#xFE0F;' },
+      { id: 'beat_void_no_potions', name: 'Void Purist', desc: 'Beat The Void without using any potions', icon: '&#x1F573;&#xFE0F;' },
+      { id: 'beat_lava_no_shield', name: 'Heat Resistant', desc: 'Beat Lava Fortress without using the shield', icon: '&#x1F30B;' },
+      { id: 'beat_ice_fire_only', name: 'Meltdown', desc: 'Beat Frozen Depths using only fire element', icon: '&#x1F525;' },
+      { id: 'beat_storm_ice_only', name: 'Frozen Thunder', desc: 'Beat Storm Peaks using only ice element', icon: '&#x2744;&#xFE0F;' },
+
+      // Pet bonding
+      { id: 'pet_kills_250', name: 'Pet Warlord', desc: 'Your pets have killed 250 enemies', icon: '&#x1F43E;' },
+      { id: 'pet_kills_500', name: 'Pet Army', desc: 'Your pets have killed 500 enemies', icon: '&#x1F43E;' },
+      { id: 'pet_kills_1000', name: 'Pet Apocalypse', desc: 'Your pets have killed 1000 enemies', icon: '&#x1F43E;' },
+      { id: 'switch_pet_10', name: 'Pet Rotator', desc: 'Switch pets 10 times', icon: '&#x1F504;' },
+      { id: 'play_with_all_pets', name: 'Pet Collector', desc: 'Play a level with every pet at least once', icon: '&#x1F3C6;' },
+
+      // Level mastery — beat levels multiple times
+      { id: 'beat_castle_5', name: 'Castle Regular', desc: 'Beat the Castle 5 times', icon: '&#x1F3F0;' },
+      { id: 'beat_void_5', name: 'Void Veteran', desc: 'Beat The Void 5 times', icon: '&#x1F573;&#xFE0F;' },
+      { id: 'beat_void_10', name: 'Void Addict', desc: 'Beat The Void 10 times', icon: '&#x1F30C;' },
+      { id: 'beat_all_sword_only', name: 'Sword Legend', desc: 'Beat every level using only the sword', icon: '&#x2694;&#xFE0F;' },
+      { id: 'beat_all_no_shield', name: 'No Defense', desc: 'Beat every level without using the shield', icon: '&#x1F4A8;' },
+
+      // Ridiculous milestones
+      { id: 'kills_100000', name: 'ONE HUNDRED THOUSAND', desc: 'Kill 100000 enemies — are you okay?!', icon: '&#x1F480;' },
+      { id: 'coins_5000000', name: 'BILLIONAIRE', desc: 'Collect 5000000 coins total', icon: '&#x1F4B0;' },
+      { id: 'died_2500', name: 'Cat With 2500 Lives', desc: 'Die 2500 times and still come back', icon: '&#x1F408;' },
+      { id: 'died_5000', name: 'Eternal Respawner', desc: 'Die 5000 times — death fears YOU', icon: '&#x1F47B;' },
+      { id: 'jump_25000', name: 'Left the Atmosphere', desc: 'Jump 25000 times', icon: '&#x1F680;' },
+      { id: 'jump_50000', name: 'Reached the Moon', desc: 'Jump 50000 times', icon: '&#x1F315;' },
+      { id: 'jump_100000', name: 'Mars Landing', desc: 'Jump 100000 times!!', icon: '&#x1FA90;' },
+
+      // Weapon dedication
+      { id: 'sword_5000', name: 'Sword Ascended', desc: 'Get 5000 sword kills', icon: '&#x2694;&#xFE0F;' },
+      { id: 'sword_10000', name: 'Sword is Life', desc: 'Get 10000 sword kills', icon: '&#x1F5E1;&#xFE0F;' },
+      { id: 'headshot_2500', name: 'Headshot Machine', desc: 'Get 2500 headshots', icon: '&#x1F3AF;' },
+      { id: 'headshot_5000', name: 'Headshot God', desc: 'Get 5000 headshots', icon: '&#x1F3AF;' },
+      { id: 'shotgun_kills_500', name: 'Shotgun Deity', desc: 'Get 500 kills with the shotgun', icon: '&#x1F52B;' },
+      { id: 'rocket_kills_500', name: 'Rocket God', desc: 'Get 500 kills with the rocket launcher', icon: '&#x1F680;' },
+      { id: 'minigun_kills_500', name: 'Bullet Hurricane', desc: 'Get 500 kills with the minigun', icon: '&#x1F32A;&#xFE0F;' },
+
+      // Time-of-day fun
+      { id: 'play_noon', name: 'High Noon', desc: 'Play at exactly 12:00 PM', icon: '&#x2600;&#xFE0F;' },
+      { id: 'play_3am', name: '3 AM Knight', desc: 'Play at 3 AM — go to sleep!', icon: '&#x1F47B;' },
+      { id: 'play_friday', name: 'TGIF Knight', desc: 'Play on a Friday', icon: '&#x1F389;' },
+      { id: 'play_weekend', name: 'Weekend Warrior', desc: 'Play on both Saturday and Sunday', icon: '&#x1F3D6;&#xFE0F;' },
+      { id: 'play_new_year', name: 'New Year Knight', desc: 'Play on January 1st', icon: '&#x1F386;' },
+      { id: 'play_halloween', name: 'Spooky Knight', desc: 'Play on October 31st', icon: '&#x1F383;' },
+      { id: 'play_christmas', name: 'Christmas Knight', desc: 'Play on December 25th', icon: '&#x1F384;' },
+
+      // Damage taken challenges
+      { id: 'tank_500_one_level', name: 'Damage Soak', desc: 'Take 500 damage in one level and still win', icon: '&#x1F6E1;&#xFE0F;' },
+      { id: 'tank_1000_one_level', name: 'Meat Shield', desc: 'Take 1000 damage in one level and still win', icon: '&#x1F4AA;' },
+      { id: 'survive_1hp_3_times', name: 'Living on the Edge', desc: 'Survive at 1 HP three different times', icon: '&#x1F494;' },
+      { id: 'heal_full_3_times', name: 'Yo-Yo Health', desc: 'Go from low HP to full HP 3 times in one level', icon: '&#x1FA79;' },
+
+      // Boss speedruns
+      { id: 'boss_under_15s', name: 'Instant Boss Kill', desc: 'Beat a boss in under 15 seconds', icon: '&#x23F1;&#xFE0F;' },
+      { id: 'boss_under_10s', name: 'Boss Evaporator', desc: 'Beat a boss in under 10 seconds', icon: '&#x26A1;' },
+      { id: 'boss_200', name: 'Boss Farmer', desc: 'Defeat 200 bosses', icon: '&#x1F451;' },
+      { id: 'boss_500', name: 'Boss Extinction Event', desc: 'Defeat 500 bosses', icon: '&#x1F480;' },
+
+      // Score madness
+      { id: 'score_250000', name: 'Quarter Million', desc: 'Reach a score of 250000', icon: '&#x1F4AF;' },
+      { id: 'score_500000', name: 'Half Million', desc: 'Reach a score of 500000', icon: '&#x1F31F;' },
+      { id: 'score_1000000', name: 'MILLION POINTS', desc: 'Reach a score of 1000000!!', icon: '&#x1F3C6;' },
+
+      // Walking insanity
+      { id: 'walk_100km', name: 'Cross Country', desc: 'Walk 100000 meters total', icon: '&#x1F97E;' },
+      { id: 'walk_500km', name: 'Continental Trek', desc: 'Walk 500000 meters total', icon: '&#x1F30D;' },
+      { id: 'walk_marathon', name: 'Marathon Complete', desc: 'Walk 42195 meters (a real marathon!)', icon: '&#x1F3C5;' },
+
+      // Rebirth mastery
+      { id: 'rebirth_coin_multi_2x', name: 'Double Money', desc: 'Reach 2x coin multiplier from rebirths', icon: '&#x1F4B0;' },
+      { id: 'rebirth_coin_multi_3x', name: 'Triple Money', desc: 'Reach 3x coin multiplier from rebirths', icon: '&#x1F4B0;' },
+      { id: 'rebirth_under_1hr', name: 'Speed Rebirth', desc: 'Rebirth in under 1 hour of playtime', icon: '&#x23F1;&#xFE0F;' },
+
+      // First time doing stuff
+      { id: 'first_fire', name: 'Playing with Fire', desc: 'Shoot a fire bullet for the first time', icon: '&#x1F525;' },
+      { id: 'first_ice', name: 'Cold Shot', desc: 'Shoot an ice bullet for the first time', icon: '&#x2744;&#xFE0F;' },
+      { id: 'first_lightning', name: 'Shocking!', desc: 'Shoot a lightning bullet for the first time', icon: '&#x26A1;' },
+      { id: 'first_pet', name: 'Pet Owner', desc: 'Equip a pet for the first time', icon: '&#x1F436;' },
+      { id: 'first_potion', name: 'Bottoms Up', desc: 'Use a potion for the first time', icon: '&#x1F9EA;' },
+      { id: 'first_pvp_kill', name: 'PvP Blood', desc: 'Get your first PvP kill', icon: '&#x2694;&#xFE0F;' },
+      { id: 'first_coop', name: 'Better Together', desc: 'Start your first co-op game', icon: '&#x1F91D;' },
+      { id: 'first_emote', name: 'Express Yourself', desc: 'Use an emote for the first time', icon: '&#x1F57A;' },
+
       { id: 'all_achievements', name: 'Completionist', desc: 'Unlock every other achievement', icon: '&#x1F3C6;' },
     ];
 
