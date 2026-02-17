@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://knights-quest-gavins-game.vercel.app/sitemap.xml
