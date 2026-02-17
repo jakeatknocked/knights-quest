@@ -1888,10 +1888,14 @@ export class Game {
         })
       });
 
+      // Start/stop effects immediately on admin's screen
+      this._globalAbuseActive = active;
       if (active) {
+        this._startAbuseEffects();
         this._sendBroadcast('ADMIN ABUSE HAS BEGUN! BRACE YOURSELVES!');
         this._adminStatus('ADMIN ABUSE STARTED GLOBALLY!');
       } else {
+        this._stopAbuseEffects();
         this._sendBroadcast('Admin abuse has ended. You are safe... for now.');
         this._adminStatus('Admin abuse stopped.');
       }
