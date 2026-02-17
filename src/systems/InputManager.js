@@ -15,6 +15,10 @@ export class InputManager {
   setupKeyboard() {
     // Use window event listeners for more reliable keyboard input
     window.addEventListener('keydown', (evt) => {
+      // Don't capture keys when typing in input fields (chat, admin panel, etc.)
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       this.keys[evt.key.toLowerCase()] = true;
 
       if (evt.key === ' ') {

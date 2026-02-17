@@ -597,6 +597,10 @@ export class Game {
     window.addEventListener('keydown', (evt) => {
       if (!this.state.started || this.state.dead) return;
 
+      // Don't capture keys when typing in an input field (admin panel, etc.)
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       if (evt.code === 'Escape' || evt.code === 'KeyP') {
         if (this.state.paused) {
           this.unpause();
