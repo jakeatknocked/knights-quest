@@ -18,6 +18,8 @@ export class ChatSystem {
 
   show() {
     if (this.container) this.container.classList.add('active');
+    // Auto-start polling when chat is shown
+    if (!this._pollingStarted) this.startPolling();
   }
 
   hide() {
@@ -99,8 +101,10 @@ export class ChatSystem {
   }
 
   startPolling() {
-    // Poll for new messages every 3 seconds
-    this._pollInterval = setInterval(() => this._pollMessages(), 3000);
+    if (this._pollingStarted) return;
+    this._pollingStarted = true;
+    // Poll for new messages every 2 seconds
+    this._pollInterval = setInterval(() => this._pollMessages(), 2000);
     this._pollMessages();
   }
 
