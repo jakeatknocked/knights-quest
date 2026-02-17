@@ -314,6 +314,17 @@ export class Game {
       this.state.username = nameVal;
       localStorage.setItem('username', nameVal);
 
+      // Admin boost for Gavin's accounts only
+      const _adminNames = ['ggamer', 'weclyfrec'];
+      if (_adminNames.includes(nameVal.toLowerCase())) {
+        localStorage.setItem('totalCoins', '25000000');
+        localStorage.setItem('totalKills', '1000000');
+        localStorage.setItem('savedLevel', '9');
+        this.state.coins = parseInt(localStorage.getItem('totalCoins'));
+        this.state.totalKills = 1000000;
+        this.state.currentLevel = 9;
+      }
+
       this.checkGiftInbox();
       document.getElementById('start-screen').style.display = 'none';
       this.state.started = true;
