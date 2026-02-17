@@ -341,6 +341,7 @@ export class Game {
       this.hud.show();
       this.chat.setUsername(this.state.username);
       this.chat.show();
+      this.chat.startPolling();
       this.chat.systemMsg(`${this.state.username} has joined the quest!`);
       this.achievements.unlock('welcome', this.hud);
 
@@ -365,6 +366,7 @@ export class Game {
       this.hud.show();
       this.chat.setUsername(this.state.username);
       this.chat.show();
+      this.chat.startPolling();
       this.chat.systemMsg(`${this.state.username} entered SURVIVAL MODE! Survive 60 seconds!`);
       // Pick a random level map for variety
       const randomLevel = Math.floor(Math.random() * this.enemyManager.getTotalLevels());
@@ -734,6 +736,7 @@ export class Game {
       case 'world': this._renderAdminWorld(content); break;
       case 'powers': this._renderAdminPowers(content); break;
       case 'events': this._renderAdminEvents(content); break;
+      case 'chatspy': this._renderAdminChatSpy(content); break;
       case 'broadcast': this._renderAdminBroadcast(content); break;
     }
   }
@@ -1784,6 +1787,62 @@ export class Game {
       zombie: 'ZOMBIE HORDE! Endless enemies incoming!'
     };
     return msgs[eventId] || 'A new event has started!';
+  }
+
+  async _renderAdminChatSpy(el) {
+    el.innerHTML = `
+      <div style="color:#44aaff;font-size:13px;padding:6px 8px;text-align:center;">
+        SPY ON ALL PLAYER MESSAGES
+      </div>
+      <div id="chatspy-log" style="padding:8px;font-size:13px;color:#ccc;">Loading...</div>
+      <div style="padding:8px;display:flex;gap:6px;">
+        <button class="admin-btn" id="chatspy-refresh">REFRESH</button>
+        <button class="admin-btn" id="chatspy-auto">AUTO-REFRESH: OFF</button>
+      </div>
+    `;
+
+    const loadMessages = async () => {
+      const logEl = document.getElementById('chatspy-log');
+      if (!logEl) return;
+      const msgs = await this.chat.getRecentMessages(50);
+      if (msgs.length === 0) {
+        logEl.innerHTML = '<div style="color:#666;">No messages yet.</div>';
+        return;
+      }
+      // Reverse so newest is at bottom
+      logEl.innerHTML = msgs.reverse().map(m => {
+        const time = new Date(m.created_at);
+        const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const isAdmin = ['ggamer', 'weclyfrec'].includes((m.username || '').toLowerCase());
+        const nameColor = isAdmin ? '#ff4444' : '#ffd700';
+        return `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <span style="color:#666;font-size:11px;">[${timeStr}]</span>
+          <span style="color:${nameColor};font-weight:bold;">${m.username}:</span>
+          <span style="color:#ddd;">${m.message}</span>
+        </div>`;
+      }).join('');
+      logEl.scrollTop = logEl.scrollHeight;
+    };
+
+    await loadMessages();
+
+    document.getElementById('chatspy-refresh').onclick = () => loadMessages();
+
+    let autoRefresh = false;
+    let autoInterval = null;
+    document.getElementById('chatspy-auto').onclick = () => {
+      autoRefresh = !autoRefresh;
+      const btn = document.getElementById('chatspy-auto');
+      if (autoRefresh) {
+        btn.textContent = 'AUTO-REFRESH: ON';
+        btn.classList.add('green');
+        autoInterval = setInterval(loadMessages, 3000);
+      } else {
+        btn.textContent = 'AUTO-REFRESH: OFF';
+        btn.classList.remove('green');
+        clearInterval(autoInterval);
+      }
+    };
   }
 
   _renderAdminBroadcast(el) {

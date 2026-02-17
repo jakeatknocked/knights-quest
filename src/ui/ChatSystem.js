@@ -1,3 +1,6 @@
+const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
 export class ChatSystem {
   constructor() {
     this.container = document.getElementById('chat-container');
@@ -8,6 +11,7 @@ export class ChatSystem {
     this.username = 'Knight';
     this.messages = [];
     this.maxMessages = 50;
+    this._lastChatId = 0;
 
     this.setupInput();
   }
@@ -72,6 +76,74 @@ export class ChatSystem {
       this.messages.shift();
     }
     this.render();
+
+    // Send player messages to Supabase so everyone can see them
+    if (type === 'player') {
+      this._sendToSupabase(name, text);
+    }
+  }
+
+  async _sendToSupabase(username, message) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ username, message })
+      });
+    } catch (e) { /* silent */ }
+  }
+
+  startPolling() {
+    // Poll for new messages every 3 seconds
+    this._pollInterval = setInterval(() => this._pollMessages(), 3000);
+    this._pollMessages();
+  }
+
+  async _pollMessages() {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_messages?id=gt.${this._lastChatId}&order=id.asc&limit=20`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        for (const msg of data) {
+          // Don't show our own messages again (we already added them locally)
+          if (msg.username !== this.username) {
+            this.messages.push({ name: msg.username, text: msg.message, type: 'player' });
+            if (this.messages.length > this.maxMessages) this.messages.shift();
+          }
+          this._lastChatId = msg.id;
+        }
+        this.render();
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  // Get recent messages for admin spy panel
+  async getRecentMessages(limit = 50) {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_messages?order=id.desc&limit=${limit}`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      return await res.json();
+    } catch (e) { return []; }
   }
 
   // Shorthand methods for system events
