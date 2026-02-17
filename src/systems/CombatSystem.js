@@ -928,21 +928,7 @@ export class CombatSystem {
       });
     }
 
-    // Explosion flash light
-    const light = new BABYLON.PointLight('explLight', position, this.scene);
-    light.diffuse = color;
-    light.intensity = 10;
-    light.range = 15;
-    let lightLife = 0.3;
-    const lightObs = this.scene.onBeforeRenderObservable.add(() => {
-      const dt = this.scene.getEngine().getDeltaTime() / 1000;
-      lightLife -= dt;
-      light.intensity = 10 * (lightLife / 0.3);
-      if (lightLife <= 0) {
-        light.dispose();
-        this.scene.onBeforeRenderObservable.remove(lightObs);
-      }
-    });
+    // Explosion flash via emissive particles — no PointLight for performance
   }
 
   checkProjectileEnemyCollision(projectile) {

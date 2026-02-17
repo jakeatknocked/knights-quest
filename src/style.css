@@ -1605,7 +1605,7 @@ body {
 }
 #admin-content {
   min-height: 200px;
-  max-height: 50vh;
+  max-height: 60vh;
   overflow-y: auto;
 }
 .admin-row {
@@ -1675,3 +1675,103 @@ body {
   font-weight: bold;
 }
 #admin-close-btn:hover { background: #ff2222; color: #fff; }
+
+/* ==================== BROADCAST BANNER ==================== */
+#broadcast-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999;
+  text-align: center;
+  padding: 12px 20px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(90deg, #ff0044, #ff6600, #ffcc00, #ff0044);
+  background-size: 300% 100%;
+  animation: broadcastSlide 3s linear infinite;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(255,0,68,0.5);
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+}
+#broadcast-banner.show {
+  display: block;
+  animation: broadcastSlide 3s linear infinite, broadcastFadeIn 0.5s ease-out;
+}
+#broadcast-banner .broadcast-from {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 2px;
+}
+@keyframes broadcastSlide {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+@keyframes broadcastFadeIn {
+  0% { transform: translateY(-100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* ==================== ADMIN ABUSE BUTTON ==================== */
+#admin-abuse-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  border: 3px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+}
+#admin-abuse-btn.admin-abuse-off {
+  background: linear-gradient(135deg, #330000, #660000);
+  border-color: #ff2222;
+  color: #ff4444;
+  text-shadow: 0 0 10px #ff0000;
+  box-shadow: 0 0 15px rgba(255,0,0,0.3);
+}
+#admin-abuse-btn.admin-abuse-off:hover {
+  background: linear-gradient(135deg, #550000, #880000);
+  box-shadow: 0 0 25px rgba(255,0,0,0.6);
+}
+#admin-abuse-btn.admin-abuse-on {
+  background: linear-gradient(135deg, #003300, #006600);
+  border-color: #44ff44;
+  color: #44ff44;
+  text-shadow: 0 0 10px #00ff00;
+  box-shadow: 0 0 15px rgba(0,255,0,0.3);
+  animation: abusePulse 1s ease-in-out infinite;
+}
+#admin-abuse-btn.admin-abuse-on:hover {
+  background: linear-gradient(135deg, #004400, #008800);
+}
+@keyframes abusePulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(0,255,0,0.3); }
+  50% { box-shadow: 0 0 30px rgba(0,255,0,0.7); }
+}
+
+/* Admin abuse screen effects for victims */
+#abuse-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+}
+#abuse-overlay.active {
+  display: block;
+  animation: abuseFlash 0.5s ease-in-out infinite alternate;
+  border: 4px solid rgba(255,0,0,0.5);
+}
+@keyframes abuseFlash {
+  0% { background: rgba(255,0,0,0.03); }
+  100% { background: rgba(255,0,0,0.08); }
+}

@@ -592,6 +592,25 @@ export class Achievements {
       { id: 'first_coop', name: 'Better Together', desc: 'Start your first co-op game', icon: '&#x1F91D;' },
       { id: 'first_emote', name: 'Express Yourself', desc: 'Use an emote for the first time', icon: '&#x1F57A;' },
 
+      // Admin Abuse achievements
+      { id: 'admin_panel', name: 'With Great Power...', desc: 'Open the admin panel', icon: '&#x1F451;' },
+      { id: 'admin_kill_aura', name: 'Kill Aura Activated', desc: 'Turn on Kill Aura', icon: '&#x1F480;' },
+      { id: 'admin_fly', name: 'I Believe I Can Fly', desc: 'Enable Fly Mode', icon: '&#x1F985;' },
+      { id: 'admin_god_mode', name: 'Literally God', desc: 'Enable God Mode', icon: '&#x1F607;' },
+      { id: 'admin_nuke', name: 'Nuclear Option', desc: 'Nuke the entire map', icon: '&#x2622;&#xFE0F;' },
+      { id: 'admin_broadcast', name: 'Attention Everyone!', desc: 'Send a broadcast message', icon: '&#x1F4E2;' },
+      { id: 'admin_yeet', name: 'YEET!', desc: 'Yeet all enemies into the sky', icon: '&#x1F680;' },
+      { id: 'admin_giant', name: 'Fee Fi Fo Fum', desc: 'Enable Giant Mode', icon: '&#x1F9CC;' },
+      { id: 'admin_tiny', name: 'Honey I Shrunk Myself', desc: 'Enable Tiny Mode', icon: '&#x1F41C;' },
+      { id: 'admin_chaos', name: 'Agent of Chaos', desc: 'Activate Chaos Mode event', icon: '&#x1F32A;&#xFE0F;' },
+      { id: 'admin_disco', name: 'DJ Admin', desc: 'Start a Disco Party', icon: '&#x1FA69;' },
+      { id: 'admin_zombie', name: 'Zombie Apocalypse', desc: 'Start a Zombie Horde event', icon: '&#x1F9DF;' },
+      { id: 'admin_laser_eyes', name: 'Laser Vision', desc: 'Enable Laser Eyes', icon: '&#x1F525;' },
+      { id: 'admin_5_powers', name: 'Power Trip', desc: 'Have 5 admin powers active at once', icon: '&#x26A1;' },
+      { id: 'admin_all_powers', name: 'UNLIMITED POWER', desc: 'Have ALL admin powers active at once', icon: '&#x1F31F;' },
+      { id: 'admin_event_3', name: 'Event Planner', desc: 'Trigger 3 different events', icon: '&#x1F389;' },
+      { id: 'admin_abuse_1000', name: 'Admin Abuse x1000', desc: 'Kill 1000 enemies with admin powers', icon: '&#x1F608;' },
+
       { id: 'all_achievements', name: 'Completionist', desc: 'Unlock every other achievement', icon: '&#x1F3C6;' },
     ];
 

@@ -16,6 +16,7 @@ import { ChatSystem } from './ui/ChatSystem.js';
 import { Achievements } from './ui/Achievements.js';
 import { TrailerMode } from './TrailerMode.js';
 import { Pet } from './entities/Pet.js';
+import { Projectile } from './entities/Projectile.js';
 import { PracticeMode } from './modes/PracticeMode.js';
 import NetworkManager from './network/NetworkManager.js';
 import { RemotePlayer } from './entities/RemotePlayer.js';
@@ -34,7 +35,10 @@ export class Game {
     // Create scene
     this.scene = new BABYLON.Scene(this.engine);
     this.scene.clearColor = new BABYLON.Color4(0.4, 0.6, 0.9, 1);
-    this.scene.maxSimultaneousLights = 12;
+    this.scene.maxSimultaneousLights = 4;
+    // Performance: skip light sorting and limit active lights
+    this.scene.autoClear = false;
+    this.scene.blockMaterialDirtyMechanism = true;
 
     // Enable physics
     this.scene.enablePhysics(
@@ -342,6 +346,7 @@ export class Game {
 
       this.startLevel(this.state.currentLevel);
       this.hud.update();
+      this._startBroadcastPolling();
       this.canvas.requestPointerLock();
     });
 
@@ -365,6 +370,7 @@ export class Game {
       const randomLevel = Math.floor(Math.random() * this.enemyManager.getTotalLevels());
       this.startSurvivalLevel(randomLevel);
       this.hud.update();
+      this._startBroadcastPolling();
       this.canvas.requestPointerLock();
     });
 
@@ -592,6 +598,10 @@ export class Game {
     window.addEventListener('keydown', (evt) => {
       if (!this.state.started || this.state.dead) return;
 
+      // Don't capture keys when typing in an input field (admin panel, etc.)
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       if (evt.code === 'Escape' || evt.code === 'KeyP') {
         if (this.state.paused) {
           this.unpause();
@@ -666,6 +676,20 @@ export class Game {
     document.getElementById('admin-close-btn').addEventListener('click', () => {
       this._closeAdminPanel();
     });
+
+    // Admin Abuse mega button
+    this._abuseActive = false;
+    const abuseBtn = document.getElementById('admin-abuse-btn');
+    if (abuseBtn) {
+      abuseBtn.addEventListener('click', () => {
+        this._abuseActive = !this._abuseActive;
+        this._toggleGlobalAbuse(this._abuseActive);
+        abuseBtn.className = this._abuseActive ? 'admin-abuse-on' : 'admin-abuse-off';
+        abuseBtn.innerHTML = this._abuseActive
+          ? '&#9989; ADMIN ABUSE ACTIVE — CLICK TO STOP'
+          : '&#128520; START ADMIN ABUSE';
+      });
+    }
   }
 
   _openAdminPanel() {
@@ -676,6 +700,7 @@ export class Game {
     this._adminFrozenScene = true;
     this.scene.physicsEnabled = false;
     this._renderAdminTab();
+    this.achievements.unlock('admin_panel', this.hud);
   }
 
   _closeAdminPanel() {
@@ -707,6 +732,9 @@ export class Game {
       case 'give': this._renderAdminGive(content); break;
       case 'player': this._renderAdminPlayer(content); break;
       case 'world': this._renderAdminWorld(content); break;
+      case 'powers': this._renderAdminPowers(content); break;
+      case 'events': this._renderAdminEvents(content); break;
+      case 'broadcast': this._renderAdminBroadcast(content); break;
     }
   }
 
@@ -927,6 +955,7 @@ export class Game {
     document.getElementById('admin-god').onclick = () => {
       this._godMode = !this._godMode;
       this._adminStatus(`God Mode: ${this._godMode ? 'ON' : 'OFF'}`);
+      if (this._godMode) this.achievements.unlock('admin_god_mode', this.hud);
       this._renderAdminTab();
     };
 
@@ -1047,6 +1076,988 @@ export class Game {
       this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
       this._adminStatus('Fog enabled!');
     };
+  }
+
+  _renderAdminPowers(el) {
+    // Initialize powers state if not yet
+    if (!this._adminPowers) {
+      this._adminPowers = {
+        killAura: false,
+        killAuraRange: 15,
+        flyMode: false,
+        infiniteAmmo: false,
+        oneHitKill: false,
+        freezeEnemies: false,
+        invisible: false,
+        speedHack: false,
+        speedMultiplier: 3,
+        giantMode: false,
+        tinyMode: false,
+        lowGravity: false,
+        autoHeal: false,
+        magnetMode: false,
+        rainCoins: false,
+        timeSlow: false,
+        explodeAura: false,
+        laserEyes: false,
+      };
+    }
+    const p = this._adminPowers;
+
+    const toggle = (key, label, desc) => {
+      const on = p[key];
+      return `<div class="admin-row">
+        <div class="admin-row-label">${label}<br><small style="color:#888;">${desc}</small></div>
+        <button class="admin-btn ${on ? 'green' : ''} power-toggle" data-power="${key}">${on ? 'ON' : 'OFF'}</button>
+      </div>`;
+    };
+
+    el.innerHTML = `
+      <div style="color:#ff4444;font-size:13px;padding:6px 8px;text-align:center;">ADMIN POWERS - Toggle abilities</div>
+      ${toggle('killAura', 'KILL AURA', 'Auto-kill enemies within range')}
+      ${toggle('explodeAura', 'EXPLODE AURA', 'Enemies near you EXPLODE')}
+      ${toggle('flyMode', 'FLY MODE', 'Float and fly around freely')}
+      ${toggle('infiniteAmmo', 'INFINITE AMMO', 'Never run out of ammo')}
+      ${toggle('oneHitKill', 'ONE-HIT KILL', 'Everything dies in one hit')}
+      ${toggle('freezeEnemies', 'FREEZE ENEMIES', 'All enemies stop moving')}
+      ${toggle('invisible', 'INVISIBLE', 'Enemies cant see you')}
+      ${toggle('speedHack', 'SPEED HACK', '3x movement speed')}
+      ${toggle('giantMode', 'GIANT MODE', 'Become HUGE')}
+      ${toggle('tinyMode', 'TINY MODE', 'Become tiny')}
+      ${toggle('lowGravity', 'LOW GRAVITY', 'Moon jump!')}
+      ${toggle('autoHeal', 'AUTO HEAL', 'Regenerate health constantly')}
+      ${toggle('magnetMode', 'MAGNET MODE', 'Pickups fly to you')}
+      ${toggle('rainCoins', 'RAIN COINS', 'Coins rain from the sky')}
+      ${toggle('timeSlow', 'TIME SLOW', 'Everything in slow motion')}
+      ${toggle('laserEyes', 'LASER EYES', 'Shoot lasers constantly')}
+      <div style="color:#888;font-size:11px;padding:8px;">Instant Actions:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 8px 8px;">
+        <button class="admin-btn" id="ap-killall">KILL ALL</button>
+        <button class="admin-btn" id="ap-explodeall">EXPLODE ALL</button>
+        <button class="admin-btn" id="ap-lightning">LIGHTNING STORM</button>
+        <button class="admin-btn" id="ap-nuke">NUKE</button>
+        <button class="admin-btn green" id="ap-healfull">FULL HEAL</button>
+        <button class="admin-btn green" id="ap-coinbomb">COIN BOMB x100</button>
+        <button class="admin-btn" id="ap-teleport">TELEPORT TO ENEMY</button>
+        <button class="admin-btn" id="ap-yeet">YEET ENEMIES</button>
+      </div>
+    `;
+
+    // Toggle buttons
+    el.querySelectorAll('.power-toggle').forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.power;
+        p[key] = !p[key];
+        this._applyAdminPower(key, p[key]);
+        this._renderAdminPowers(el);
+        this._adminStatus(`${key}: ${p[key] ? 'ON' : 'OFF'}`);
+
+        // Admin power achievements
+        if (p[key]) {
+          const powerAchievements = {
+            killAura: 'admin_kill_aura',
+            flyMode: 'admin_fly',
+            giantMode: 'admin_giant',
+            tinyMode: 'admin_tiny',
+            laserEyes: 'admin_laser_eyes',
+          };
+          if (powerAchievements[key]) this.achievements.unlock(powerAchievements[key], this.hud);
+
+          // Check 5 powers active
+          const activeCount = Object.values(p).filter(v => v === true).length;
+          if (activeCount >= 5) this.achievements.unlock('admin_5_powers', this.hud);
+          if (activeCount >= 16) this.achievements.unlock('admin_all_powers', this.hud);
+        }
+      };
+    });
+
+    // Instant actions
+    document.getElementById('ap-killall').onclick = () => {
+      const alive = this.enemyManager.getAliveEnemies();
+      alive.forEach(e => { e.health = 0; e.die(); });
+      this.state.score += alive.length * 10;
+      this._adminStatus(`Killed ${alive.length} enemies!`);
+    };
+
+    document.getElementById('ap-explodeall').onclick = () => {
+      const alive = this.enemyManager.getAliveEnemies();
+      alive.forEach(e => {
+        if (e.mesh) this.combatSystem.createExplosion(e.mesh.position.clone(), 'fire');
+        e.health = 0; e.die();
+      });
+      this.state.score += alive.length * 10;
+      this._adminStatus(`Exploded ${alive.length} enemies!`);
+    };
+
+    document.getElementById('ap-lightning').onclick = () => {
+      const alive = this.enemyManager.getAliveEnemies();
+      alive.forEach(e => {
+        if (e.mesh) {
+          this._spawnLightningBolt(e.mesh.position.clone());
+          e.takeDamage(9999);
+        }
+      });
+      this._adminStatus('LIGHTNING STORM!');
+    };
+
+    document.getElementById('ap-nuke').onclick = () => {
+      // Giant explosion at player position
+      const pos = this.player.mesh.position.clone();
+      for (let i = 0; i < 8; i++) {
+        const offset = new BABYLON.Vector3(
+          (Math.random() - 0.5) * 20,
+          Math.random() * 5,
+          (Math.random() - 0.5) * 20
+        );
+        setTimeout(() => {
+          this.combatSystem.createExplosion(pos.add(offset), 'fire');
+        }, i * 100);
+      }
+      const alive = this.enemyManager.getAliveEnemies();
+      alive.forEach(e => { e.health = 0; e.die(); });
+      this.state.score += alive.length * 50;
+      this._adminStatus('NUKE LAUNCHED! ☢');
+      this.achievements.unlock('admin_nuke', this.hud);
+    };
+
+    document.getElementById('ap-healfull').onclick = () => {
+      this.state.health = this.state.maxHealth;
+      this._adminStatus('Fully healed!');
+    };
+
+    document.getElementById('ap-coinbomb').onclick = () => {
+      const pos = this.player.mesh.position.clone();
+      for (let i = 0; i < 100; i++) {
+        const offset = new BABYLON.Vector3(
+          (Math.random() - 0.5) * 15,
+          0,
+          (Math.random() - 0.5) * 15
+        );
+        this.pickupManager.spawn(pos.add(offset), 'coin');
+      }
+      this._adminStatus('100 coins spawned!');
+    };
+
+    document.getElementById('ap-teleport').onclick = () => {
+      const alive = this.enemyManager.getAliveEnemies();
+      if (alive.length > 0) {
+        const target = alive[Math.floor(Math.random() * alive.length)];
+        if (target.mesh) {
+          this.player.mesh.position.copyFrom(target.mesh.position);
+          this.player.mesh.position.y += 2;
+          this._adminStatus('Teleported to enemy!');
+        }
+      } else {
+        this._adminStatus('No enemies to teleport to!');
+      }
+    };
+
+    document.getElementById('ap-yeet').onclick = () => {
+      const alive = this.enemyManager.getAliveEnemies();
+      alive.forEach(e => {
+        if (e.mesh && e.mesh.physicsImpostor) {
+          const dir = new BABYLON.Vector3(
+            (Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2
+          );
+          e.mesh.physicsImpostor.applyImpulse(dir.scale(80), e.mesh.position);
+        }
+      });
+      this._adminStatus(`Yeeted ${alive.length} enemies into the sky!`);
+      this.achievements.unlock('admin_yeet', this.hud);
+    };
+  }
+
+  _applyAdminPower(key, on) {
+    switch (key) {
+      case 'flyMode':
+        if (this.player.mesh.physicsImpostor) {
+          if (on) {
+            this.player.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+            this._savedGravity = this.scene.getPhysicsEngine().gravity.clone();
+            this.player.mesh.physicsImpostor.setMass(0);
+          } else {
+            this.player.mesh.physicsImpostor.setMass(1);
+          }
+        }
+        break;
+      case 'speedHack':
+        this.player.speed = on ? 36 : 12;
+        break;
+      case 'giantMode':
+        if (on) {
+          this._adminPowers.tinyMode = false;
+          this.player.mesh.scaling = new BABYLON.Vector3(3, 3, 3);
+        } else {
+          this.player.mesh.scaling = new BABYLON.Vector3(1, 1, 1);
+        }
+        break;
+      case 'tinyMode':
+        if (on) {
+          this._adminPowers.giantMode = false;
+          this.player.mesh.scaling = new BABYLON.Vector3(0.3, 0.3, 0.3);
+        } else {
+          this.player.mesh.scaling = new BABYLON.Vector3(1, 1, 1);
+        }
+        break;
+      case 'lowGravity':
+        if (this.scene.getPhysicsEngine()) {
+          const g = on ? new BABYLON.Vector3(0, -2, 0) : new BABYLON.Vector3(0, -9.81, 0);
+          this.scene.getPhysicsEngine().setGravity(g);
+        }
+        break;
+      case 'oneHitKill':
+        if (on) {
+          this._savedDamageMultiplier = this.state.damageMultiplier || 1;
+          this.state.damageMultiplier = 9999;
+        } else {
+          this.state.damageMultiplier = this._savedDamageMultiplier || 1;
+        }
+        break;
+      case 'freezeEnemies':
+        // Handled in update loop
+        break;
+      case 'invisible':
+        // Make player mesh invisible to enemies (handled in update)
+        break;
+    }
+  }
+
+  _updateAdminPowers(deltaTime) {
+    const p = this._adminPowers;
+    if (!p) return;
+
+    // Kill Aura — kill nearest enemies within range
+    if (p.killAura) {
+      const alive = this.enemyManager.getAliveEnemies();
+      const pp = this.player.mesh.position;
+      for (let i = 0; i < alive.length; i++) {
+        const e = alive[i];
+        if (!e.mesh) continue;
+        const dist = BABYLON.Vector3.Distance(pp, e.mesh.position);
+        if (dist < p.killAuraRange) {
+          e.health = 0;
+          e.die();
+          this.state.score += 10;
+          this.state.totalKills = (this.state.totalKills || 0) + 1;
+          this._adminKills = (this._adminKills || 0) + 1;
+          if (this._adminKills >= 1000) this.achievements.unlock('admin_abuse_1000', this.hud);
+        }
+      }
+    }
+
+    // Explode Aura — enemies near you explode
+    if (p.explodeAura) {
+      this._explodeAuraTimer = (this._explodeAuraTimer || 0) + deltaTime;
+      if (this._explodeAuraTimer > 0.3) {
+        this._explodeAuraTimer = 0;
+        const alive = this.enemyManager.getAliveEnemies();
+        const pp = this.player.mesh.position;
+        for (let i = 0; i < alive.length; i++) {
+          const e = alive[i];
+          if (!e.mesh) continue;
+          if (BABYLON.Vector3.Distance(pp, e.mesh.position) < 10) {
+            this.combatSystem.createExplosion(e.mesh.position.clone(), 'fire');
+            e.health = 0; e.die();
+            this.state.score += 15;
+            this._adminKills = (this._adminKills || 0) + 1;
+            if (this._adminKills >= 1000) this.achievements.unlock('admin_abuse_1000', this.hud);
+          }
+        }
+      }
+    }
+
+    // Fly mode — move position directly (physics mass=0 ignores velocity)
+    if (p.flyMode && this.player.mesh) {
+      const flySpeed = 25 * deltaTime;
+      const move = new BABYLON.Vector3(0, 0, 0);
+      if (this.inputManager.isKeyDown('w')) {
+        move.x += Math.sin(this._cameraYaw) * flySpeed;
+        move.z += Math.cos(this._cameraYaw) * flySpeed;
+      }
+      if (this.inputManager.isKeyDown('s')) {
+        move.x -= Math.sin(this._cameraYaw) * flySpeed;
+        move.z -= Math.cos(this._cameraYaw) * flySpeed;
+      }
+      if (this.inputManager.isKeyDown('a')) {
+        move.x += Math.cos(this._cameraYaw) * flySpeed;
+        move.z -= Math.sin(this._cameraYaw) * flySpeed;
+      }
+      if (this.inputManager.isKeyDown('d')) {
+        move.x -= Math.cos(this._cameraYaw) * flySpeed;
+        move.z += Math.sin(this._cameraYaw) * flySpeed;
+      }
+      if (this.inputManager.isKeyDown(' ')) move.y = flySpeed;
+      if (this.inputManager.isKeyDown('shift')) move.y = -flySpeed;
+      this.player.mesh.position.addInPlace(move);
+    }
+
+    // Infinite ammo
+    if (p.infiniteAmmo) {
+      this.state.ammo.fire = 999;
+      this.state.ammo.ice = 999;
+      this.state.ammo.lightning = 999;
+    }
+
+    // Freeze enemies — set velocity to zero
+    if (p.freezeEnemies) {
+      const alive = this.enemyManager.getAliveEnemies();
+      for (let i = 0; i < alive.length; i++) {
+        const e = alive[i];
+        if (e.mesh && e.mesh.physicsImpostor) {
+          e.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+        }
+        e._frozen = true;
+      }
+    }
+
+    // Invisible — enemies lose aggro
+    if (p.invisible) {
+      const alive = this.enemyManager.getAliveEnemies();
+      for (let i = 0; i < alive.length; i++) {
+        alive[i].aggroRange = 0;
+      }
+    } else {
+      // Restore aggro when turned off
+      if (this._wasInvisible) {
+        const alive = this.enemyManager.getAliveEnemies();
+        for (let i = 0; i < alive.length; i++) {
+          alive[i].aggroRange = alive[i].baseAggroRange || 25;
+        }
+      }
+    }
+    this._wasInvisible = p.invisible;
+
+    // Auto heal
+    if (p.autoHeal) {
+      this.state.health = Math.min(this.state.maxHealth, this.state.health + 50 * deltaTime);
+    }
+
+    // Magnet mode — pickups fly toward player
+    if (p.magnetMode && this.pickupManager) {
+      const pp = this.player.mesh.position;
+      const pickups = this.pickupManager.pickups || [];
+      for (let i = 0; i < pickups.length; i++) {
+        const pk = pickups[i];
+        if (pk.collected || !pk.mesh) continue;
+        const dir = pp.subtract(pk.mesh.position);
+        const dist = dir.length();
+        if (dist > 0.5 && dist < 50) {
+          dir.normalize();
+          pk.mesh.position.addInPlace(dir.scale(deltaTime * 30));
+        }
+      }
+    }
+
+    // Rain coins
+    if (p.rainCoins) {
+      this._rainCoinTimer = (this._rainCoinTimer || 0) + deltaTime;
+      if (this._rainCoinTimer > 0.15) {
+        this._rainCoinTimer = 0;
+        const pp = this.player.mesh.position;
+        const offset = new BABYLON.Vector3(
+          (Math.random() - 0.5) * 20,
+          0,
+          (Math.random() - 0.5) * 20
+        );
+        this.pickupManager.spawn(pp.add(offset), 'coin');
+      }
+    }
+
+    // Time slow
+    if (p.timeSlow) {
+      // Enemies move at 0.25x speed — handled by scaling their deltaTime
+      // We just set a flag the enemy manager can check
+      this._timeSlowFactor = 0.25;
+    } else {
+      this._timeSlowFactor = 1.0;
+    }
+
+    // Laser eyes — auto-fire at nearest enemy
+    if (p.laserEyes) {
+      this._laserTimer = (this._laserTimer || 0) + deltaTime;
+      if (this._laserTimer > 0.08) {
+        this._laserTimer = 0;
+        const alive = this.enemyManager.getAliveEnemies();
+        if (alive.length > 0) {
+          const pp = this.player.mesh.position.clone();
+          pp.y += 1.5;
+          let nearest = null;
+          let nearDist = Infinity;
+          for (let i = 0; i < alive.length; i++) {
+            if (!alive[i].mesh) continue;
+            const d = BABYLON.Vector3.Distance(pp, alive[i].mesh.position);
+            if (d < nearDist) { nearDist = d; nearest = alive[i]; }
+          }
+          if (nearest && nearest.mesh && nearDist < 60) {
+            const dir = nearest.mesh.position.subtract(pp).normalize();
+            const elements = ['fire', 'ice', 'lightning'];
+            const el = elements[Math.floor(Math.random() * 3)];
+            const proj = new Projectile(this.scene, pp, dir, el, false);
+            this.combatSystem.projectiles.push(proj);
+          }
+        }
+      }
+    }
+  }
+
+  _spawnLightningBolt(position) {
+    // Visual lightning bolt effect
+    const points = [];
+    const top = position.clone();
+    top.y += 30;
+    const segments = 8;
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const p = BABYLON.Vector3.Lerp(top, position, t);
+      if (i > 0 && i < segments) {
+        p.x += (Math.random() - 0.5) * 3;
+        p.z += (Math.random() - 0.5) * 3;
+      }
+      points.push(p);
+    }
+    const bolt = BABYLON.MeshBuilder.CreateLines('lightning', { points }, this.scene);
+    bolt.color = new BABYLON.Color3(1, 1, 0.3);
+    bolt.alpha = 1;
+
+    // Flash + fade
+    let life = 0.4;
+    const obs = this.scene.onBeforeRenderObservable.add(() => {
+      const dt = this.scene.getEngine().getDeltaTime() / 1000;
+      life -= dt;
+      bolt.alpha = life / 0.4;
+      if (life <= 0) {
+        bolt.dispose();
+        this.scene.onBeforeRenderObservable.remove(obs);
+      }
+    });
+
+    // Ground explosion
+    this.combatSystem.createExplosion(position, 'lightning');
+  }
+
+  _renderAdminEvents(el) {
+    if (!this._activeEvents) this._activeEvents = {};
+    const ev = this._activeEvents;
+
+    const eventBtn = (id, icon, name, desc, active) => `
+      <div class="admin-row">
+        <div class="admin-row-label">${icon} ${name}<br><small style="color:#888;">${desc}</small></div>
+        <button class="admin-btn ${active ? 'green' : ''} event-toggle" data-event="${id}">${active ? 'ACTIVE' : 'START'}</button>
+      </div>`;
+
+    el.innerHTML = `
+      <div style="color:#ffd700;font-size:13px;padding:6px 8px;text-align:center;">
+        SERVER EVENTS - Affects ALL players!
+      </div>
+      ${eventBtn('coinRain', '🪙', 'COIN RAIN', 'Coins rain from the sky for everyone!', ev.coinRain)}
+      ${eventBtn('doubleXP', '⭐', 'DOUBLE XP', '2x score for all kills!', ev.doubleXP)}
+      ${eventBtn('enemyInvasion', '👹', 'ENEMY INVASION', 'Spawn a massive wave of enemies!', ev.enemyInvasion)}
+      ${eventBtn('bossRush', '💀', 'BOSS RUSH', 'Spawn a boss right now!', ev.bossRush)}
+      ${eventBtn('lootExplosion', '🎁', 'LOOT EXPLOSION', 'Spawn tons of loot everywhere!', ev.lootExplosion)}
+      ${eventBtn('chaos', '🌪', 'CHAOS MODE', 'Low gravity + speed boost + explosions!', ev.chaos)}
+      ${eventBtn('disco', '🪩', 'DISCO PARTY', 'Rave lights and colors everywhere!', ev.disco)}
+      ${eventBtn('supplyDrop', '📦', 'SUPPLY DROP', 'Drop potions and ammo everywhere!', ev.supplyDrop)}
+      ${eventBtn('fireworks', '🎆', 'FIREWORKS SHOW', 'Fireworks display for everyone!', ev.fireworks)}
+      ${eventBtn('zombie', '🧟', 'ZOMBIE HORDE', 'Endless enemy spawns!', ev.zombie)}
+    `;
+
+    el.querySelectorAll('.event-toggle').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.event;
+        ev[id] = !ev[id];
+        this._triggerEvent(id, ev[id]);
+        this._renderAdminEvents(el);
+      };
+    });
+  }
+
+  _triggerEvent(eventId, active) {
+    if (active) {
+      this._sendBroadcast(this._getEventMessage(eventId));
+
+      // Event achievements
+      const eventAchievements = { chaos: 'admin_chaos', disco: 'admin_disco', zombie: 'admin_zombie' };
+      if (eventAchievements[eventId]) this.achievements.unlock(eventAchievements[eventId], this.hud);
+
+      // Track unique events triggered for Event Planner achievement
+      if (!this._triggeredEvents) this._triggeredEvents = new Set();
+      this._triggeredEvents.add(eventId);
+      if (this._triggeredEvents.size >= 3) this.achievements.unlock('admin_event_3', this.hud);
+    }
+
+    switch (eventId) {
+      case 'coinRain':
+        if (active) {
+          this._adminPowers = this._adminPowers || {};
+          this._adminPowers.rainCoins = true;
+          this._adminStatus('COIN RAIN activated!');
+        } else {
+          if (this._adminPowers) this._adminPowers.rainCoins = false;
+          this._adminStatus('Coin Rain stopped.');
+        }
+        break;
+
+      case 'doubleXP':
+        if (active) {
+          this._savedRewardMultiplier = this.state.rewardMultiplier || 1;
+          this.state.rewardMultiplier = (this._savedRewardMultiplier || 1) * 2;
+          this._adminStatus('DOUBLE XP activated!');
+        } else {
+          this.state.rewardMultiplier = this._savedRewardMultiplier || 1;
+          this._adminStatus('Double XP ended.');
+        }
+        break;
+
+      case 'enemyInvasion':
+        if (active) {
+          // Spawn 30 enemies around the player
+          for (let i = 0; i < 30; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 10 + Math.random() * 20;
+            const pos = this.player.mesh.position.clone();
+            pos.x += Math.cos(angle) * dist;
+            pos.z += Math.sin(angle) * dist;
+            this.enemyManager.spawnEnemy(pos);
+          }
+          this._adminStatus('ENEMY INVASION! 30 enemies spawned!');
+        }
+        this._activeEvents.enemyInvasion = false;
+        break;
+
+      case 'bossRush':
+        if (active) {
+          this.enemyManager.spawnBoss(this);
+          this._adminStatus('BOSS SPAWNED!');
+        }
+        this._activeEvents.bossRush = false;
+        break;
+
+      case 'lootExplosion':
+        if (active) {
+          const pp = this.player.mesh.position.clone();
+          const types = ['coin', 'coin', 'coin', 'potion', 'ammo'];
+          const subs = ['fire', 'ice', 'lightning'];
+          for (let i = 0; i < 50; i++) {
+            const offset = new BABYLON.Vector3(
+              (Math.random() - 0.5) * 30, 0, (Math.random() - 0.5) * 30
+            );
+            const type = types[Math.floor(Math.random() * types.length)];
+            const sub = type === 'ammo' ? subs[Math.floor(Math.random() * subs.length)] : undefined;
+            this.pickupManager.spawn(pp.add(offset), type, sub);
+          }
+          this._adminStatus('LOOT EXPLOSION! 50 items spawned!');
+        }
+        this._activeEvents.lootExplosion = false;
+        break;
+
+      case 'chaos':
+        if (active) {
+          this._adminPowers = this._adminPowers || {};
+          this._adminPowers.lowGravity = true;
+          this._adminPowers.speedHack = true;
+          this.player.speed = 36;
+          if (this.scene.getPhysicsEngine()) {
+            this.scene.getPhysicsEngine().setGravity(new BABYLON.Vector3(0, -2, 0));
+          }
+          this._adminStatus('CHAOS MODE activated!');
+        } else {
+          if (this._adminPowers) {
+            this._adminPowers.lowGravity = false;
+            this._adminPowers.speedHack = false;
+          }
+          this.player.speed = 12;
+          if (this.scene.getPhysicsEngine()) {
+            this.scene.getPhysicsEngine().setGravity(new BABYLON.Vector3(0, -9.81, 0));
+          }
+          this._adminStatus('Chaos Mode ended.');
+        }
+        break;
+
+      case 'disco':
+        if (active) {
+          this._discoInterval = setInterval(() => {
+            if (!this._activeEvents.disco) {
+              clearInterval(this._discoInterval);
+              this.scene.clearColor = new BABYLON.Color4(0.5, 0.7, 1.0, 1);
+              if (this.sunLight) this.sunLight.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
+              return;
+            }
+            const r = Math.random();
+            const g = Math.random();
+            const b = Math.random();
+            this.scene.clearColor = new BABYLON.Color4(r * 0.5, g * 0.5, b * 0.5, 1);
+            if (this.sunLight) {
+              this.sunLight.diffuse = new BABYLON.Color3(r, g, b);
+              this.sunLight.intensity = 1.5 + Math.random() * 2;
+            }
+          }, 200);
+          this._adminStatus('DISCO PARTY!');
+        } else {
+          clearInterval(this._discoInterval);
+          this.scene.clearColor = new BABYLON.Color4(0.5, 0.7, 1.0, 1);
+          if (this.sunLight) {
+            this.sunLight.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
+            this.sunLight.intensity = 1.5;
+          }
+          this._adminStatus('Disco ended.');
+        }
+        break;
+
+      case 'supplyDrop':
+        if (active) {
+          const pp = this.player.mesh.position.clone();
+          for (let i = 0; i < 20; i++) {
+            const offset = new BABYLON.Vector3(
+              (Math.random() - 0.5) * 25, 0, (Math.random() - 0.5) * 25
+            );
+            this.pickupManager.spawn(pp.add(offset), 'potion');
+          }
+          const subs = ['fire', 'ice', 'lightning'];
+          for (let i = 0; i < 15; i++) {
+            const offset = new BABYLON.Vector3(
+              (Math.random() - 0.5) * 25, 0, (Math.random() - 0.5) * 25
+            );
+            this.pickupManager.spawn(pp.add(offset), 'ammo', subs[Math.floor(Math.random() * 3)]);
+          }
+          this._adminStatus('SUPPLY DROP! 20 potions + 15 ammo packs!');
+        }
+        this._activeEvents.supplyDrop = false;
+        break;
+
+      case 'fireworks':
+        if (active) {
+          this._fireworkInterval = setInterval(() => {
+            if (!this._activeEvents.fireworks) {
+              clearInterval(this._fireworkInterval);
+              return;
+            }
+            const pp = this.player.mesh.position.clone();
+            const pos = new BABYLON.Vector3(
+              pp.x + (Math.random() - 0.5) * 30,
+              pp.y + 10 + Math.random() * 15,
+              pp.z + (Math.random() - 0.5) * 30
+            );
+            const elements = ['fire', 'ice', 'lightning'];
+            this.combatSystem.createExplosion(pos, elements[Math.floor(Math.random() * 3)], 0);
+          }, 300);
+          this._adminStatus('FIREWORKS SHOW!');
+        } else {
+          clearInterval(this._fireworkInterval);
+          this._adminStatus('Fireworks ended.');
+        }
+        break;
+
+      case 'zombie':
+        if (active) {
+          this._zombieInterval = setInterval(() => {
+            if (!this._activeEvents.zombie) {
+              clearInterval(this._zombieInterval);
+              return;
+            }
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 15 + Math.random() * 15;
+            const pos = this.player.mesh.position.clone();
+            pos.x += Math.cos(angle) * dist;
+            pos.z += Math.sin(angle) * dist;
+            this.enemyManager.spawnEnemy(pos);
+          }, 800);
+          this._adminStatus('ZOMBIE HORDE activated!');
+        } else {
+          clearInterval(this._zombieInterval);
+          this._adminStatus('Zombie Horde ended.');
+        }
+        break;
+    }
+  }
+
+  _getEventMessage(eventId) {
+    const msgs = {
+      coinRain: 'COIN RAIN EVENT! Coins are falling from the sky!',
+      doubleXP: 'DOUBLE XP EVENT! All kills give 2x score!',
+      enemyInvasion: 'ENEMY INVASION! A massive wave of enemies has appeared!',
+      bossRush: 'BOSS RUSH! A boss has been summoned!',
+      lootExplosion: 'LOOT EXPLOSION! Free loot everywhere!',
+      chaos: 'CHAOS MODE ACTIVATED! Low gravity + speed boost!',
+      disco: 'DISCO PARTY! Time to dance!',
+      supplyDrop: 'SUPPLY DROP! Potions and ammo incoming!',
+      fireworks: 'FIREWORKS SHOW! Look up!',
+      zombie: 'ZOMBIE HORDE! Endless enemies incoming!'
+    };
+    return msgs[eventId] || 'A new event has started!';
+  }
+
+  _renderAdminBroadcast(el) {
+    el.innerHTML = `
+      <div style="color:#ff4444;font-size:14px;padding:8px;text-align:center;">
+        Send a message to ALL players in the game!
+      </div>
+      <div class="admin-row" style="flex-direction:column;gap:8px;">
+        <input type="text" id="admin-broadcast-msg" class="admin-input"
+          placeholder="Type your message..." maxlength="200"
+          style="width:100%;padding:10px;font-size:16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="admin-btn green" id="admin-send-broadcast" style="flex:1;">SEND TO ALL</button>
+        </div>
+      </div>
+      <div style="color:#888;font-size:11px;padding:8px;">
+        Quick messages:
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 8px;">
+        <button class="admin-btn quick-msg" data-msg="Server restarting soon!">Restart Warning</button>
+        <button class="admin-btn quick-msg" data-msg="Admin is watching you...">I See You</button>
+        <button class="admin-btn quick-msg" data-msg="FREE COINS EVENT! Play now!">Free Coins</button>
+        <button class="admin-btn quick-msg" data-msg="BOW DOWN TO YOUR ADMIN">Bow Down</button>
+        <button class="admin-btn quick-msg" data-msg="You have been BLESSED by the admin!">Blessing</button>
+        <button class="admin-btn quick-msg" data-msg="ADMIN ABUSE TIME!!! >:D">Admin Abuse</button>
+      </div>
+    `;
+
+    const msgInput = document.getElementById('admin-broadcast-msg');
+    document.getElementById('admin-send-broadcast').onclick = () => {
+      const msg = msgInput.value.trim();
+      if (!msg) { this._adminStatus('Type a message first!'); return; }
+      this._sendBroadcast(msg);
+      msgInput.value = '';
+    };
+
+    el.querySelectorAll('.quick-msg').forEach(btn => {
+      btn.onclick = () => {
+        this._sendBroadcast(btn.dataset.msg);
+      };
+    });
+  }
+
+  async _sendBroadcast(message) {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/broadcasts`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          message,
+          from_username: this.state.username || 'ADMIN'
+        })
+      });
+      this._adminStatus(`Broadcast sent: "${message}"`);
+      this.achievements.unlock('admin_broadcast', this.hud);
+    } catch (e) {
+      this._adminStatus('Failed to send broadcast!');
+    }
+  }
+
+  _startBroadcastPolling() {
+    this._lastBroadcastId = 0;
+    this._broadcastBanner = document.getElementById('broadcast-banner');
+    this._broadcastTimer = null;
+    this._abuseOverlay = document.getElementById('abuse-overlay');
+    this._globalAbuseActive = false;
+
+    // Poll every 5 seconds for broadcasts AND admin abuse state
+    this._broadcastInterval = setInterval(() => {
+      this._pollBroadcasts();
+      this._pollAdminAbuse();
+    }, 5000);
+    this._pollBroadcasts();
+    this._pollAdminAbuse();
+  }
+
+  async _toggleGlobalAbuse(active) {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/server_events?id=eq.admin_abuse`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          active,
+          started_by: this.state.username || 'ADMIN',
+          started_at: active ? new Date().toISOString() : null
+        })
+      });
+
+      if (active) {
+        this._sendBroadcast('ADMIN ABUSE HAS BEGUN! BRACE YOURSELVES!');
+        this._adminStatus('ADMIN ABUSE STARTED GLOBALLY!');
+      } else {
+        this._sendBroadcast('Admin abuse has ended. You are safe... for now.');
+        this._adminStatus('Admin abuse stopped.');
+      }
+    } catch (e) {
+      this._adminStatus('Failed to toggle admin abuse!');
+    }
+  }
+
+  async _pollAdminAbuse() {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/server_events?id=eq.admin_abuse&select=active,started_by`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const wasActive = this._globalAbuseActive;
+        this._globalAbuseActive = data[0].active;
+
+        // State changed — apply or remove effects
+        if (this._globalAbuseActive && !wasActive) {
+          this._startAbuseEffects();
+        } else if (!this._globalAbuseActive && wasActive) {
+          this._stopAbuseEffects();
+        }
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  _startAbuseEffects() {
+    // Screen overlay
+    if (this._abuseOverlay) this._abuseOverlay.classList.add('active');
+
+    // Disco sky colors
+    this._abuseDiscoInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      const r = Math.random(), g = Math.random(), b = Math.random();
+      this.scene.clearColor = new BABYLON.Color4(r * 0.4, g * 0.4, b * 0.4, 1);
+      if (this.sunLight) {
+        this.sunLight.diffuse = new BABYLON.Color3(r, g, b);
+        this.sunLight.intensity = 1 + Math.random() * 3;
+      }
+    }, 300);
+
+    // Spawn extra enemies around the player periodically
+    this._abuseEnemyInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      for (let i = 0; i < 3; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 10 + Math.random() * 15;
+        const pos = this.player.mesh.position.clone();
+        pos.x += Math.cos(angle) * dist;
+        pos.z += Math.sin(angle) * dist;
+        this.enemyManager.spawnEnemy(pos);
+      }
+    }, 3000);
+
+    // Rain coins
+    this._abuseCoinInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      const pp = this.player.mesh.position;
+      const offset = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 20, 0, (Math.random() - 0.5) * 20
+      );
+      this.pickupManager.spawn(pp.add(offset), 'coin');
+    }, 200);
+
+    // Fireworks
+    this._abuseFireworkInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      const pp = this.player.mesh.position.clone();
+      const pos = new BABYLON.Vector3(
+        pp.x + (Math.random() - 0.5) * 30,
+        pp.y + 10 + Math.random() * 15,
+        pp.z + (Math.random() - 0.5) * 30
+      );
+      const elements = ['fire', 'ice', 'lightning'];
+      this.combatSystem.createExplosion(pos, elements[Math.floor(Math.random() * 3)], 0);
+    }, 500);
+
+    // Low gravity
+    if (this.scene.getPhysicsEngine()) {
+      this._abuseOldGravity = this.scene.getPhysicsEngine().gravity.clone();
+      this.scene.getPhysicsEngine().setGravity(new BABYLON.Vector3(0, -2, 0));
+    }
+
+    // Screen shake effect
+    this._abuseShakeInterval = setInterval(() => {
+      if (!this._globalAbuseActive || !this.camera) return;
+      this._cameraPitch += (Math.random() - 0.5) * 0.02;
+      this._cameraYaw += (Math.random() - 0.5) * 0.02;
+    }, 50);
+
+    this.hud.showMessage('ADMIN ABUSE ACTIVATED!');
+  }
+
+  _stopAbuseEffects() {
+    // Remove overlay
+    if (this._abuseOverlay) this._abuseOverlay.classList.remove('active');
+
+    // Clear all intervals
+    clearInterval(this._abuseDiscoInterval);
+    clearInterval(this._abuseEnemyInterval);
+    clearInterval(this._abuseCoinInterval);
+    clearInterval(this._abuseFireworkInterval);
+    clearInterval(this._abuseShakeInterval);
+
+    // Restore sky and lighting
+    this.scene.clearColor = new BABYLON.Color4(0.5, 0.7, 1.0, 1);
+    if (this.sunLight) {
+      this.sunLight.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
+      this.sunLight.intensity = 1.5;
+    }
+
+    // Restore gravity
+    if (this.scene.getPhysicsEngine() && this._abuseOldGravity) {
+      this.scene.getPhysicsEngine().setGravity(this._abuseOldGravity);
+    }
+
+    this.hud.showMessage('Admin abuse has ended.');
+  }
+
+  async _pollBroadcasts() {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/broadcasts?id=gt.${this._lastBroadcastId}&expires_at=gt.${new Date().toISOString()}&order=id.desc&limit=1`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const bc = data[0];
+        if (bc.id > this._lastBroadcastId) {
+          this._lastBroadcastId = bc.id;
+          this._showBroadcast(bc.message, bc.from_username);
+        }
+      }
+    } catch (e) { /* silent fail */ }
+  }
+
+  _showBroadcast(message, from) {
+    const banner = this._broadcastBanner;
+    if (!banner) return;
+
+    banner.innerHTML = `<div class="broadcast-from">From: ${from}</div><div>${message}</div>`;
+    banner.classList.add('show');
+
+    clearTimeout(this._broadcastTimer);
+    this._broadcastTimer = setTimeout(() => {
+      banner.classList.remove('show');
+    }, 8000);
   }
 
   toggleMap() {
@@ -2960,7 +3971,10 @@ export class Game {
     if (this._adminFrozenScene) return;
 
     // Update player — pass yaw for movement direction
-    this.player.update(deltaTime, this.inputManager, this.camera, this._cameraYaw);
+    // Skip normal player movement when fly mode is active (fly handles its own movement)
+    if (!(this._adminPowers && this._adminPowers.flyMode)) {
+      this.player.update(deltaTime, this.inputManager, this.camera, this._cameraYaw);
+    }
 
     // Position camera — third-person during emotes, first-person otherwise
     const playerPos = this.player.mesh.position;
@@ -3022,9 +4036,15 @@ export class Game {
       this.state.shieldCooldown -= deltaTime;
     }
 
+    // Admin powers processing
+    this._updateAdminPowers(deltaTime);
+
+    // Apply time slow factor for enemies
+    const enemyDt = deltaTime * (this._timeSlowFactor || 1.0);
+
     // Update enemies (skip during party mode)
     if (!this.partyMode) {
-      this.enemyManager.update(deltaTime, this);
+      this.enemyManager.update(enemyDt, this);
     }
 
     // Update combat (attacks, projectiles — always update projectiles, block new attacks if shielded)
