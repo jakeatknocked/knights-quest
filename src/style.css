@@ -1675,3 +1675,42 @@ body {
   font-weight: bold;
 }
 #admin-close-btn:hover { background: #ff2222; color: #fff; }
+
+/* ==================== BROADCAST BANNER ==================== */
+#broadcast-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999;
+  text-align: center;
+  padding: 12px 20px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(90deg, #ff0044, #ff6600, #ffcc00, #ff0044);
+  background-size: 300% 100%;
+  animation: broadcastSlide 3s linear infinite;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(255,0,68,0.5);
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+}
+#broadcast-banner.show {
+  display: block;
+  animation: broadcastSlide 3s linear infinite, broadcastFadeIn 0.5s ease-out;
+}
+#broadcast-banner .broadcast-from {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 2px;
+}
+@keyframes broadcastSlide {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+@keyframes broadcastFadeIn {
+  0% { transform: translateY(-100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}

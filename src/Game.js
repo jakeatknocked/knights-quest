@@ -345,6 +345,7 @@ export class Game {
 
       this.startLevel(this.state.currentLevel);
       this.hud.update();
+      this._startBroadcastPolling();
       this.canvas.requestPointerLock();
     });
 
@@ -368,6 +369,7 @@ export class Game {
       const randomLevel = Math.floor(Math.random() * this.enemyManager.getTotalLevels());
       this.startSurvivalLevel(randomLevel);
       this.hud.update();
+      this._startBroadcastPolling();
       this.canvas.requestPointerLock();
     });
 
@@ -710,6 +712,7 @@ export class Game {
       case 'give': this._renderAdminGive(content); break;
       case 'player': this._renderAdminPlayer(content); break;
       case 'world': this._renderAdminWorld(content); break;
+      case 'broadcast': this._renderAdminBroadcast(content); break;
     }
   }
 
@@ -1050,6 +1053,119 @@ export class Game {
       this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
       this._adminStatus('Fog enabled!');
     };
+  }
+
+  _renderAdminBroadcast(el) {
+    el.innerHTML = `
+      <div style="color:#ff4444;font-size:14px;padding:8px;text-align:center;">
+        Send a message to ALL players in the game!
+      </div>
+      <div class="admin-row" style="flex-direction:column;gap:8px;">
+        <input type="text" id="admin-broadcast-msg" class="admin-input"
+          placeholder="Type your message..." maxlength="200"
+          style="width:100%;padding:10px;font-size:16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="admin-btn green" id="admin-send-broadcast" style="flex:1;">SEND TO ALL</button>
+        </div>
+      </div>
+      <div style="color:#888;font-size:11px;padding:8px;">
+        Quick messages:
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 8px;">
+        <button class="admin-btn quick-msg" data-msg="Server restarting soon!">Restart Warning</button>
+        <button class="admin-btn quick-msg" data-msg="Admin is watching you...">I See You</button>
+        <button class="admin-btn quick-msg" data-msg="FREE COINS EVENT! Play now!">Free Coins</button>
+        <button class="admin-btn quick-msg" data-msg="BOW DOWN TO YOUR ADMIN">Bow Down</button>
+        <button class="admin-btn quick-msg" data-msg="You have been BLESSED by the admin!">Blessing</button>
+        <button class="admin-btn quick-msg" data-msg="ADMIN ABUSE TIME!!! >:D">Admin Abuse</button>
+      </div>
+    `;
+
+    const msgInput = document.getElementById('admin-broadcast-msg');
+    document.getElementById('admin-send-broadcast').onclick = () => {
+      const msg = msgInput.value.trim();
+      if (!msg) { this._adminStatus('Type a message first!'); return; }
+      this._sendBroadcast(msg);
+      msgInput.value = '';
+    };
+
+    el.querySelectorAll('.quick-msg').forEach(btn => {
+      btn.onclick = () => {
+        this._sendBroadcast(btn.dataset.msg);
+      };
+    });
+  }
+
+  async _sendBroadcast(message) {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/broadcasts`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          message,
+          from_username: this.state.username || 'ADMIN'
+        })
+      });
+      this._adminStatus(`Broadcast sent: "${message}"`);
+    } catch (e) {
+      this._adminStatus('Failed to send broadcast!');
+    }
+  }
+
+  _startBroadcastPolling() {
+    this._lastBroadcastId = 0;
+    this._broadcastBanner = document.getElementById('broadcast-banner');
+    this._broadcastTimer = null;
+
+    // Poll every 5 seconds
+    this._broadcastInterval = setInterval(() => this._pollBroadcasts(), 5000);
+    this._pollBroadcasts();
+  }
+
+  async _pollBroadcasts() {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/broadcasts?id=gt.${this._lastBroadcastId}&expires_at=gt.${new Date().toISOString()}&order=id.desc&limit=1`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const bc = data[0];
+        if (bc.id > this._lastBroadcastId) {
+          this._lastBroadcastId = bc.id;
+          this._showBroadcast(bc.message, bc.from_username);
+        }
+      }
+    } catch (e) { /* silent fail */ }
+  }
+
+  _showBroadcast(message, from) {
+    const banner = this._broadcastBanner;
+    if (!banner) return;
+
+    banner.innerHTML = `<div class="broadcast-from">From: ${from}</div><div>${message}</div>`;
+    banner.classList.add('show');
+
+    clearTimeout(this._broadcastTimer);
+    this._broadcastTimer = setTimeout(() => {
+      banner.classList.remove('show');
+    }, 8000);
   }
 
   toggleMap() {
