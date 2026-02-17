@@ -12,6 +12,7 @@ export class ChatSystem {
     this.messages = [];
     this.maxMessages = 50;
     this._lastChatId = 0;
+    this.stealthMode = false;
 
     this.setupInput();
   }
@@ -79,8 +80,8 @@ export class ChatSystem {
     }
     this.render();
 
-    // Send player messages to Supabase so everyone can see them
-    if (type === 'player') {
+    // Send player messages to Supabase so everyone can see them (unless stealth)
+    if (type === 'player' && !this.stealthMode) {
       this._sendToSupabase(name, text);
     }
   }

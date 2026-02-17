@@ -1790,9 +1790,14 @@ export class Game {
   }
 
   async _renderAdminChatSpy(el) {
+    const stealth = this.chat.stealthMode;
     el.innerHTML = `
       <div style="color:#44aaff;font-size:13px;padding:6px 8px;text-align:center;">
         SPY ON ALL PLAYER MESSAGES
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-label">STEALTH MODE<br><small style="color:#888;">You see them, they can't see you</small></div>
+        <button class="admin-btn ${stealth ? 'green' : ''}" id="chatspy-stealth">${stealth ? 'ON' : 'OFF'}</button>
       </div>
       <div id="chatspy-log" style="padding:8px;font-size:13px;color:#ccc;">Loading...</div>
       <div style="padding:8px;display:flex;gap:6px;">
@@ -1825,6 +1830,12 @@ export class Game {
     };
 
     await loadMessages();
+
+    document.getElementById('chatspy-stealth').onclick = () => {
+      this.chat.stealthMode = !this.chat.stealthMode;
+      this._adminStatus(`Stealth Mode: ${this.chat.stealthMode ? 'ON — invisible' : 'OFF — visible'}`);
+      this._renderAdminChatSpy(el);
+    };
 
     document.getElementById('chatspy-refresh').onclick = () => loadMessages();
 
