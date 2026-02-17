@@ -60,7 +60,9 @@ export class Game {
     const savedScore = parseInt(localStorage.getItem('savedScore') || '0');
     const savedRank = localStorage.getItem('savedRank') || (isAdmin ? 'Admin' : 'Squire');
     const savedRankColor = localStorage.getItem('savedRankColor') || (isAdmin ? '#ff2222' : '#aaaaaa');
-    const savedReward = parseFloat(localStorage.getItem('savedReward') || '1.0');
+    const rebirthCount = parseInt(localStorage.getItem('rebirthCount') || '0');
+    const rebirthMulti = 1 + (rebirthCount * 0.25);
+    const savedReward = Math.max(parseFloat(localStorage.getItem('savedReward') || '1.0'), rebirthMulti);
 
     // Game state
     this.state = {
@@ -70,7 +72,7 @@ export class Game {
       health: isAdmin ? 150 : 100,
       maxHealth: isAdmin ? 150 : 100,
       score: savedScore,
-      totalCoins: 99999,
+      totalCoins: parseInt(localStorage.getItem('totalCoins') || '0'),
       ammo: { fire: 0, ice: 0, lightning: 0 },
       selectedElement: 'fire',
       selectedWeapon: 'pistol',
@@ -124,8 +126,8 @@ export class Game {
     // HUD
     this.hud = new HUD(this.state);
 
-    // Force coins into localStorage so shop can read them
-    localStorage.setItem('totalCoins', '99999');
+    // Sync coins to localStorage so shop can read them
+    localStorage.setItem('totalCoins', this.state.totalCoins.toString());
 
     // Shop
     this.shop = new Shop();
@@ -384,6 +386,30 @@ export class Game {
       this.hud.update();
       this.canvas.requestPointerLock();
     });
+
+    // Trophy button — opens the trophy room
+    document.getElementById('trophy-btn').addEventListener('click', () => {
+      this._openTrophyRoom();
+    });
+    document.getElementById('trophy-back-btn').addEventListener('click', () => {
+      document.getElementById('trophy-screen').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'flex';
+    });
+
+    // Rebirth button — opens the rebirth menu
+    document.getElementById('rebirth-btn').addEventListener('click', () => {
+      this._openRebirthMenu();
+    });
+    document.getElementById('rebirth-cancel-btn').addEventListener('click', () => {
+      document.getElementById('rebirth-screen').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'flex';
+    });
+    document.getElementById('rebirth-confirm-btn').addEventListener('click', () => {
+      this._doRebirth();
+    });
+
+    // Show rebirth info on start screen
+    this._updateRebirthInfo();
 
     // Multiplayer buttons (lobby)
     document.getElementById('coop-btn').addEventListener('click', () => {
@@ -725,6 +751,171 @@ export class Game {
     this.hud.update();
   }
 
+  _openTrophyRoom() {
+    const kills = parseInt(localStorage.getItem('totalKills') || '0');
+    const coins = parseInt(localStorage.getItem('totalCoins') || '0');
+    const rebirths = parseInt(localStorage.getItem('rebirthCount') || '0');
+    const score = parseInt(localStorage.getItem('savedScore') || '0');
+    const level = parseInt(localStorage.getItem('savedLevel') || '0') + 1;
+    const bossKills = parseInt(localStorage.getItem('totalBossKills') || '0');
+    const survivalWins = parseInt(localStorage.getItem('survivalWins') || '0');
+    const pvpWins = parseInt(localStorage.getItem('pvpWins') || '0');
+    const achCount = Object.keys(this.achievements.unlocked).length;
+    const achTotal = this.achievements.list.length;
+    const swordKills = parseInt(localStorage.getItem('swordKills') || '0');
+    const headshots = parseInt(localStorage.getItem('headshots') || '0');
+    const deaths = parseInt(localStorage.getItem('totalDeaths') || '0');
+    const chestsOpened = parseInt(localStorage.getItem('chestsOpened') || '0');
+    const friendsRescued = parseInt(localStorage.getItem('friendsRescued') || '0');
+    const playTime = parseInt(localStorage.getItem('playTime') || '0');
+    const jumps = parseInt(localStorage.getItem('totalJumps') || '0');
+    const shieldBlocks = parseInt(localStorage.getItem('shieldBlocks') || '0');
+    const purchases = JSON.parse(localStorage.getItem('shopPurchases') || '{}');
+    const pets = ['pet_wolf','pet_dragon','pet_fairy','pet_ghost','pet_phoenix','pet_golem','pet_cat'];
+    const ownedPets = pets.filter(id => purchases[id]).length;
+    const totalPurchases = Object.keys(purchases).length;
+    const beatGameCount = parseInt(localStorage.getItem('beatGameCount') || '0');
+    const partyVisits = parseInt(localStorage.getItem('partyVisits') || '0');
+    const playHours = Math.floor(playTime / 3600);
+
+    // Special knight trophies — big goals!
+    const trophies = [
+      // --- KILL TROPHIES ---
+      { name: 'BRONZE KNIGHT', desc: 'Kill 100 enemies', icon: '&#x1F3C6;', color: '#cd7f32', met: kills >= 100, progress: `${Math.min(kills,100)} / 100 kills` },
+      { name: 'SILVER KNIGHT', desc: 'Kill 500 enemies', icon: '&#x1F3C6;', color: '#c0c0c0', met: kills >= 500, progress: `${Math.min(kills,500)} / 500 kills`, silver: true },
+      { name: 'GOLD KNIGHT', desc: 'Kill 1,000 enemies', icon: '&#x1F3C6;', color: '#ffd700', met: kills >= 1000, progress: `${Math.min(kills,1000).toLocaleString()} / 1,000 kills` },
+      { name: 'DIAMOND SLAYER', desc: 'Kill 5,000 enemies', icon: '&#x1F3C6;', color: '#88ddff', met: kills >= 5000, progress: `${Math.min(kills,5000).toLocaleString()} / 5,000 kills`, rank: 'rare', diamond: true },
+      { name: 'DEATH KNIGHT', desc: 'Kill 25,000 enemies', icon: '&#x1F3C6;', color: '#880000', met: kills >= 25000, progress: `${Math.min(kills,25000).toLocaleString()} / 25,000`, rank: 'epic' },
+      { name: 'GOD OF WAR', desc: 'Kill 50,000 enemies', icon: '&#x1F3C6;', color: '#ff0000', met: kills >= 50000, progress: `${Math.min(kills,50000).toLocaleString()} / 50,000`, rank: 'legendary' },
+
+      // --- BOSS TROPHIES ---
+      { name: 'BOSS SLAYER', desc: 'Defeat 10 bosses', icon: '&#x1F3C6;', color: '#ff6600', met: bossKills >= 10, progress: `${Math.min(bossKills,10)} / 10 bosses` },
+      { name: 'BOSS DESTROYER', desc: 'Defeat 50 bosses', icon: '&#x1F3C6;', color: '#ff4444', met: bossKills >= 50, progress: `${Math.min(bossKills,50)} / 50 bosses`, rank: 'rare' },
+      { name: 'BOSS NIGHTMARE', desc: 'Defeat 100 bosses', icon: '&#x1F3C6;', color: '#aa0000', met: bossKills >= 100, progress: `${Math.min(bossKills,100)} / 100 bosses`, rank: 'epic' },
+
+      // --- COIN TROPHIES ---
+      { name: 'RICH KNIGHT', desc: 'Collect 10,000 coins', icon: '&#x1F3C6;', color: '#ffcc00', met: coins >= 10000, progress: `${Math.min(coins,10000).toLocaleString()} / 10,000` },
+      { name: 'TREASURE LORD', desc: 'Collect 100,000 coins', icon: '&#x1F3C6;', color: '#ffaa00', met: coins >= 100000, progress: `${Math.min(coins,100000).toLocaleString()} / 100,000`, rank: 'epic' },
+      { name: 'MILLIONAIRE', desc: 'Collect 1,000,000 coins', icon: '&#x1F3C6;', color: '#ffd700', met: coins >= 1000000, progress: `${Math.min(coins,1000000).toLocaleString()} / 1,000,000`, rank: 'legendary' },
+
+      // --- SWORD TROPHIES ---
+      { name: 'BLADE APPRENTICE', desc: 'Get 50 sword kills', icon: '&#x1F3C6;', color: '#aaaacc', met: swordKills >= 50, progress: `${Math.min(swordKills,50)} / 50` },
+      { name: 'BLADE MASTER', desc: 'Get 250 sword kills', icon: '&#x1F3C6;', color: '#88aaff', met: swordKills >= 250, progress: `${Math.min(swordKills,250)} / 250`, rank: 'rare' },
+      { name: 'SWORD SAINT', desc: 'Get 1,000 sword kills', icon: '&#x1F3C6;', color: '#4488ff', met: swordKills >= 1000, progress: `${Math.min(swordKills,1000).toLocaleString()} / 1,000`, rank: 'epic' },
+
+      // --- HEADSHOT TROPHIES ---
+      { name: 'SHARPSHOOTER', desc: 'Get 50 headshots', icon: '&#x1F3C6;', color: '#ff8844', met: headshots >= 50, progress: `${Math.min(headshots,50)} / 50` },
+      { name: 'SNIPER ELITE', desc: 'Get 250 headshots', icon: '&#x1F3C6;', color: '#ff6622', met: headshots >= 250, progress: `${Math.min(headshots,250)} / 250`, rank: 'rare' },
+      { name: 'PERFECT AIM', desc: 'Get 1,000 headshots', icon: '&#x1F3C6;', color: '#ff4400', met: headshots >= 1000, progress: `${Math.min(headshots,1000).toLocaleString()} / 1,000`, rank: 'epic' },
+
+      // --- LEVEL TROPHIES ---
+      { name: 'ADVENTURER', desc: 'Beat level 5', icon: '&#x1F3C6;', color: '#66cc66', met: level >= 5, progress: `Level ${level} / 5` },
+      { name: 'CONQUEROR', desc: 'Beat all 10 levels', icon: '&#x1F3C6;', color: '#44ff44', met: level >= 10, progress: `Level ${level} / 10` },
+      { name: 'LEGEND', desc: 'Beat all levels 5 times', icon: '&#x1F3C6;', color: '#00ff88', met: beatGameCount >= 5, progress: `${Math.min(beatGameCount,5)} / 5 completions`, rank: 'epic' },
+      { name: 'ETERNAL CHAMPION', desc: 'Beat all levels 25 times', icon: '&#x1F3C6;', color: '#00ffcc', met: beatGameCount >= 25, progress: `${Math.min(beatGameCount,25)} / 25 completions`, rank: 'legendary' },
+
+      // --- SURVIVAL TROPHIES ---
+      { name: 'SURVIVOR', desc: 'Beat survival mode', icon: '&#x1F3C6;', color: '#ff6666', met: survivalWins >= 1, progress: `${Math.min(survivalWins,1)} / 1 win` },
+      { name: 'SURVIVOR KNIGHT', desc: 'Beat survival 5 times', icon: '&#x1F3C6;', color: '#ff4444', met: survivalWins >= 5, progress: `${Math.min(survivalWins,5)} / 5 wins` },
+      { name: 'SURVIVAL KING', desc: 'Beat survival 25 times', icon: '&#x1F3C6;', color: '#cc0000', met: survivalWins >= 25, progress: `${Math.min(survivalWins,25)} / 25 wins`, rank: 'epic' },
+
+      // --- PVP TROPHIES ---
+      { name: 'PVP WARRIOR', desc: 'Win 5 PvP matches', icon: '&#x1F3C6;', color: '#cc44cc', met: pvpWins >= 5, progress: `${Math.min(pvpWins,5)} / 5 wins` },
+      { name: 'PVP CHAMPION', desc: 'Win 10 PvP matches', icon: '&#x1F3C6;', color: '#ff44ff', met: pvpWins >= 10, progress: `${Math.min(pvpWins,10)} / 10 wins`, rank: 'rare' },
+      { name: 'PVP GOD', desc: 'Win 50 PvP matches', icon: '&#x1F3C6;', color: '#ff00ff', met: pvpWins >= 50, progress: `${Math.min(pvpWins,50)} / 50 wins`, rank: 'legendary' },
+
+      // --- SCORE TROPHIES ---
+      { name: 'HIGH SCORER', desc: 'Reach score 10,000', icon: '&#x1F3C6;', color: '#6688ff', met: score >= 10000, progress: `${score.toLocaleString()} / 10,000` },
+      { name: 'SCORE LEGEND', desc: 'Reach score 50,000', icon: '&#x1F3C6;', color: '#44aaff', met: score >= 50000, progress: `${score.toLocaleString()} / 50,000`, rank: 'rare' },
+      { name: 'SCORE GOD', desc: 'Reach score 100,000', icon: '&#x1F3C6;', color: '#2288ff', met: score >= 100000, progress: `${score.toLocaleString()} / 100,000`, rank: 'epic' },
+
+      // --- SHIELD TROPHIES ---
+      { name: 'SHIELD WALL', desc: 'Block 100 attacks', icon: '&#x1F3C6;', color: '#8888aa', met: shieldBlocks >= 100, progress: `${Math.min(shieldBlocks,100)} / 100 blocks` },
+      { name: 'FORTRESS', desc: 'Block 500 attacks', icon: '&#x1F3C6;', color: '#aaaacc', met: shieldBlocks >= 500, progress: `${Math.min(shieldBlocks,500)} / 500 blocks`, rank: 'rare' },
+
+      // --- CHEST TROPHIES ---
+      { name: 'TREASURE HUNTER', desc: 'Open 50 chests', icon: '&#x1F3C6;', color: '#bb8844', met: chestsOpened >= 50, progress: `${Math.min(chestsOpened,50)} / 50 chests` },
+      { name: 'LOOT LORD', desc: 'Open 250 chests', icon: '&#x1F3C6;', color: '#ddaa44', met: chestsOpened >= 250, progress: `${Math.min(chestsOpened,250)} / 250 chests`, rank: 'rare' },
+
+      // --- FRIEND TROPHIES ---
+      { name: 'HERO', desc: 'Rescue 10 friends', icon: '&#x1F3C6;', color: '#44ddaa', met: friendsRescued >= 10, progress: `${Math.min(friendsRescued,10)} / 10 friends` },
+      { name: 'SAVIOR', desc: 'Rescue 50 friends', icon: '&#x1F3C6;', color: '#22ffaa', met: friendsRescued >= 50, progress: `${Math.min(friendsRescued,50)} / 50 friends`, rank: 'rare' },
+
+      // --- PET TROPHIES ---
+      { name: 'PET OWNER', desc: 'Own 3 pets', icon: '&#x1F3C6;', color: '#cc88ff', met: ownedPets >= 3, progress: `${Math.min(ownedPets,3)} / 3 pets` },
+      { name: 'ZOO KEEPER', desc: 'Own all 7 pets', icon: '&#x1F3C6;', color: '#aa44ff', met: ownedPets >= 7, progress: `${Math.min(ownedPets,7)} / 7 pets`, rank: 'epic' },
+
+      // --- SHOPPING TROPHIES ---
+      { name: 'SHOPPER', desc: 'Buy 10 shop items', icon: '&#x1F3C6;', color: '#66bb66', met: totalPurchases >= 10, progress: `${Math.min(totalPurchases,10)} / 10 items` },
+      { name: 'OWN IT ALL', desc: 'Buy 50 shop items', icon: '&#x1F3C6;', color: '#44dd44', met: totalPurchases >= 50, progress: `${Math.min(totalPurchases,50)} / 50 items`, rank: 'epic' },
+
+      // --- JUMP TROPHIES ---
+      { name: 'KANGAROO', desc: 'Jump 1,000 times', icon: '&#x1F3C6;', color: '#bb8866', met: jumps >= 1000, progress: `${Math.min(jumps,1000).toLocaleString()} / 1,000 jumps` },
+      { name: 'ANTI-GRAVITY', desc: 'Jump 10,000 times', icon: '&#x1F3C6;', color: '#dd9944', met: jumps >= 10000, progress: `${Math.min(jumps,10000).toLocaleString()} / 10,000 jumps`, rank: 'rare' },
+
+      // --- TIME TROPHIES ---
+      { name: 'DEDICATED', desc: 'Play for 1 hour', icon: '&#x1F3C6;', color: '#8888bb', met: playHours >= 1, progress: `${playHours} / 1 hour` },
+      { name: 'ADDICTED', desc: 'Play for 10 hours', icon: '&#x1F3C6;', color: '#6666dd', met: playHours >= 10, progress: `${playHours} / 10 hours`, rank: 'rare' },
+      { name: 'NO LIFE', desc: 'Play for 100 hours', icon: '&#x1F3C6;', color: '#4444ff', met: playHours >= 100, progress: `${playHours} / 100 hours`, rank: 'legendary' },
+
+      // --- DEATH TROPHIES ---
+      { name: 'PHOENIX', desc: 'Die 100 times', icon: '&#x1F3C6;', color: '#ff8844', met: deaths >= 100, progress: `${Math.min(deaths,100)} / 100 deaths` },
+      { name: 'IMMORTAL SOUL', desc: 'Die 1,000 times', icon: '&#x1F3C6;', color: '#ff6622', met: deaths >= 1000, progress: `${Math.min(deaths,1000).toLocaleString()} / 1,000 deaths`, rank: 'epic' },
+
+      // --- PARTY TROPHIES ---
+      { name: 'PARTY ANIMAL', desc: 'Visit the party 5 times', icon: '&#x1F3C6;', color: '#ff88cc', met: partyVisits >= 5, progress: `${Math.min(partyVisits,5)} / 5 visits` },
+      { name: 'PARTY LEGEND', desc: 'Visit the party 25 times', icon: '&#x1F3C6;', color: '#ff44aa', met: partyVisits >= 25, progress: `${Math.min(partyVisits,25)} / 25 visits`, rank: 'rare' },
+
+      // --- REBIRTH TROPHIES ---
+      { name: 'REBORN', desc: 'Rebirth once', icon: '&#x1F3C6;', color: '#ffaa44', met: rebirths >= 1, progress: `${Math.min(rebirths,1)} / 1 rebirth` },
+      { name: 'REBORN KNIGHT', desc: 'Rebirth 5 times', icon: '&#x1F3C6;', color: '#ffcc00', met: rebirths >= 5, progress: `${Math.min(rebirths,5)} / 5 rebirths`, rank: 'epic' },
+      { name: 'LEGENDARY REBORN', desc: 'MAX rebirth (15)', icon: '&#x1F3C6;', color: '#ff44ff', met: rebirths >= 15, progress: `${Math.min(rebirths,15)} / 15 rebirths`, rank: 'legendary' },
+
+      // --- ACHIEVEMENT TROPHIES ---
+      { name: 'COLLECTOR', desc: 'Earn 25 achievements', icon: '&#x1F3C6;', color: '#88bb88', met: achCount >= 25, progress: `${Math.min(achCount,25)} / 25` },
+      { name: 'HUNTER', desc: 'Earn 50 achievements', icon: '&#x1F3C6;', color: '#66dd66', met: achCount >= 50, progress: `${Math.min(achCount,50)} / 50`, rank: 'rare' },
+      { name: 'PLATINUM KNIGHT', desc: 'Earn 100 achievements', icon: '&#x1F3C6;', color: '#c0c0c0', met: achCount >= 100, progress: `${Math.min(achCount,100)} / 100`, rank: 'epic', silver: true },
+      { name: 'DIAMOND KNIGHT', desc: 'Earn 200 achievements', icon: '&#x1F3C6;', color: '#88ddff', met: achCount >= 200, progress: `${Math.min(achCount,200)} / 200`, rank: 'epic', diamond: true },
+      { name: 'GOLDEN KNIGHT', desc: 'Earn ALL achievements!', icon: '&#x1F3C6;', color: '#ffd700', met: achCount >= achTotal, progress: `${achCount} / ${achTotal} achievements`, rank: 'legendary', isUltimate: true },
+    ];
+
+    const container = document.getElementById('trophy-content');
+    container.innerHTML = '';
+
+    // Summary
+    const earnedCount = trophies.filter(t => t.met).length;
+    const summary = document.createElement('div');
+    summary.style.cssText = 'width:100%;text-align:center;margin-bottom:15px;';
+    summary.innerHTML = `
+      <div style="font-size:16px;color:#aaa;">Trophies Earned: <span style="color:#ffd700;font-size:22px;font-weight:bold;">${earnedCount} / ${trophies.length}</span></div>
+    `;
+    container.appendChild(summary);
+
+    // Render each trophy
+    trophies.forEach(t => {
+      const card = document.createElement('div');
+      const rank = t.met ? (t.rank || '') : '';
+      card.className = 'trophy-card' + (rank ? ' ' + rank : '') + (t.met ? '' : ' trophy-locked');
+      const glow = t.met && t.isUltimate ? 'filter:drop-shadow(0 0 15px #ffd700);' : t.met ? `filter:drop-shadow(0 0 8px ${t.color});` : '';
+
+      card.innerHTML = `
+        <div style="${glow}">
+          <div style="font-size:50px;color:${t.met ? t.color : '#333'};${t.met ? '' : 'opacity:0.25;'}${t.met && t.silver ? 'filter:saturate(0) brightness(1.8);' : ''}${t.met && t.diamond ? 'filter:hue-rotate(180deg) saturate(2) brightness(1.3);' : ''}">${t.met ? t.icon : '&#x1F512;'}</div>
+        </div>
+        <div class="trophy-name" style="color:${t.met ? t.color : '#555'};">${t.name}</div>
+        <div class="trophy-sub">${t.desc}</div>
+        <div style="margin-top:6px;font-size:11px;color:${t.met ? '#44ff44' : '#888'};">
+          ${t.met ? '&#9989; EARNED!' : t.progress}
+        </div>
+        ${t.met && t.isUltimate ? '<div style="font-size:12px;color:#ffd700;margin-top:4px;font-weight:bold;">THE ULTIMATE TROPHY</div>' : ''}
+      `;
+      container.appendChild(card);
+    });
+
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('trophy-screen').style.display = 'flex';
+  }
+
   saveProgress() {
     localStorage.setItem('savedLevel', this.state.currentLevel.toString());
     localStorage.setItem('savedScore', this.state.score.toString());
@@ -732,6 +923,444 @@ export class Game {
     localStorage.setItem('savedRankColor', this.state.rankColor);
     localStorage.setItem('savedReward', this.state.rewardMultiplier.toString());
     localStorage.setItem('totalKills', this.state.totalKills.toString());
+  }
+
+  _getRebirthRequirements(rebirthNum) {
+    // 15 rebirths total — each one harder! Rebirth 15 = MAX
+    const reqs = [
+      { level: 5,  coins: 500,    kills: 0 },      // Rebirth 1
+      { level: 8,  coins: 1500,   kills: 0 },      // Rebirth 2
+      { level: 10, coins: 3000,   kills: 0 },      // Rebirth 3
+      { level: 10, coins: 5000,   kills: 200 },    // Rebirth 4
+      { level: 10, coins: 10000,  kills: 500 },    // Rebirth 5
+      { level: 10, coins: 15000,  kills: 750 },    // Rebirth 6
+      { level: 10, coins: 20000,  kills: 1000 },   // Rebirth 7
+      { level: 10, coins: 30000,  kills: 1500 },   // Rebirth 8
+      { level: 10, coins: 40000,  kills: 2000 },   // Rebirth 9
+      { level: 10, coins: 50000,  kills: 3000 },   // Rebirth 10
+      { level: 10, coins: 75000,  kills: 4000 },   // Rebirth 11
+      { level: 10, coins: 100000, kills: 5000 },   // Rebirth 12
+      { level: 10, coins: 150000, kills: 7500 },   // Rebirth 13
+      { level: 10, coins: 200000, kills: 10000 },  // Rebirth 14
+      { level: 10, coins: 500000, kills: 25000 },  // Rebirth 15 — THE FINAL ONE
+    ];
+    if (rebirthNum >= 15) return null; // MAX reached!
+    return reqs[Math.min(rebirthNum, reqs.length - 1)];
+  }
+
+  _openRebirthMenu() {
+    const rebirths = parseInt(localStorage.getItem('rebirthCount') || '0');
+    const coins = parseInt(localStorage.getItem('totalCoins') || '0');
+    const level = parseInt(localStorage.getItem('savedLevel') || '0') + 1; // 1-based for display
+    const kills = parseInt(localStorage.getItem('totalKills') || '0');
+    const purchases = JSON.parse(localStorage.getItem('shopPurchases') || '{}');
+    const pets = ['pet_wolf','pet_dragon','pet_fairy','pet_ghost','pet_phoenix','pet_golem','pet_cat'];
+    const ownedPets = pets.filter(id => purchases[id]).length;
+    const weapons = ['weapon_crossbow','weapon_cannon','weapon_staff','weapon_dual'];
+    const ownedWeapons = weapons.filter(id => purchases[id]).length;
+    const currentMulti = 1 + (rebirths * 0.25);
+
+    const infoEl = document.getElementById('rebirth-current-info');
+    const req = this._getRebirthRequirements(rebirths);
+
+    // ===== MAX REBIRTH REACHED =====
+    if (!req) {
+      infoEl.innerHTML = `
+        <div style="font-size:32px; margin-bottom:8px;">&#128081;&#11088;&#128081;</div>
+        <div style="color:#ff44ff; font-size:22px; font-weight:bold; text-shadow:0 0 15px #ff00ff;">
+          MAX REBIRTH — LEGENDARY KNIGHT
+        </div>
+        <div style="color:#ffcc00; font-size:16px; margin-top:8px;">
+          ${'&#11088;'.repeat(15)}
+        </div>
+        <div style="margin-top:8px;">Coin multiplier: <span style="color:#ff44ff; font-size:20px; font-weight:bold;">${currentMulti.toFixed(2)}x</span></div>
+        <div style="color:#aaa; margin-top:8px;">
+          You have reached the ULTIMATE rebirth.<br>
+          There is nothing left to prove. You are a LEGEND.
+        </div>
+      `;
+
+      // Hide rewards/costs/requirements — not needed
+      document.getElementById('rebirth-rewards').style.display = 'none';
+      document.getElementById('rebirth-costs').style.display = 'none';
+      const reqEl = document.getElementById('rebirth-requirements');
+      if (reqEl) reqEl.style.display = 'none';
+
+      const confirmBtn = document.getElementById('rebirth-confirm-btn');
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.4';
+      confirmBtn.style.cursor = 'default';
+      confirmBtn.innerHTML = '&#128081; MAX REBIRTH REACHED &#128081;';
+
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('rebirth-screen').style.display = 'flex';
+      return;
+    }
+
+    // ===== NORMAL REBIRTH MENU =====
+    // Show sections in case they were hidden by MAX
+    document.getElementById('rebirth-rewards').style.display = '';
+    document.getElementById('rebirth-costs').style.display = '';
+
+    const nextMulti = 1 + ((rebirths + 1) * 0.25);
+    const levelOk = level >= req.level;
+    const coinsOk = coins >= req.coins;
+    const killsOk = kills >= req.kills;
+    const canRebirth = levelOk && coinsOk && killsOk;
+
+    // Is this the FINAL rebirth?
+    const isFinal = (rebirths === 14);
+
+    // Build requirements checklist HTML
+    const check = '&#9989;';
+    const cross = '&#10060;';
+    let reqHTML = isFinal
+      ? `<h3 style="color:#ff44ff;">&#128081; THE FINAL REBIRTH &#128081;</h3>`
+      : `<h3>Requirements for Rebirth ${rebirths + 1}:</h3>`;
+    reqHTML += `<div class="rebirth-req ${levelOk ? 'done' : 'not-done'}">${levelOk ? check : cross} Beat Level ${req.level} <span style="color:#aaa;">(You: Level ${level})</span></div>`;
+    reqHTML += `<div class="rebirth-req ${coinsOk ? 'done' : 'not-done'}">${coinsOk ? check : cross} Earn ${req.coins.toLocaleString()} coins <span style="color:#aaa;">(You: ${coins.toLocaleString()})</span></div>`;
+    if (req.kills > 0) {
+      reqHTML += `<div class="rebirth-req ${killsOk ? 'done' : 'not-done'}">${killsOk ? check : cross} Get ${req.kills.toLocaleString()} kills <span style="color:#aaa;">(You: ${kills.toLocaleString()})</span></div>`;
+    }
+
+    // Star display (show all 15 slots, filled ones gold, empty ones grey)
+    let starHTML = '';
+    for (let i = 0; i < 15; i++) {
+      if (i < rebirths) {
+        starHTML += '<span style="font-size:18px;">&#11088;</span>';
+      } else {
+        starHTML += '<span style="font-size:18px; opacity:0.2;">&#11088;</span>';
+      }
+    }
+
+    infoEl.innerHTML = `
+      <div style="color:#ffcc00; font-size:18px; margin-bottom:6px;">
+        ${rebirths > 0 ? 'Rebirth ' + rebirths + ' / 15' : 'No rebirths yet'}
+      </div>
+      <div>${starHTML}</div>
+      <div style="margin-top:6px;">Current: <span style="color:#ffcc00;">${currentMulti.toFixed(2)}x</span> &rarr; After: <span style="color:#44ff44;">${nextMulti.toFixed(2)}x</span></div>
+      <div style="margin-top:6px; color:#aaa; font-size:13px;">
+        Coins: <span style="color:#ffcc00;">${coins.toLocaleString()}</span> |
+        Pets: <span style="color:#ff8888;">${ownedPets}</span> |
+        Weapons: <span style="color:#ff8888;">${ownedWeapons}</span>
+      </div>
+    `;
+
+    // Show/update requirements section
+    let reqEl = document.getElementById('rebirth-requirements');
+    if (!reqEl) {
+      reqEl = document.createElement('div');
+      reqEl.id = 'rebirth-requirements';
+      const costsEl = document.getElementById('rebirth-costs');
+      costsEl.parentNode.insertBefore(reqEl, costsEl);
+    }
+    reqEl.style.display = '';
+    reqEl.innerHTML = reqHTML;
+    reqEl.style.cssText = 'text-align:left;margin:8px 0;padding:10px;border-radius:10px;background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.3);';
+    if (isFinal) {
+      reqEl.style.border = '2px solid #ff44ff';
+      reqEl.style.background = 'rgba(255,0,255,0.08)';
+    }
+
+    // Enable/disable confirm button
+    const confirmBtn = document.getElementById('rebirth-confirm-btn');
+    if (canRebirth) {
+      confirmBtn.disabled = false;
+      confirmBtn.style.opacity = '1';
+      confirmBtn.style.cursor = 'pointer';
+      confirmBtn.innerHTML = isFinal
+        ? '&#128081; FINAL REBIRTH!! &#128081;'
+        : '&#11088; DO IT! REBIRTH! &#11088;';
+    } else {
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.4';
+      confirmBtn.style.cursor = 'not-allowed';
+      confirmBtn.innerHTML = '&#128274; NOT READY YET';
+    }
+
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('rebirth-screen').style.display = 'flex';
+  }
+
+  _doRebirth() {
+    const rebirths = parseInt(localStorage.getItem('rebirthCount') || '0');
+    const newRebirths = rebirths + 1;
+    const newMulti = 1 + (newRebirths * 0.25);
+
+    // Hide the rebirth panel so animation takes over
+    document.getElementById('rebirth-panel').style.display = 'none';
+
+    // ===== EPIC REBIRTH ANIMATION =====
+    const overlay = document.getElementById('rebirth-screen');
+    overlay.style.background = 'rgba(0,0,0,1)';
+
+    // Create animation container
+    const animDiv = document.createElement('div');
+    animDiv.id = 'rebirth-anim';
+    animDiv.style.cssText = 'position:fixed;inset:0;z-index:1001;pointer-events:none;overflow:hidden;';
+    document.body.appendChild(animDiv);
+
+    // --- Giant spinning star in the center ---
+    const bigStar = document.createElement('div');
+    bigStar.textContent = '\u2B50';
+    bigStar.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+      font-size:20px;opacity:0;transition:none;z-index:10;
+      filter:drop-shadow(0 0 40px rgba(255,200,0,0.8));
+    `;
+    animDiv.appendChild(bigStar);
+
+    // --- Star explosion particles ---
+    const starEmojis = ['\u2B50','\u2728','\u1F31F','\u26A1','\u1F4AB','\u2604\uFE0F','\u1F525'];
+    const particles = [];
+    for (let i = 0; i < 60; i++) {
+      const p = document.createElement('div');
+      const emoji = starEmojis[Math.floor(Math.random() * starEmojis.length)];
+      p.textContent = emoji;
+      p.style.cssText = `
+        position:absolute;top:50%;left:50%;
+        font-size:${16 + Math.random() * 32}px;
+        opacity:0;transform:translate(-50%,-50%) scale(0);
+        z-index:5;pointer-events:none;
+      `;
+      animDiv.appendChild(p);
+      particles.push({
+        el: p,
+        angle: (Math.PI * 2 * i) / 60 + (Math.random() - 0.5) * 0.3,
+        speed: 200 + Math.random() * 600,
+        rotSpeed: (Math.random() - 0.5) * 720,
+        delay: Math.random() * 0.3,
+        size: 0.5 + Math.random() * 1.5,
+      });
+    }
+
+    // --- Shockwave ring ---
+    const ring = document.createElement('div');
+    ring.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:10px;height:10px;border-radius:50%;
+      border:4px solid #ffcc00;opacity:0;z-index:4;
+      box-shadow:0 0 30px #ffcc00, inset 0 0 30px rgba(255,200,0,0.3);
+    `;
+    animDiv.appendChild(ring);
+
+    // --- Second shockwave ---
+    const ring2 = document.createElement('div');
+    ring2.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:10px;height:10px;border-radius:50%;
+      border:3px solid #ff6600;opacity:0;z-index:3;
+      box-shadow:0 0 20px #ff6600;
+    `;
+    animDiv.appendChild(ring2);
+
+    // --- Rebirth text that fades in ---
+    const rebirthText = document.createElement('div');
+    rebirthText.innerHTML = `\u2B50 REBORN \u2B50<br><span style="font-size:28px;color:#ffcc00;">${newMulti.toFixed(2)}x Coins</span>`;
+    rebirthText.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+      font-size:64px;font-weight:bold;color:#fff;text-align:center;
+      text-shadow:0 0 30px #ffcc00,0 0 60px #ff6600,0 0 100px #ff4400;
+      z-index:12;opacity:0;white-space:nowrap;font-family:sans-serif;
+    `;
+    animDiv.appendChild(rebirthText);
+
+    // --- Screen flash ---
+    const flash = document.createElement('div');
+    flash.style.cssText = `
+      position:absolute;inset:0;background:#fff;opacity:0;z-index:15;
+    `;
+    animDiv.appendChild(flash);
+
+    // --- Vertical light beams ---
+    for (let i = 0; i < 8; i++) {
+      const beam = document.createElement('div');
+      const hue = (i / 8) * 360;
+      beam.style.cssText = `
+        position:absolute;top:0;left:${10 + (i / 8) * 80}%;
+        width:3px;height:100%;opacity:0;z-index:2;
+        background:linear-gradient(to bottom, transparent, hsla(${hue},100%,60%,0.6), transparent);
+        transform:scaleY(0);transform-origin:center;
+      `;
+      animDiv.appendChild(beam);
+      // Animate beams
+      setTimeout(() => {
+        beam.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
+        beam.style.transform = 'scaleY(1)';
+        beam.style.opacity = '0.7';
+        setTimeout(() => {
+          beam.style.transition = 'opacity 0.6s ease-in';
+          beam.style.opacity = '0';
+        }, 600);
+      }, 200 + i * 80);
+    }
+
+    // ===== ANIMATION TIMELINE =====
+    const startTime = performance.now();
+    const animate = () => {
+      const t = (performance.now() - startTime) / 1000; // seconds
+
+      // Phase 1 (0-0.8s): Star grows and spins in center
+      if (t < 0.8) {
+        const progress = t / 0.8;
+        const scale = progress * 8;
+        const rot = progress * 720;
+        bigStar.style.transform = `translate(-50%,-50%) scale(${scale}) rotate(${rot}deg)`;
+        bigStar.style.opacity = Math.min(1, progress * 2);
+        bigStar.style.fontSize = '20px';
+      }
+
+      // Phase 2 (0.8s): WHITE FLASH + particles explode out
+      if (t >= 0.8 && t < 0.9) {
+        flash.style.opacity = String(1 - (t - 0.8) / 0.1 * 0.7);
+        if (!animDiv._exploded) {
+          animDiv._exploded = true;
+          flash.style.opacity = '1';
+          bigStar.style.opacity = '0';
+        }
+      }
+      if (t >= 0.9 && t < 1.5) {
+        flash.style.opacity = String(Math.max(0, 0.3 - (t - 0.9) * 0.5));
+      }
+
+      // Phase 2-3 (0.8-2.5s): Particles fly outward
+      if (t >= 0.8) {
+        const pt = t - 0.8;
+        particles.forEach(p => {
+          const localT = Math.max(0, pt - p.delay);
+          if (localT <= 0) return;
+          const dist = p.speed * localT * (1 - localT * 0.3);
+          const x = Math.cos(p.angle) * dist;
+          const y = Math.sin(p.angle) * dist;
+          const rot = p.rotSpeed * localT;
+          const scale = p.size * Math.max(0, 1 - localT * 0.5);
+          const opacity = Math.max(0, 1 - localT * 0.6);
+          p.el.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${scale}) rotate(${rot}deg)`;
+          p.el.style.opacity = String(opacity);
+        });
+      }
+
+      // Phase 2 (0.8-1.6s): Shockwave expands
+      if (t >= 0.8 && t < 1.8) {
+        const st = (t - 0.8) / 1.0;
+        const size = st * 1200;
+        ring.style.width = size + 'px';
+        ring.style.height = size + 'px';
+        ring.style.opacity = String(Math.max(0, 1 - st));
+        ring.style.borderWidth = Math.max(1, 4 - st * 3) + 'px';
+      }
+      // Second shockwave (delayed)
+      if (t >= 1.0 && t < 2.0) {
+        const st = (t - 1.0) / 1.0;
+        const size = st * 900;
+        ring2.style.width = size + 'px';
+        ring2.style.height = size + 'px';
+        ring2.style.opacity = String(Math.max(0, 0.8 - st));
+      }
+
+      // Phase 3 (1.5-3.5s): "REBORN" text scales in with bounce
+      if (t >= 1.5 && t < 3.5) {
+        const tt = (t - 1.5) / 0.6;
+        let scale;
+        if (tt < 1) {
+          // Elastic bounce in
+          scale = 1 - Math.pow(1 - tt, 3) * Math.cos(tt * Math.PI * 3) * (1 - tt);
+        } else {
+          scale = 1 + Math.sin((t - 2.1) * 2) * 0.05; // gentle pulse
+        }
+        rebirthText.style.transform = `translate(-50%,-50%) scale(${Math.max(0, scale)})`;
+        rebirthText.style.opacity = String(Math.min(1, (t - 1.5) * 3));
+      }
+
+      // Phase 4 (3.5-4.2s): Everything fades out
+      if (t >= 3.5 && t < 4.2) {
+        const fadeT = (t - 3.5) / 0.7;
+        rebirthText.style.opacity = String(Math.max(0, 1 - fadeT));
+        animDiv.style.opacity = String(Math.max(0, 1 - fadeT));
+      }
+
+      // Done (4.2s): Clean up and apply rebirth
+      if (t >= 4.2) {
+        animDiv.remove();
+        this._applyRebirthReset(newRebirths, newMulti);
+        return;
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    // Kick off the animation!
+    requestAnimationFrame(animate);
+  }
+
+  _applyRebirthReset(newRebirths, newMulti) {
+    // Reset coins
+    localStorage.setItem('totalCoins', '0');
+    this.state.totalCoins = 0;
+
+    // Remove pets and weapons from purchases (keep skins, upgrades, potions)
+    const purchases = JSON.parse(localStorage.getItem('shopPurchases') || '{}');
+    const keysToRemove = Object.keys(purchases).filter(k => k.startsWith('pet_') || k.startsWith('weapon_'));
+    keysToRemove.forEach(k => delete purchases[k]);
+    localStorage.setItem('shopPurchases', JSON.stringify(purchases));
+
+    // Clear equipped pet
+    localStorage.removeItem('equippedPet');
+    this.state.pet = null;
+    if (this.activePet) {
+      this.activePet.dispose();
+      this.activePet = null;
+    }
+
+    // Reset level progress
+    localStorage.setItem('savedLevel', '0');
+    localStorage.setItem('savedScore', '0');
+    this.state.currentLevel = 0;
+    this.state.score = 0;
+
+    // Save rebirth count
+    localStorage.setItem('rebirthCount', newRebirths.toString());
+
+    // Apply new coin multiplier
+    localStorage.setItem('rebirthMultiplier', newMulti.toString());
+    this.state.rewardMultiplier = newMulti;
+    localStorage.setItem('savedReward', newMulti.toString());
+
+    // Unlock rebirth achievements
+    this.achievements.unlock('rebirth_1', this.hud);
+    if (newRebirths >= 3) this.achievements.unlock('rebirth_3', this.hud);
+    if (newRebirths >= 5) this.achievements.unlock('rebirth_5', this.hud);
+    if (newRebirths >= 10) this.achievements.unlock('rebirth_10', this.hud);
+    if (newRebirths >= 15) this.achievements.unlock('rebirth_max', this.hud);
+
+    // Update displays
+    this._updateRebirthInfo();
+    document.getElementById('shop-coins').textContent = 'Coins: 0';
+
+    // Restore rebirth panel for next time
+    document.getElementById('rebirth-panel').style.display = '';
+
+    // Close rebirth screen, show start screen
+    document.getElementById('rebirth-screen').style.display = 'none';
+    document.getElementById('rebirth-screen').style.background = '';
+    document.getElementById('start-screen').style.display = 'flex';
+
+    // Flash a message
+    this.hud.showMessage('REBORN! Coin multiplier: ' + newMulti.toFixed(2) + 'x', 3000);
+  }
+
+  _updateRebirthInfo() {
+    const rebirths = parseInt(localStorage.getItem('rebirthCount') || '0');
+    const infoEl = document.getElementById('rebirth-info');
+    const req = this._getRebirthRequirements(rebirths);
+    if (rebirths >= 15) {
+      infoEl.innerHTML = '&#128081; <span style="color:#ff44ff;">MAX REBIRTH — LEGENDARY KNIGHT</span> &#128081; | ' + (1 + rebirths * 0.25).toFixed(2) + 'x';
+    } else if (rebirths > 0) {
+      const multi = 1 + (rebirths * 0.25);
+      infoEl.innerHTML = '&#11088;'.repeat(rebirths) + ' Rebirth ' + rebirths + '/15 | Coins: ' + multi.toFixed(2) + 'x';
+    } else {
+      infoEl.textContent = `Reach Level ${req.level} + ${req.coins.toLocaleString()} coins to rebirth!`;
+    }
   }
 
   addKill() {
@@ -878,15 +1507,113 @@ export class Game {
   }
 
   setupEmoteWheel() {
-    const wheel = document.getElementById('emote-wheel');
-    if (!wheel) return;
-    wheel.querySelectorAll('.emote-option').forEach(btn => {
+    // All emotes — first 8 are free, rest require shop purchase
+    this._allEmotes = [
+      { id: 'dance', name: '💃 Dance', free: true },
+      { id: 'spin', name: '🌀 Spin', free: true },
+      { id: 'wave', name: '👋 Wave', free: true },
+      { id: 'jump', name: '⭐ Jump', free: true },
+      { id: 'flex', name: '💪 Flex', free: true },
+      { id: 'dab', name: '🤦 Dab', free: true },
+      { id: 'headbang', name: '🎤 Headbang', free: true },
+      { id: 'floss', name: '🙂 Floss', free: true },
+      { id: 'robot', name: '🤖 Robot', shopId: 'emote_robot' },
+      { id: 'chicken', name: '🐔 Chicken', shopId: 'emote_chicken' },
+      { id: 'disco', name: '🕺 Disco', shopId: 'emote_disco' },
+      { id: 'twerk', name: '🍑 Twerk', shopId: 'emote_twerk' },
+      { id: 'salute', name: '🫡 Salute', shopId: 'emote_salute' },
+      { id: 'backflip', name: '🤸 Backflip', shopId: 'emote_backflip' },
+      { id: 'celebrate', name: '🎉 Celebrate', shopId: 'emote_celebrate' },
+      { id: 'cry', name: '😭 Cry', shopId: 'emote_cry' },
+      { id: 'laugh', name: '🤣 Laugh', shopId: 'emote_laugh' },
+      { id: 'sit', name: '🪑 Sit', shopId: 'emote_sit' },
+      { id: 'pushup', name: '💪 Push-ups', shopId: 'emote_pushup' },
+      { id: 'tornado', name: '🌪️ Tornado', shopId: 'emote_tornado' },
+      { id: 'zombie', name: '🧟 Zombie', shopId: 'emote_zombie' },
+      { id: 'ninja', name: '🥷 Ninja', shopId: 'emote_ninja' },
+      { id: 'worm', name: '🪱 Worm', shopId: 'emote_worm' },
+      { id: 'moonwalk', name: '🌑 Moonwalk', shopId: 'emote_moonwalk' },
+      { id: 'breakdance', name: '💃 Breakdance', shopId: 'emote_breakdance' },
+      { id: 'rage', name: '😡 Rage', shopId: 'emote_rage' },
+      { id: 'sleep', name: '😴 Sleep', shopId: 'emote_sleep' },
+      { id: 'clap', name: '👏 Clap', shopId: 'emote_clap' },
+      { id: 'bow', name: '🙇 Bow', shopId: 'emote_bow' },
+      { id: 'kungfu', name: '🥋 Kung Fu', shopId: 'emote_kungfu' },
+      { id: 't_pose', name: '✈ T-Pose', shopId: 'emote_t_pose' },
+      { id: 'shake', name: '🎶 Shake', shopId: 'emote_shake' },
+      { id: 'prayer', name: '🙏 Pray', shopId: 'emote_prayer' },
+      { id: 'dj', name: '🎧 DJ', shopId: 'emote_dj' },
+      { id: 'sway', name: '🎵 Sway', shopId: 'emote_sway' },
+      { id: 'victory', name: '🏆 Victory', shopId: 'emote_victory' },
+      { id: 'cartwheel', name: '🤸 Cartwheel', shopId: 'emote_cartwheel' },
+    ];
+    this._emotePage = 0;
+    this._emotesPerPage = 8;
+
+    // Scroll buttons
+    document.getElementById('emote-scroll-left')?.addEventListener('click', () => {
+      this._emotePage = Math.max(0, this._emotePage - 1);
+      this._renderEmoteWheel();
+    });
+    document.getElementById('emote-scroll-right')?.addEventListener('click', () => {
+      const owned = this._getOwnedEmotes();
+      const maxPage = Math.floor((owned.length - 1) / this._emotesPerPage);
+      this._emotePage = Math.min(maxPage, this._emotePage + 1);
+      this._renderEmoteWheel();
+    });
+  }
+
+  _getOwnedEmotes() {
+    const purchases = JSON.parse(localStorage.getItem('shopPurchases') || '{}');
+    return this._allEmotes.filter(e => e.free || purchases[e.shopId]);
+  }
+
+  _renderEmoteWheel() {
+    const container = document.getElementById('emote-wheel-page');
+    const dotsContainer = document.getElementById('emote-page-dots');
+    if (!container) return;
+
+    const owned = this._getOwnedEmotes();
+    const totalPages = Math.ceil(owned.length / this._emotesPerPage);
+    const start = this._emotePage * this._emotesPerPage;
+    const pageEmotes = owned.slice(start, start + this._emotesPerPage);
+
+    container.innerHTML = '';
+    pageEmotes.forEach(emote => {
+      const btn = document.createElement('div');
+      btn.className = 'emote-option';
+      btn.setAttribute('data-emote', emote.id);
+      btn.textContent = emote.name;
       btn.addEventListener('click', () => {
-        const emote = btn.getAttribute('data-emote');
-        this.useEmote(emote);
+        this.useEmote(emote.id);
         this.closeEmoteWheel();
       });
+      container.appendChild(btn);
     });
+
+    // Page dots
+    if (dotsContainer) {
+      dotsContainer.innerHTML = '';
+      for (let i = 0; i < totalPages; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'emote-dot' + (i === this._emotePage ? ' active' : '');
+        dotsContainer.appendChild(dot);
+      }
+    }
+
+    // Show/hide scroll buttons and nav
+    const leftBtn = document.getElementById('emote-scroll-left');
+    const rightBtn = document.getElementById('emote-scroll-right');
+    const nav = document.getElementById('emote-nav');
+    if (nav) nav.style.display = totalPages > 1 ? 'flex' : 'none';
+    if (leftBtn) {
+      leftBtn.style.opacity = this._emotePage > 0 ? '1' : '0.3';
+      leftBtn.style.pointerEvents = this._emotePage > 0 ? 'all' : 'none';
+    }
+    if (rightBtn) {
+      rightBtn.style.opacity = this._emotePage < totalPages - 1 ? '1' : '0.3';
+      rightBtn.style.pointerEvents = this._emotePage < totalPages - 1 ? 'all' : 'none';
+    }
   }
 
   toggleEmoteWheel() {
@@ -899,7 +1626,8 @@ export class Game {
 
   openEmoteWheel() {
     this.emoteWheelOpen = true;
-    document.getElementById('emote-wheel').style.display = 'block';
+    this._renderEmoteWheel();
+    document.getElementById('emote-wheel').style.display = 'flex';
     document.exitPointerLock();
   }
 
@@ -912,12 +1640,107 @@ export class Game {
   }
 
   useEmote(emote) {
-    // Post to chat
-    this.chat.addMessage(this.state.username, emote, 'emote');
+    // Show emote name in chat and above player
+    const emoteNames = {
+      dance: '💃 Dance', spin: '🌀 Spin', wave: '👋 Wave', jump: '⭐ Jump',
+      flex: '💪 Flex', dab: '🤦 Dab', headbang: '🎤 Headbang', floss: '🙂 Floss'
+    };
+    const displayName = emoteNames[emote] || emote;
+    this.chat.addMessage(this.state.username, displayName, 'emote');
     this.achievements.unlock('emote_use', this.hud);
 
     // Show 3D bubble above player
-    this.showEmoteBubble(emote);
+    this.showEmoteBubble(displayName);
+
+    // Play the dance animation on the player mesh
+    this._playEmoteAnimation(emote);
+  }
+
+  _stopEmoteAnimation() {
+    if (this._emoteObs) {
+      this.scene.onBeforeRenderObservable.remove(this._emoteObs);
+      this._emoteObs = null;
+    }
+    // Reset visual root transforms (not the physics mesh!)
+    const vr = this.player.visualRoot;
+    if (vr) {
+      vr.rotation.x = 0;
+      vr.rotation.y = 0;
+      vr.rotation.z = 0;
+      vr.scaling.set(1, 1, 1);
+    }
+    // Return to first person
+    this._emoteCamera = false;
+    this._emoteCamLerp = 0;
+  }
+
+  _playEmoteAnimation(emote) {
+    // Stop any existing emote animation
+    this._stopEmoteAnimation();
+
+    // Switch to third-person camera so you can see yourself!
+    this._emoteCamera = true;
+    this._emoteCamLerp = 0;
+
+    // Animate the visualRoot (child of physics mesh) so physics doesn't override it
+    const vr = this.player.visualRoot;
+    if (!vr) return;
+    const physBody = this.player.mesh; // the physics mesh for jump/velocity
+
+    // All emotes use a unified animation loop — BIG movements so you can see them!
+    const animations = {
+      dance:    { dur: 4.0, fn: (t) => { vr.rotation.z = Math.sin(t * 8) * 0.3; } },
+      spin:     { dur: 2.0, fn: (t, d, sy) => { vr.rotation.y = sy + (t / d) * Math.PI * 6; } },
+      wave:     { dur: 2.5, fn: (t) => { vr.rotation.z = Math.sin(t * 5) * 0.25; } },
+      jump:     { dur: 3.0, fn: (t) => { if (physBody.physicsImpostor && Math.sin(t * 4) > 0.9) physBody.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0, 5, 0)); vr.rotation.z = Math.sin(t * 8) * 0.1; } },
+      flex:     { dur: 3.0, fn: (t) => { const p = 1 + Math.sin(t * 3) * 0.15; vr.scaling.set(p, 1 + Math.sin(t * 6) * 0.05, p); } },
+      dab:      { dur: 2.0, fn: (t) => { const pr = Math.min(t / 0.3, 1); const h = t > 0.3 && t < 1.5 ? 1 : (t >= 1.5 ? Math.max(0, 1 - (t - 1.5) / 0.5) : pr); vr.rotation.z = h * 0.4; vr.rotation.x = h * -0.2; } },
+      headbang: { dur: 3.0, fn: (t) => { vr.rotation.x = Math.sin(t * 12) * 0.25; } },
+      floss:    { dur: 3.5, fn: (t) => { vr.rotation.z = Math.sin(t * 10) * 0.35; } },
+      robot:    { dur: 3.0, fn: (t) => { vr.rotation.z = Math.round(Math.sin(t * 3) * 3) / 3 * 0.2; vr.rotation.x = Math.round(Math.cos(t * 2.5) * 3) / 3 * 0.15; } },
+      chicken:  { dur: 3.0, fn: (t) => { vr.rotation.x = Math.sin(t * 10) * 0.2; vr.rotation.z = Math.sin(t * 5) * 0.1; } },
+      disco:    { dur: 3.5, fn: (t) => { vr.rotation.z = Math.sin(t * 6) * 0.35; const s = 1 + Math.sin(t * 12) * 0.06; vr.scaling.set(s, 1, s); } },
+      twerk:    { dur: 3.0, fn: (t) => { vr.rotation.x = Math.sin(t * 14) * 0.2; } },
+      salute:   { dur: 2.5, fn: (t) => { const h = t < 0.4 ? t / 0.4 : (t > 2.0 ? Math.max(0, 1 - (t - 2.0) / 0.5) : 1); vr.rotation.x = h * -0.15; } },
+      backflip: { dur: 1.8, fn: (t, d) => { vr.rotation.x = -(t / d) * Math.PI * 2; if (physBody.physicsImpostor && t < 0.1) physBody.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0, 8, 0)); } },
+      celebrate:{ dur: 3.5, fn: (t) => { vr.rotation.z = Math.sin(t * 7) * 0.25; if (physBody.physicsImpostor && Math.sin(t * 3) > 0.9) physBody.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0, 5, 0)); } },
+      cry:      { dur: 3.0, fn: (t) => { vr.rotation.x = 0.25; vr.rotation.z = Math.sin(t * 18) * 0.06; } },
+      laugh:    { dur: 3.0, fn: (t) => { vr.rotation.x = -0.1 + Math.sin(t * 14) * 0.12; vr.scaling.set(1, 1 + Math.sin(t * 14) * 0.05, 1); } },
+      sit:      { dur: 5.0, fn: (t) => { vr.rotation.x = 0.15; } },
+      pushup:   { dur: 3.5, fn: (t) => { vr.rotation.x = 0.4 + Math.sin(t * 4) * 0.35; } },
+      tornado:  { dur: 3.0, fn: (t, d, sy) => { vr.rotation.y = sy + t * 20; vr.rotation.z = Math.sin(t * 6) * 0.3; } },
+      zombie:   { dur: 4.0, fn: (t) => { vr.rotation.x = 0.2; vr.rotation.z = Math.sin(t * 2) * 0.15; } },
+      ninja:    { dur: 2.5, fn: (t) => { const h = t < 0.5 ? t / 0.5 : 1; vr.rotation.z = h * -0.3; vr.rotation.x = h * -0.1; } },
+      worm:     { dur: 3.5, fn: (t) => { vr.rotation.x = 0.5 + Math.sin(t * 8) * 0.4; vr.rotation.z = Math.sin(t * 4) * 0.1; } },
+      moonwalk: { dur: 3.0, fn: (t) => { vr.rotation.z = Math.sin(t * 3) * 0.1; vr.rotation.x = -0.05; } },
+      breakdance: { dur: 3.5, fn: (t, d, sy) => { vr.rotation.x = 0.5; vr.rotation.y = sy + t * 12; } },
+      rage:     { dur: 2.5, fn: (t) => { vr.rotation.z = Math.sin(t * 30) * 0.15; vr.rotation.x = -0.15; const s = 1 + Math.sin(t * 8) * 0.08; vr.scaling.set(s, s, s); } },
+      sleep:    { dur: 5.0, fn: (t) => { vr.rotation.x = 0.3; vr.rotation.z = Math.sin(t * 1.5) * 0.05; } },
+      clap:     { dur: 2.5, fn: (t) => { vr.rotation.x = Math.sin(t * 8) * 0.08; vr.scaling.set(1, 1 + Math.abs(Math.sin(t * 8)) * 0.04, 1); } },
+      bow:      { dur: 2.5, fn: (t) => { const h = t < 0.6 ? t / 0.6 : (t > 2.0 ? Math.max(0, 1 - (t - 2.0) / 0.5) : 1); vr.rotation.x = h * 0.5; } },
+      kungfu:   { dur: 3.0, fn: (t) => { vr.rotation.z = Math.sin(t * 6) * 0.3; vr.rotation.x = Math.sin(t * 4) * 0.2; if (physBody.physicsImpostor && Math.sin(t * 3) > 0.95) physBody.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0, 4, 0)); } },
+      t_pose:   { dur: 4.0, fn: (t) => { const h = t < 0.5 ? t / 0.5 : 1; vr.scaling.set(1 + h * 0.3, 1, 1); } },
+      shake:    { dur: 3.0, fn: (t) => { vr.rotation.z = Math.sin(t * 10) * 0.3; vr.rotation.x = Math.sin(t * 7) * 0.1; } },
+      prayer:   { dur: 3.5, fn: (t) => { const h = t < 0.5 ? t / 0.5 : 1; vr.rotation.x = h * 0.15; } },
+      dj:       { dur: 3.5, fn: (t) => { vr.rotation.z = Math.sin(t * 6) * 0.2; vr.rotation.y += Math.sin(t * 3) * 0.01; } },
+      sway:     { dur: 4.0, fn: (t) => { vr.rotation.z = Math.sin(t * 3) * 0.2; } },
+      victory:  { dur: 4.0, fn: (t) => { vr.rotation.z = Math.sin(t * 8) * 0.3; if (physBody.physicsImpostor && Math.sin(t * 4) > 0.9) physBody.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0, 6, 0)); const s = 1 + Math.sin(t * 6) * 0.06; vr.scaling.set(s, s, s); } },
+      cartwheel:{ dur: 2.0, fn: (t, d) => { vr.rotation.z = (t / d) * Math.PI * 2; if (physBody.physicsImpostor && t < 0.1) physBody.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(3, 5, 0)); } },
+    };
+
+    const anim = animations[emote];
+    if (!anim) return;
+
+    const startY = vr.rotation.y;
+    let t = 0;
+    this._emoteObs = this.scene.onBeforeRenderObservable.add(() => {
+      t += this.engine.getDeltaTime() / 1000;
+      if (t > anim.dur) {
+        this._stopEmoteAnimation();
+        return;
+      }
+      anim.fn(t, anim.dur, startY);
+    });
   }
 
   showEmoteBubble(text) {
@@ -1643,21 +2466,46 @@ export class Game {
     // Update player — pass yaw for movement direction
     this.player.update(deltaTime, this.inputManager, this.camera, this._cameraYaw);
 
-    // Position first-person camera at player's head
+    // Position camera — third-person during emotes, first-person otherwise
     const playerPos = this.player.mesh.position;
-    this.camera.position.x = playerPos.x;
-    this.camera.position.y = playerPos.y + 1.5;
-    this.camera.position.z = playerPos.z;
 
-    // Apply yaw/pitch to camera target
-    const lookX = Math.sin(this._cameraYaw) * Math.cos(this._cameraPitch);
-    const lookY = Math.sin(this._cameraPitch);
-    const lookZ = Math.cos(this._cameraYaw) * Math.cos(this._cameraPitch);
-    this.camera.setTarget(new BABYLON.Vector3(
-      playerPos.x + lookX,
-      playerPos.y + 1.5 + lookY,
-      playerPos.z + lookZ
-    ));
+    if (this._emoteCamera) {
+      // Smoothly lerp the camera zoom
+      this._emoteCamLerp = Math.min(1, (this._emoteCamLerp || 0) + deltaTime * 3);
+      const t = this._emoteCamLerp;
+      // Position camera behind and above the player
+      const behindX = -Math.sin(this._cameraYaw) * 4;
+      const behindZ = -Math.cos(this._cameraYaw) * 4;
+      this.camera.position.x = playerPos.x + behindX * t;
+      this.camera.position.y = playerPos.y + 1.5 + 2.0 * t;
+      this.camera.position.z = playerPos.z + behindZ * t;
+      // Look at the player
+      this.camera.setTarget(new BABYLON.Vector3(
+        playerPos.x,
+        playerPos.y + 0.8,
+        playerPos.z
+      ));
+      // Make player mesh visible during emote
+      this.player.mesh.getChildMeshes().forEach(m => { m.isVisible = true; });
+    } else {
+      // Hide player mesh in first person (camera is inside the head)
+      this.player.mesh.getChildMeshes().forEach(m => { m.isVisible = false; });
+
+      // First-person camera at player's head
+      this.camera.position.x = playerPos.x;
+      this.camera.position.y = playerPos.y + 1.5;
+      this.camera.position.z = playerPos.z;
+
+      // Apply yaw/pitch to camera target
+      const lookX = Math.sin(this._cameraYaw) * Math.cos(this._cameraPitch);
+      const lookY = Math.sin(this._cameraPitch);
+      const lookZ = Math.cos(this._cameraYaw) * Math.cos(this._cameraPitch);
+      this.camera.setTarget(new BABYLON.Vector3(
+        playerPos.x + lookX,
+        playerPos.y + 1.5 + lookY,
+        playerPos.z + lookZ
+      ));
+    }
 
     // Shield logic
     if (this.inputManager.isKeyDown('f')) {

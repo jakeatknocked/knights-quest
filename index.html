@@ -8,6 +8,54 @@
 </head>
 <body>
 
+<!-- ==================== LOADING SCREEN ==================== -->
+<div id="loading-screen">
+  <div id="loading-knight"></div>
+  <div id="loading-content">
+    <div id="loading-sword">&#9876;</div>
+    <h1 id="loading-title">Knight's Quest</h1>
+    <div id="loading-bar-wrapper">
+      <div id="loading-bar-area">
+        <div id="loading-bar-container">
+          <div id="loading-bar"></div>
+        </div>
+        <svg id="loading-bullet" viewBox="0 0 120 20" width="120" height="20">
+          <!-- trail outer glow -->
+          <ellipse cx="40" cy="10" rx="50" ry="8" fill="#ff440011" filter="url(#blurTrail)"/>
+          <!-- trail mid -->
+          <ellipse cx="50" cy="10" rx="40" ry="6" fill="#ff660033"/>
+          <!-- trail inner -->
+          <ellipse cx="60" cy="10" rx="30" ry="4" fill="#ff880066"/>
+          <!-- trail hot -->
+          <ellipse cx="75" cy="10" rx="18" ry="3" fill="#ff8800aa"/>
+          <!-- bullet core -->
+          <circle cx="100" cy="10" r="8" fill="url(#bulletGrad)"/>
+          <!-- bullet highlight -->
+          <circle cx="97" cy="8" r="3" fill="#ffee66" opacity="0.8"/>
+          <defs>
+            <radialGradient id="bulletGrad" cx="40%" cy="35%">
+              <stop offset="0%" stop-color="#ffee66"/>
+              <stop offset="50%" stop-color="#ff8800"/>
+              <stop offset="100%" stop-color="#ff4400"/>
+            </radialGradient>
+            <filter id="blurTrail">
+              <feGaussianBlur stdDeviation="4"/>
+            </filter>
+          </defs>
+        </svg>
+      </div>
+      <div id="loading-enemy">
+        <div class="le-head"></div>
+        <div class="le-eyes"></div>
+        <div class="le-body"></div>
+        <div class="le-arms"></div>
+      </div>
+    </div>
+    <div id="loading-text">Forging your destiny...</div>
+    <div id="loading-tips"></div>
+  </div>
+</div>
+
 <!-- ==================== CANVAS ==================== -->
 <canvas id="gameCanvas"></canvas>
 
@@ -62,9 +110,21 @@
     <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
       <button id="shop-btn">&#128176; SHOP</button>
       <button id="achievements-btn">&#127942; ACHIEVEMENTS</button>
+      <button id="trophy-btn">&#127942; TROPHIES</button>
       <button id="trailer-btn">&#127916; TRAILER</button>
     </div>
+    <div style="margin-top: 8px;">
+      <button id="rebirth-btn">&#11088; REBIRTH</button>
+      <div id="rebirth-info" style="color:#ffaa00;font-size:12px;margin-top:4px;"></div>
+    </div>
   </div>
+</div>
+
+<!-- ==================== TROPHY ROOM ==================== -->
+<div id="trophy-screen">
+  <h1>&#127942; TROPHY ROOM &#127942;</h1>
+  <div id="trophy-content"></div>
+  <button id="trophy-back-btn">&#11013; BACK</button>
 </div>
 
 <!-- ==================== ACHIEVEMENTS SCREEN ==================== -->
@@ -84,6 +144,7 @@
     <button class="shop-tab" data-tab="pets">Pets</button>
     <button class="shop-tab" data-tab="upgrades">Upgrades</button>
     <button class="shop-tab" data-tab="potions">Potions</button>
+    <button class="shop-tab" data-tab="emotes">Emotes</button>
     <button class="shop-tab" data-tab="skins">Skins</button>
   </div>
   <div id="shop-items"></div>
@@ -212,14 +273,37 @@
 
 <!-- ==================== EMOTE WHEEL ==================== -->
 <div id="emote-wheel" style="display:none;">
-  <div class="emote-option" data-emote="GG!">GG!</div>
-  <div class="emote-option" data-emote="Nice!">Nice!</div>
-  <div class="emote-option" data-emote="Help!">Help!</div>
-  <div class="emote-option" data-emote="LOL">LOL</div>
-  <div class="emote-option" data-emote="Wow!">Wow!</div>
-  <div class="emote-option" data-emote="No!">No!</div>
-  <div class="emote-option" data-emote="Yes!">Yes!</div>
-  <div class="emote-option" data-emote="Go!">Go!</div>
+  <div id="emote-wheel-title">EMOTES</div>
+  <div id="emote-wheel-page"></div>
+  <div id="emote-nav">
+    <div id="emote-scroll-left" class="emote-scroll-btn">&#9664; PREV</div>
+    <div id="emote-page-dots"></div>
+    <div id="emote-scroll-right" class="emote-scroll-btn">NEXT &#9654;</div>
+  </div>
+</div>
+
+<!-- ==================== REBIRTH MENU ==================== -->
+<div id="rebirth-screen">
+  <div id="rebirth-panel">
+    <h1>&#11088; REBIRTH &#11088;</h1>
+    <div id="rebirth-current-info"></div>
+    <div id="rebirth-rewards">
+      <h3>What you GET:</h3>
+      <div class="rebirth-reward">&#11088; +25% permanent coin multiplier</div>
+      <div class="rebirth-reward">&#128081; Special rebirth star next to your name</div>
+      <div class="rebirth-reward">&#128293; Bragging rights forever!</div>
+    </div>
+    <div id="rebirth-costs">
+      <h3>What you LOSE:</h3>
+      <div class="rebirth-cost">&#128176; All your coins reset to 0</div>
+      <div class="rebirth-cost">&#128062; All your pets are removed</div>
+      <div class="rebirth-cost">&#9876; All your weapons reset</div>
+    </div>
+    <div id="rebirth-buttons">
+      <button id="rebirth-confirm-btn">&#11088; DO IT! REBIRTH! &#11088;</button>
+      <button id="rebirth-cancel-btn">&#11013; NAH, GO BACK</button>
+    </div>
+  </div>
 </div>
 
 <!-- ==================== CHAT ==================== -->

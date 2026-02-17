@@ -40,7 +40,7 @@ export class PracticeMode {
     this.game.state.ammo = { fire: 9999, ice: 9999, lightning: 9999 };
     this.game.practiceMode = true;
 
-    // Build castle level
+    // Build the castle level as a base (open layout for targets)
     this.game.world.buildLevel(0);
 
     // Teleport player
@@ -52,11 +52,38 @@ export class PracticeMode {
     // Clear all enemies — this is practice, no fighting!
     this.game.enemyManager.clearAll();
 
-    // Add bright practice lighting
+    // ---- Make it SUPER bright and friendly! ----
+
+    // Beautiful bright blue sky
+    this._oldClearColor = this.scene.clearColor.clone();
+    this.scene.clearColor = new BABYLON.Color4(0.5, 0.75, 1.0, 1);
+
+    // Disable fog — no spooky darkness
+    this._oldFogMode = this.scene.fogMode;
+    this.scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+
+    // Crank up the sun
+    if (this.game.sunLight) {
+      this._oldSunIntensity = this.game.sunLight.intensity;
+      this.game.sunLight.intensity = 3.0;
+      this._oldSunColor = this.game.sunLight.diffuse.clone();
+      this.game.sunLight.diffuse = new BABYLON.Color3(1, 1, 0.9);
+    }
+
+    // Bright ground — override to cheerful green grass
+    const ground = this.scene.getMeshByName('ground');
+    if (ground && ground.material) {
+      this._oldGroundColor = ground.material.diffuseColor.clone();
+      this._oldGroundEmissive = ground.material.emissiveColor.clone();
+      ground.material.diffuseColor = new BABYLON.Color3(0.3, 0.55, 0.15);
+      ground.material.emissiveColor = new BABYLON.Color3(0.08, 0.15, 0.04);
+    }
+
+    // Extra bright practice lighting — sunny day vibes!
     this._practiceLight = new BABYLON.HemisphericLight('practiceLight', new BABYLON.Vector3(0, 1, 0), this.scene);
-    this._practiceLight.intensity = 1.5;
-    this._practiceLight.diffuse = new BABYLON.Color3(1, 1, 1);
-    this._practiceLight.groundColor = new BABYLON.Color3(0.6, 0.6, 0.6);
+    this._practiceLight.intensity = 2.5;
+    this._practiceLight.diffuse = new BABYLON.Color3(1, 1, 0.95);
+    this._practiceLight.groundColor = new BABYLON.Color3(0.8, 0.85, 0.7);
 
     // Spawn targets
     this._spawnTargets();
@@ -78,6 +105,23 @@ export class PracticeMode {
     this.active = false;
     this.game.practiceMode = false;
     this.hudEl.style.display = 'none';
+
+    // Restore original scene settings
+    if (this._oldClearColor) {
+      this.scene.clearColor = this._oldClearColor;
+    }
+    if (this._oldFogMode !== undefined) {
+      this.scene.fogMode = this._oldFogMode;
+    }
+    if (this.game.sunLight) {
+      if (this._oldSunIntensity !== undefined) this.game.sunLight.intensity = this._oldSunIntensity;
+      if (this._oldSunColor) this.game.sunLight.diffuse = this._oldSunColor;
+    }
+    const ground = this.scene.getMeshByName('ground');
+    if (ground && ground.material && this._oldGroundColor) {
+      ground.material.diffuseColor = this._oldGroundColor;
+      ground.material.emissiveColor = this._oldGroundEmissive;
+    }
 
     // Clean up practice light
     if (this._practiceLight) {
