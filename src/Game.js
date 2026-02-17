@@ -869,7 +869,10 @@ export class Game {
       // --- REBIRTH TROPHIES ---
       { name: 'REBORN', desc: 'Rebirth once', icon: '&#x1F3C6;', color: '#ffaa44', met: rebirths >= 1, progress: `${Math.min(rebirths,1)} / 1 rebirth` },
       { name: 'REBORN KNIGHT', desc: 'Rebirth 5 times', icon: '&#x1F3C6;', color: '#ffcc00', met: rebirths >= 5, progress: `${Math.min(rebirths,5)} / 5 rebirths`, rank: 'epic' },
-      { name: 'LEGENDARY REBORN', desc: 'MAX rebirth (15)', icon: '&#x1F3C6;', color: '#ff44ff', met: rebirths >= 15, progress: `${Math.min(rebirths,15)} / 15 rebirths`, rank: 'legendary' },
+      { name: 'PRESTIGE KNIGHT', desc: 'Rebirth 15 times', icon: '&#x1F3C6;', color: '#ff44ff', met: rebirths >= 15, progress: `${Math.min(rebirths,15)} / 15 rebirths`, rank: 'legendary' },
+      { name: 'MYTHIC KNIGHT', desc: 'Rebirth 20 times', icon: '&#x1F3C6;', color: '#aa00ff', met: rebirths >= 20, progress: `${Math.min(rebirths,20)} / 20 rebirths`, rank: 'legendary' },
+      { name: 'GODLIKE KNIGHT', desc: 'Rebirth 25 times', icon: '&#x1F3C6;', color: '#ff0066', met: rebirths >= 25, progress: `${Math.min(rebirths,25)} / 25 rebirths`, rank: 'legendary' },
+      { name: 'ETERNAL LEGEND', desc: 'MAX rebirth (30)', icon: '&#x1F3C6;', color: '#00ffcc', met: rebirths >= 30, progress: `${Math.min(rebirths,30)} / 30 rebirths`, rank: 'legendary' },
 
       // --- ACHIEVEMENT TROPHIES ---
       { name: 'COLLECTOR', desc: 'Earn 25 achievements', icon: '&#x1F3C6;', color: '#88bb88', met: achCount >= 25, progress: `${Math.min(achCount,25)} / 25` },
@@ -926,25 +929,43 @@ export class Game {
   }
 
   _getRebirthRequirements(rebirthNum) {
-    // 15 rebirths total — each one harder! Rebirth 15 = MAX
+    // 30 rebirths total — each one harder! Rebirth 30 = MAX
     const reqs = [
-      { level: 5,  coins: 500,    kills: 0 },      // Rebirth 1
-      { level: 8,  coins: 1500,   kills: 0 },      // Rebirth 2
-      { level: 10, coins: 3000,   kills: 0 },      // Rebirth 3
-      { level: 10, coins: 5000,   kills: 200 },    // Rebirth 4
-      { level: 10, coins: 10000,  kills: 500 },    // Rebirth 5
-      { level: 10, coins: 15000,  kills: 750 },    // Rebirth 6
-      { level: 10, coins: 20000,  kills: 1000 },   // Rebirth 7
-      { level: 10, coins: 30000,  kills: 1500 },   // Rebirth 8
-      { level: 10, coins: 40000,  kills: 2000 },   // Rebirth 9
-      { level: 10, coins: 50000,  kills: 3000 },   // Rebirth 10
-      { level: 10, coins: 75000,  kills: 4000 },   // Rebirth 11
-      { level: 10, coins: 100000, kills: 5000 },   // Rebirth 12
-      { level: 10, coins: 150000, kills: 7500 },   // Rebirth 13
-      { level: 10, coins: 200000, kills: 10000 },  // Rebirth 14
-      { level: 10, coins: 500000, kills: 25000 },  // Rebirth 15 — THE FINAL ONE
+      { level: 5,  coins: 500,      kills: 0 },       // Rebirth 1
+      { level: 8,  coins: 1500,     kills: 0 },       // Rebirth 2
+      { level: 10, coins: 3000,     kills: 0 },       // Rebirth 3
+      { level: 10, coins: 5000,     kills: 200 },     // Rebirth 4
+      { level: 10, coins: 10000,    kills: 500 },     // Rebirth 5
+      { level: 10, coins: 15000,    kills: 750 },     // Rebirth 6
+      { level: 10, coins: 20000,    kills: 1000 },    // Rebirth 7
+      { level: 10, coins: 30000,    kills: 1500 },    // Rebirth 8
+      { level: 10, coins: 40000,    kills: 2000 },    // Rebirth 9
+      { level: 10, coins: 50000,    kills: 3000 },    // Rebirth 10
+      { level: 10, coins: 75000,    kills: 4000 },    // Rebirth 11
+      { level: 10, coins: 100000,   kills: 5000 },    // Rebirth 12
+      { level: 10, coins: 150000,   kills: 7500 },    // Rebirth 13
+      { level: 10, coins: 200000,   kills: 10000 },   // Rebirth 14
+      { level: 10, coins: 500000,   kills: 25000 },   // Rebirth 15
+      // === PRESTIGE REBIRTHS (16-20) ===
+      { level: 10, coins: 600000,   kills: 30000 },   // Rebirth 16
+      { level: 10, coins: 750000,   kills: 40000 },   // Rebirth 17
+      { level: 10, coins: 900000,   kills: 50000 },   // Rebirth 18
+      { level: 10, coins: 1200000,  kills: 65000 },   // Rebirth 19
+      { level: 10, coins: 1500000,  kills: 80000 },   // Rebirth 20
+      // === MYTHIC REBIRTHS (21-25) ===
+      { level: 10, coins: 2000000,  kills: 100000 },  // Rebirth 21
+      { level: 10, coins: 2500000,  kills: 125000 },  // Rebirth 22
+      { level: 10, coins: 3000000,  kills: 150000 },  // Rebirth 23
+      { level: 10, coins: 4000000,  kills: 200000 },  // Rebirth 24
+      { level: 10, coins: 5000000,  kills: 250000 },  // Rebirth 25
+      // === GODLIKE REBIRTHS (26-30) ===
+      { level: 10, coins: 6000000,  kills: 300000 },  // Rebirth 26
+      { level: 10, coins: 7500000,  kills: 400000 },  // Rebirth 27
+      { level: 10, coins: 10000000, kills: 500000 },  // Rebirth 28
+      { level: 10, coins: 15000000, kills: 750000 },  // Rebirth 29
+      { level: 10, coins: 25000000, kills: 1000000 }, // Rebirth 30 — THE ULTIMATE
     ];
-    if (rebirthNum >= 15) return null; // MAX reached!
+    if (rebirthNum >= 30) return null; // MAX reached!
     return reqs[Math.min(rebirthNum, reqs.length - 1)];
   }
 
@@ -967,16 +988,16 @@ export class Game {
     if (!req) {
       infoEl.innerHTML = `
         <div style="font-size:32px; margin-bottom:8px;">&#128081;&#11088;&#128081;</div>
-        <div style="color:#ff44ff; font-size:22px; font-weight:bold; text-shadow:0 0 15px #ff00ff;">
-          MAX REBIRTH — LEGENDARY KNIGHT
+        <div style="color:#00ffcc; font-size:22px; font-weight:bold; text-shadow:0 0 15px #00ffcc;">
+          MAX REBIRTH — ETERNAL LEGEND
         </div>
         <div style="color:#ffcc00; font-size:16px; margin-top:8px;">
-          ${'&#11088;'.repeat(15)}
+          ${'&#11088;'.repeat(30)}
         </div>
-        <div style="margin-top:8px;">Coin multiplier: <span style="color:#ff44ff; font-size:20px; font-weight:bold;">${currentMulti.toFixed(2)}x</span></div>
+        <div style="margin-top:8px;">Coin multiplier: <span style="color:#00ffcc; font-size:20px; font-weight:bold;">${currentMulti.toFixed(2)}x</span></div>
         <div style="color:#aaa; margin-top:8px;">
           You have reached the ULTIMATE rebirth.<br>
-          There is nothing left to prove. You are a LEGEND.
+          There is nothing left to prove. You are an ETERNAL LEGEND.
         </div>
       `;
 
@@ -990,7 +1011,7 @@ export class Game {
       confirmBtn.disabled = true;
       confirmBtn.style.opacity = '0.4';
       confirmBtn.style.cursor = 'default';
-      confirmBtn.innerHTML = '&#128081; MAX REBIRTH REACHED &#128081;';
+      confirmBtn.innerHTML = '&#128081; MAX REBIRTH — ETERNAL LEGEND &#128081;';
 
       document.getElementById('start-screen').style.display = 'none';
       document.getElementById('rebirth-screen').style.display = 'flex';
@@ -1009,13 +1030,19 @@ export class Game {
     const canRebirth = levelOk && coinsOk && killsOk;
 
     // Is this the FINAL rebirth?
-    const isFinal = (rebirths === 14);
+    const isFinal = (rebirths === 29);
+
+    // Determine tier label
+    let tierLabel = '';
+    if (rebirths >= 25) tierLabel = '<span style="color:#00ffcc;">GODLIKE</span> ';
+    else if (rebirths >= 20) tierLabel = '<span style="color:#aa00ff;">MYTHIC</span> ';
+    else if (rebirths >= 15) tierLabel = '<span style="color:#ff44ff;">PRESTIGE</span> ';
 
     // Build requirements checklist HTML
     const check = '&#9989;';
     const cross = '&#10060;';
     let reqHTML = isFinal
-      ? `<h3 style="color:#ff44ff;">&#128081; THE FINAL REBIRTH &#128081;</h3>`
+      ? `<h3 style="color:#00ffcc;">&#128081; THE FINAL REBIRTH &#128081;</h3>`
       : `<h3>Requirements for Rebirth ${rebirths + 1}:</h3>`;
     reqHTML += `<div class="rebirth-req ${levelOk ? 'done' : 'not-done'}">${levelOk ? check : cross} Beat Level ${req.level} <span style="color:#aaa;">(You: Level ${level})</span></div>`;
     reqHTML += `<div class="rebirth-req ${coinsOk ? 'done' : 'not-done'}">${coinsOk ? check : cross} Earn ${req.coins.toLocaleString()} coins <span style="color:#aaa;">(You: ${coins.toLocaleString()})</span></div>`;
@@ -1023,19 +1050,35 @@ export class Game {
       reqHTML += `<div class="rebirth-req ${killsOk ? 'done' : 'not-done'}">${killsOk ? check : cross} Get ${req.kills.toLocaleString()} kills <span style="color:#aaa;">(You: ${kills.toLocaleString()})</span></div>`;
     }
 
-    // Star display (show all 15 slots, filled ones gold, empty ones grey)
+    // Star display — show tier rows for 30 rebirths
     let starHTML = '';
-    for (let i = 0; i < 15; i++) {
-      if (i < rebirths) {
-        starHTML += '<span style="font-size:18px;">&#11088;</span>';
-      } else {
-        starHTML += '<span style="font-size:18px; opacity:0.2;">&#11088;</span>';
+    const tierColors = ['#ffcc00', '#ffcc00', '#ffcc00', '#aa00ff', '#aa00ff', '#00ffcc'];
+    const tierLabels = ['', '', '', 'PRESTIGE ', 'MYTHIC ', 'GODLIKE '];
+    for (let tier = 0; tier < 6; tier++) {
+      const start = tier * 5;
+      const end = start + 5;
+      if (rebirths >= start || tier === 0) {
+        for (let i = start; i < end; i++) {
+          if (i < rebirths) {
+            starHTML += `<span style="font-size:16px;color:${tierColors[tier]};">&#11088;</span>`;
+          } else {
+            starHTML += '<span style="font-size:16px; opacity:0.2;">&#11088;</span>';
+          }
+        }
+        if (tier < 5) starHTML += ' ';
       }
     }
 
+    // Rebirth tier title
+    let tierTitle = 'No rebirths yet';
+    if (rebirths >= 26) tierTitle = `&#x1F31F; GODLIKE ${rebirths} / 30`;
+    else if (rebirths >= 21) tierTitle = `&#x2728; MYTHIC ${rebirths} / 30`;
+    else if (rebirths >= 16) tierTitle = `&#x1F4AB; PRESTIGE ${rebirths} / 30`;
+    else if (rebirths > 0) tierTitle = `Rebirth ${rebirths} / 30`;
+
     infoEl.innerHTML = `
       <div style="color:#ffcc00; font-size:18px; margin-bottom:6px;">
-        ${rebirths > 0 ? 'Rebirth ' + rebirths + ' / 15' : 'No rebirths yet'}
+        ${tierTitle}
       </div>
       <div>${starHTML}</div>
       <div style="margin-top:6px;">Current: <span style="color:#ffcc00;">${currentMulti.toFixed(2)}x</span> &rarr; After: <span style="color:#44ff44;">${nextMulti.toFixed(2)}x</span></div>
@@ -1058,8 +1101,8 @@ export class Game {
     reqEl.innerHTML = reqHTML;
     reqEl.style.cssText = 'text-align:left;margin:8px 0;padding:10px;border-radius:10px;background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.3);';
     if (isFinal) {
-      reqEl.style.border = '2px solid #ff44ff';
-      reqEl.style.background = 'rgba(255,0,255,0.08)';
+      reqEl.style.border = '2px solid #00ffcc';
+      reqEl.style.background = 'rgba(0,255,200,0.08)';
     }
 
     // Enable/disable confirm button
@@ -1331,7 +1374,10 @@ export class Game {
     if (newRebirths >= 3) this.achievements.unlock('rebirth_3', this.hud);
     if (newRebirths >= 5) this.achievements.unlock('rebirth_5', this.hud);
     if (newRebirths >= 10) this.achievements.unlock('rebirth_10', this.hud);
-    if (newRebirths >= 15) this.achievements.unlock('rebirth_max', this.hud);
+    if (newRebirths >= 15) this.achievements.unlock('rebirth_15', this.hud);
+    if (newRebirths >= 20) this.achievements.unlock('rebirth_20', this.hud);
+    if (newRebirths >= 25) this.achievements.unlock('rebirth_25', this.hud);
+    if (newRebirths >= 30) this.achievements.unlock('rebirth_max', this.hud);
 
     // Update displays
     this._updateRebirthInfo();
@@ -1353,11 +1399,20 @@ export class Game {
     const rebirths = parseInt(localStorage.getItem('rebirthCount') || '0');
     const infoEl = document.getElementById('rebirth-info');
     const req = this._getRebirthRequirements(rebirths);
-    if (rebirths >= 15) {
-      infoEl.innerHTML = '&#128081; <span style="color:#ff44ff;">MAX REBIRTH — LEGENDARY KNIGHT</span> &#128081; | ' + (1 + rebirths * 0.25).toFixed(2) + 'x';
+    if (rebirths >= 30) {
+      infoEl.innerHTML = '&#128081; <span style="color:#00ffcc;">MAX REBIRTH — ETERNAL LEGEND</span> &#128081; | ' + (1 + rebirths * 0.25).toFixed(2) + 'x';
+    } else if (rebirths >= 26) {
+      const multi = 1 + (rebirths * 0.25);
+      infoEl.innerHTML = '&#11088;'.repeat(Math.min(rebirths, 10)) + ' <span style="color:#00ffcc;">GODLIKE</span> ' + rebirths + '/30 | Coins: ' + multi.toFixed(2) + 'x';
+    } else if (rebirths >= 21) {
+      const multi = 1 + (rebirths * 0.25);
+      infoEl.innerHTML = '&#11088;'.repeat(Math.min(rebirths, 10)) + ' <span style="color:#aa00ff;">MYTHIC</span> ' + rebirths + '/30 | Coins: ' + multi.toFixed(2) + 'x';
+    } else if (rebirths >= 16) {
+      const multi = 1 + (rebirths * 0.25);
+      infoEl.innerHTML = '&#11088;'.repeat(Math.min(rebirths, 10)) + ' <span style="color:#ff44ff;">PRESTIGE</span> ' + rebirths + '/30 | Coins: ' + multi.toFixed(2) + 'x';
     } else if (rebirths > 0) {
       const multi = 1 + (rebirths * 0.25);
-      infoEl.innerHTML = '&#11088;'.repeat(rebirths) + ' Rebirth ' + rebirths + '/15 | Coins: ' + multi.toFixed(2) + 'x';
+      infoEl.innerHTML = '&#11088;'.repeat(rebirths) + ' Rebirth ' + rebirths + '/30 | Coins: ' + multi.toFixed(2) + 'x';
     } else {
       infoEl.textContent = `Reach Level ${req.level} + ${req.coins.toLocaleString()} coins to rebirth!`;
     }
