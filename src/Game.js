@@ -676,6 +676,20 @@ export class Game {
     document.getElementById('admin-close-btn').addEventListener('click', () => {
       this._closeAdminPanel();
     });
+
+    // Admin Abuse mega button
+    this._abuseActive = false;
+    const abuseBtn = document.getElementById('admin-abuse-btn');
+    if (abuseBtn) {
+      abuseBtn.addEventListener('click', () => {
+        this._abuseActive = !this._abuseActive;
+        this._toggleGlobalAbuse(this._abuseActive);
+        abuseBtn.className = this._abuseActive ? 'admin-abuse-on' : 'admin-abuse-off';
+        abuseBtn.innerHTML = this._abuseActive
+          ? '&#9989; ADMIN ABUSE ACTIVE — CLICK TO STOP'
+          : '&#128520; START ADMIN ABUSE';
+      });
+    }
   }
 
   _openAdminPanel() {
@@ -1842,10 +1856,170 @@ export class Game {
     this._lastBroadcastId = 0;
     this._broadcastBanner = document.getElementById('broadcast-banner');
     this._broadcastTimer = null;
+    this._abuseOverlay = document.getElementById('abuse-overlay');
+    this._globalAbuseActive = false;
 
-    // Poll every 5 seconds
-    this._broadcastInterval = setInterval(() => this._pollBroadcasts(), 5000);
+    // Poll every 5 seconds for broadcasts AND admin abuse state
+    this._broadcastInterval = setInterval(() => {
+      this._pollBroadcasts();
+      this._pollAdminAbuse();
+    }, 5000);
     this._pollBroadcasts();
+    this._pollAdminAbuse();
+  }
+
+  async _toggleGlobalAbuse(active) {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/server_events?id=eq.admin_abuse`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          active,
+          started_by: this.state.username || 'ADMIN',
+          started_at: active ? new Date().toISOString() : null
+        })
+      });
+
+      if (active) {
+        this._sendBroadcast('ADMIN ABUSE HAS BEGUN! BRACE YOURSELVES!');
+        this._adminStatus('ADMIN ABUSE STARTED GLOBALLY!');
+      } else {
+        this._sendBroadcast('Admin abuse has ended. You are safe... for now.');
+        this._adminStatus('Admin abuse stopped.');
+      }
+    } catch (e) {
+      this._adminStatus('Failed to toggle admin abuse!');
+    }
+  }
+
+  async _pollAdminAbuse() {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/server_events?id=eq.admin_abuse&select=active,started_by`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const wasActive = this._globalAbuseActive;
+        this._globalAbuseActive = data[0].active;
+
+        // State changed — apply or remove effects
+        if (this._globalAbuseActive && !wasActive) {
+          this._startAbuseEffects();
+        } else if (!this._globalAbuseActive && wasActive) {
+          this._stopAbuseEffects();
+        }
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  _startAbuseEffects() {
+    // Screen overlay
+    if (this._abuseOverlay) this._abuseOverlay.classList.add('active');
+
+    // Disco sky colors
+    this._abuseDiscoInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      const r = Math.random(), g = Math.random(), b = Math.random();
+      this.scene.clearColor = new BABYLON.Color4(r * 0.4, g * 0.4, b * 0.4, 1);
+      if (this.sunLight) {
+        this.sunLight.diffuse = new BABYLON.Color3(r, g, b);
+        this.sunLight.intensity = 1 + Math.random() * 3;
+      }
+    }, 300);
+
+    // Spawn extra enemies around the player periodically
+    this._abuseEnemyInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      for (let i = 0; i < 3; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 10 + Math.random() * 15;
+        const pos = this.player.mesh.position.clone();
+        pos.x += Math.cos(angle) * dist;
+        pos.z += Math.sin(angle) * dist;
+        this.enemyManager.spawnEnemy(pos);
+      }
+    }, 3000);
+
+    // Rain coins
+    this._abuseCoinInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      const pp = this.player.mesh.position;
+      const offset = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 20, 0, (Math.random() - 0.5) * 20
+      );
+      this.pickupManager.spawn(pp.add(offset), 'coin');
+    }, 200);
+
+    // Fireworks
+    this._abuseFireworkInterval = setInterval(() => {
+      if (!this._globalAbuseActive) return;
+      const pp = this.player.mesh.position.clone();
+      const pos = new BABYLON.Vector3(
+        pp.x + (Math.random() - 0.5) * 30,
+        pp.y + 10 + Math.random() * 15,
+        pp.z + (Math.random() - 0.5) * 30
+      );
+      const elements = ['fire', 'ice', 'lightning'];
+      this.combatSystem.createExplosion(pos, elements[Math.floor(Math.random() * 3)], 0);
+    }, 500);
+
+    // Low gravity
+    if (this.scene.getPhysicsEngine()) {
+      this._abuseOldGravity = this.scene.getPhysicsEngine().gravity.clone();
+      this.scene.getPhysicsEngine().setGravity(new BABYLON.Vector3(0, -2, 0));
+    }
+
+    // Screen shake effect
+    this._abuseShakeInterval = setInterval(() => {
+      if (!this._globalAbuseActive || !this.camera) return;
+      this._cameraPitch += (Math.random() - 0.5) * 0.02;
+      this._cameraYaw += (Math.random() - 0.5) * 0.02;
+    }, 50);
+
+    this.hud.showMessage('ADMIN ABUSE ACTIVATED!');
+  }
+
+  _stopAbuseEffects() {
+    // Remove overlay
+    if (this._abuseOverlay) this._abuseOverlay.classList.remove('active');
+
+    // Clear all intervals
+    clearInterval(this._abuseDiscoInterval);
+    clearInterval(this._abuseEnemyInterval);
+    clearInterval(this._abuseCoinInterval);
+    clearInterval(this._abuseFireworkInterval);
+    clearInterval(this._abuseShakeInterval);
+
+    // Restore sky and lighting
+    this.scene.clearColor = new BABYLON.Color4(0.5, 0.7, 1.0, 1);
+    if (this.sunLight) {
+      this.sunLight.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
+      this.sunLight.intensity = 1.5;
+    }
+
+    // Restore gravity
+    if (this.scene.getPhysicsEngine() && this._abuseOldGravity) {
+      this.scene.getPhysicsEngine().setGravity(this._abuseOldGravity);
+    }
+
+    this.hud.showMessage('Admin abuse has ended.');
   }
 
   async _pollBroadcasts() {
