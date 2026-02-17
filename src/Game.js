@@ -672,6 +672,9 @@ export class Game {
     this._adminPanelOpen = true;
     document.getElementById('admin-panel').style.display = 'flex';
     document.exitPointerLock();
+    // Freeze the game so you don't die while in admin panel
+    this._adminFrozenScene = true;
+    this.scene.physicsEnabled = false;
     this._renderAdminTab();
   }
 
@@ -679,6 +682,9 @@ export class Game {
     this._adminPanelOpen = false;
     document.getElementById('admin-panel').style.display = 'none';
     document.getElementById('admin-status').textContent = '';
+    // Unfreeze the game
+    this._adminFrozenScene = false;
+    this.scene.physicsEnabled = true;
     // Re-lock pointer for gameplay
     const canvas = document.getElementById('gameCanvas');
     if (canvas) canvas.requestPointerLock();
@@ -2400,6 +2406,9 @@ export class Game {
     this._partyFireworks = [];
     this._partyDuration = 0;
 
+    // Cache party meshes so we don't call getMeshByName every frame
+    this._partyCached = {};
+
     // Spawn dancing NPCs
     this._partyNPCs = [];
     this._spawnDancingNPCs();
@@ -2947,6 +2956,9 @@ export class Game {
   }
 
   update(deltaTime) {
+    // Freeze everything when admin panel is open
+    if (this._adminFrozenScene) return;
+
     // Update player — pass yaw for movement direction
     this.player.update(deltaTime, this.inputManager, this.camera, this._cameraYaw);
 
@@ -2969,11 +2981,13 @@ export class Game {
         playerPos.y + 0.8,
         playerPos.z
       ));
-      // Make player mesh visible during emote
-      this.player.mesh.getChildMeshes().forEach(m => { m.isVisible = true; });
+      // Make player mesh visible during emote (cache child meshes)
+      if (!this._playerChildMeshes) this._playerChildMeshes = this.player.mesh.getChildMeshes();
+      for (let i = 0; i < this._playerChildMeshes.length; i++) this._playerChildMeshes[i].isVisible = true;
     } else {
       // Hide player mesh in first person (camera is inside the head)
-      this.player.mesh.getChildMeshes().forEach(m => { m.isVisible = false; });
+      if (!this._playerChildMeshes) this._playerChildMeshes = this.player.mesh.getChildMeshes();
+      for (let i = 0; i < this._playerChildMeshes.length; i++) this._playerChildMeshes[i].isVisible = false;
 
       // First-person camera at player's head
       this.camera.position.x = playerPos.x;
@@ -3100,22 +3114,39 @@ export class Game {
       // Animate dancing NPCs
       this._updateDancingNPCs(deltaTime);
 
+      // Cache party meshes on first frame
+      const pc = this._partyCached;
+      if (!pc._loaded) {
+        pc._loaded = true;
+        pc.discoBall = this.scene.getMeshByName('discoBall');
+        pc.spinPlats = [];
+        pc.spinStars = [];
+        for (let i = 0; i < 3; i++) {
+          pc.spinPlats[i] = this.scene.getMeshByName('spinPlat' + i);
+          pc.spinStars[i] = this.scene.getMeshByName('spinStar' + i);
+        }
+        pc.balloons = [];
+        for (let i = 0; i < 20; i++) {
+          pc.balloons[i] = this.scene.getMeshByName('balloon' + i);
+        }
+        pc.flames = [];
+        for (let i = 0; i < 5; i++) {
+          pc.flames[i] = this.scene.getMeshByName('flame' + i);
+        }
+      }
+
       // Spin the disco ball
-      const discoBall = this.scene.getMeshByName('discoBall');
-      if (discoBall) discoBall.rotation.y += deltaTime * 1.5;
+      if (pc.discoBall) pc.discoBall.rotation.y += deltaTime * 1.5;
 
       // Spin platforms
       for (let i = 0; i < 3; i++) {
-        const plat = this.scene.getMeshByName('spinPlat' + i);
-        if (plat) plat.rotation.y += deltaTime * (1.5 + i * 0.5);
-        const star = this.scene.getMeshByName('spinStar' + i);
-        if (star) star.rotation.y -= deltaTime * (2 + i * 0.5);
+        if (pc.spinPlats[i]) pc.spinPlats[i].rotation.y += deltaTime * (1.5 + i * 0.5);
+        if (pc.spinStars[i]) pc.spinStars[i].rotation.y -= deltaTime * (2 + i * 0.5);
       }
 
       // Bobbing balloons
       for (let i = 0; i < 20; i++) {
-        const b = this.scene.getMeshByName('balloon' + i);
-        if (b) b.position.y += Math.sin(this._partyDuration * 1.5 + i) * 0.003;
+        if (pc.balloons[i]) pc.balloons[i].position.y += Math.sin(this._partyDuration * 1.5 + i) * 0.003;
       }
 
       // Trampoline bounce — if player is near a trampoline, bounce them up!
@@ -3138,12 +3169,11 @@ export class Game {
       if (pPos.y >= 20) this.achievements.unlock('reach_height_20', this.hud);
       if (pPos.y >= 50) this.achievements.unlock('reach_height_50', this.hud);
 
-      // Flickering candle flames
+      // Flickering candle flames (using cached refs)
       for (let i = 0; i < 5; i++) {
-        const flame = this.scene.getMeshByName('flame' + i);
-        if (flame) {
-          flame.scaling.y = 0.8 + Math.random() * 0.5;
-          flame.scaling.x = 0.8 + Math.random() * 0.3;
+        if (pc.flames[i]) {
+          pc.flames[i].scaling.y = 0.8 + Math.random() * 0.5;
+          pc.flames[i].scaling.x = 0.8 + Math.random() * 0.3;
         }
       }
     }
@@ -3221,8 +3251,9 @@ export class Game {
       this.hud.showZone(this.state.levelName);
     }
 
-    // Update rank based on score
-    if (!this.state.isAdmin) {
+    // Update rank based on score — only check when score changes
+    if (!this.state.isAdmin && this.state.score !== this._lastRankScore) {
+      this._lastRankScore = this.state.score;
       for (let i = this.ranks.length - 1; i >= 0; i--) {
         if (this.state.score >= this.ranks[i].score) {
           const newRank = this.ranks[i].name;
@@ -3246,10 +3277,12 @@ export class Game {
       yaw: this._cameraYaw, pitch: this._cameraPitch,
       time: this._replayTime
     });
-    // Trim old frames beyond 5 seconds
+    // Trim old frames beyond 5 seconds (use splice instead of shift for efficiency)
     const cutoff = this._replayTime - this.replayMaxTime;
-    while (this.replayBuffer.length > 0 && this.replayBuffer[0].time < cutoff) {
-      this.replayBuffer.shift();
+    if (this.replayBuffer.length > 0 && this.replayBuffer[0].time < cutoff) {
+      let trimIdx = 0;
+      while (trimIdx < this.replayBuffer.length && this.replayBuffer[trimIdx].time < cutoff) trimIdx++;
+      if (trimIdx > 0) this.replayBuffer.splice(0, trimIdx);
     }
 
     // Play time tracking
