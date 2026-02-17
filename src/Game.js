@@ -686,6 +686,7 @@ export class Game {
     this._adminFrozenScene = true;
     this.scene.physicsEnabled = false;
     this._renderAdminTab();
+    this.achievements.unlock('admin_panel', this.hud);
   }
 
   _closeAdminPanel() {
@@ -940,6 +941,7 @@ export class Game {
     document.getElementById('admin-god').onclick = () => {
       this._godMode = !this._godMode;
       this._adminStatus(`God Mode: ${this._godMode ? 'ON' : 'OFF'}`);
+      if (this._godMode) this.achievements.unlock('admin_god_mode', this.hud);
       this._renderAdminTab();
     };
 
@@ -1135,6 +1137,23 @@ export class Game {
         this._applyAdminPower(key, p[key]);
         this._renderAdminPowers(el);
         this._adminStatus(`${key}: ${p[key] ? 'ON' : 'OFF'}`);
+
+        // Admin power achievements
+        if (p[key]) {
+          const powerAchievements = {
+            killAura: 'admin_kill_aura',
+            flyMode: 'admin_fly',
+            giantMode: 'admin_giant',
+            tinyMode: 'admin_tiny',
+            laserEyes: 'admin_laser_eyes',
+          };
+          if (powerAchievements[key]) this.achievements.unlock(powerAchievements[key], this.hud);
+
+          // Check 5 powers active
+          const activeCount = Object.values(p).filter(v => v === true).length;
+          if (activeCount >= 5) this.achievements.unlock('admin_5_powers', this.hud);
+          if (activeCount >= 16) this.achievements.unlock('admin_all_powers', this.hud);
+        }
       };
     });
 
@@ -1184,6 +1203,7 @@ export class Game {
       alive.forEach(e => { e.health = 0; e.die(); });
       this.state.score += alive.length * 50;
       this._adminStatus('NUKE LAUNCHED! ☢');
+      this.achievements.unlock('admin_nuke', this.hud);
     };
 
     document.getElementById('ap-healfull').onclick = () => {
@@ -1229,6 +1249,7 @@ export class Game {
         }
       });
       this._adminStatus(`Yeeted ${alive.length} enemies into the sky!`);
+      this.achievements.unlock('admin_yeet', this.hud);
     };
   }
 
@@ -1304,6 +1325,8 @@ export class Game {
           e.die();
           this.state.score += 10;
           this.state.totalKills = (this.state.totalKills || 0) + 1;
+          this._adminKills = (this._adminKills || 0) + 1;
+          if (this._adminKills >= 1000) this.achievements.unlock('admin_abuse_1000', this.hud);
         }
       }
     }
@@ -1322,6 +1345,8 @@ export class Game {
             this.combatSystem.createExplosion(e.mesh.position.clone(), 'fire');
             e.health = 0; e.die();
             this.state.score += 15;
+            this._adminKills = (this._adminKills || 0) + 1;
+            if (this._adminKills >= 1000) this.achievements.unlock('admin_abuse_1000', this.hud);
           }
         }
       }
@@ -1535,6 +1560,15 @@ export class Game {
   _triggerEvent(eventId, active) {
     if (active) {
       this._sendBroadcast(this._getEventMessage(eventId));
+
+      // Event achievements
+      const eventAchievements = { chaos: 'admin_chaos', disco: 'admin_disco', zombie: 'admin_zombie' };
+      if (eventAchievements[eventId]) this.achievements.unlock(eventAchievements[eventId], this.hud);
+
+      // Track unique events triggered for Event Planner achievement
+      if (!this._triggeredEvents) this._triggeredEvents = new Set();
+      this._triggeredEvents.add(eventId);
+      if (this._triggeredEvents.size >= 3) this.achievements.unlock('admin_event_3', this.hud);
     }
 
     switch (eventId) {
@@ -1798,6 +1832,7 @@ export class Game {
         })
       });
       this._adminStatus(`Broadcast sent: "${message}"`);
+      this.achievements.unlock('admin_broadcast', this.hud);
     } catch (e) {
       this._adminStatus('Failed to send broadcast!');
     }
