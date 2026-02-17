@@ -168,12 +168,7 @@ export class Enemy {
     eyeR.parent = this.visualRoot;
     eyeR.material = glowMat;
 
-    // Eye glow light
-    this.eyeLight = new BABYLON.PointLight('eEyeGlow', new BABYLON.Vector3(0, 1.06, 0.35), this.scene);
-    this.eyeLight.diffuse = new BABYLON.Color3(1, 0, 0);
-    this.eyeLight.intensity = 0.4;
-    this.eyeLight.range = 3;
-    this.eyeLight.parent = this.visualRoot;
+    // Eye glow — use emissive instead of PointLight for performance
 
     // Spiked shoulder pads (bigger, with spikes)
     const shoulderL = BABYLON.MeshBuilder.CreateSphere('eShoulderL', { diameter: 0.4 }, this.scene);

@@ -290,13 +290,7 @@ export class Pet {
     tail.parent = this.mesh;
     tail.material = mat;
 
-    // Belly glow light
-    this.petLight = new BABYLON.PointLight('dragonGlow', BABYLON.Vector3.Zero(), this.scene);
-    this.petLight.diffuse = new BABYLON.Color3(1, 0.4, 0);
-    this.petLight.intensity = 0.3;
-    this.petLight.range = 4;
-    this.petLight.parent = this.mesh;
-    this.petLight.position.y = 1.2;
+    // Belly glow via emissive — no PointLight for performance
   }
 
   _buildFairy(mat, accentMat) {
@@ -343,13 +337,7 @@ export class Pet {
       wingL.material = wingMat;
     }
 
-    // Glow light
-    this.petLight = new BABYLON.PointLight('fairyGlow', BABYLON.Vector3.Zero(), this.scene);
-    this.petLight.diffuse = new BABYLON.Color3(0.3, 1, 0.5);
-    this.petLight.intensity = 0.5;
-    this.petLight.range = 5;
-    this.petLight.parent = this.mesh;
-    this.petLight.position.y = 1.5;
+    // Fairy glow via emissive — no PointLight for performance
 
     // Sparkle particles around fairy
     const sparkMat = new BABYLON.StandardMaterial('sparkMat', this.scene);
@@ -411,13 +399,7 @@ export class Pet {
     mouthMat.emissiveColor = new BABYLON.Color3(0.02, 0.02, 0.04);
     mouth.material = mouthMat;
 
-    // Glow
-    this.petLight = new BABYLON.PointLight('ghostGlow', BABYLON.Vector3.Zero(), this.scene);
-    this.petLight.diffuse = new BABYLON.Color3(0.4, 0.6, 1);
-    this.petLight.intensity = 0.4;
-    this.petLight.range = 4;
-    this.petLight.parent = this.mesh;
-    this.petLight.position.y = 1.3;
+    // Ghost glow via emissive — no PointLight for performance
   }
 
   update(deltaTime, enemyManager, gameState) {
@@ -533,16 +515,11 @@ export class Pet {
     ball.position.y += 1.3;
     ball.material = fireMat;
 
-    const light = new BABYLON.PointLight('petFireLight', ball.position.clone(), this.scene);
-    light.diffuse = new BABYLON.Color3(1, 0.4, 0);
-    light.intensity = 0.4;
-    light.range = 3;
-    light.parent = ball;
+    // Pet fire glow via emissive — no PointLight for performance
 
     const dir = target.mesh.position.subtract(ball.position).normalize();
     this.projectiles.push({
       mesh: ball,
-      light,
       velocity: dir.scale(15),
       life: 2,
       damage: this.config.attackDamage,
@@ -554,7 +531,6 @@ export class Pet {
       const p = this.projectiles[i];
       p.life -= deltaTime;
       if (p.life <= 0 || !p.mesh) {
-        if (p.light) p.light.dispose();
         if (p.mesh) { if (p.mesh.material) p.mesh.material.dispose(); p.mesh.dispose(); }
         this.projectiles.splice(i, 1);
         continue;
@@ -621,7 +597,6 @@ export class Pet {
   dispose() {
     // Clean up projectiles
     this.projectiles.forEach(p => {
-      if (p.light) p.light.dispose();
       if (p.mesh) { if (p.mesh.material) p.mesh.material.dispose(); p.mesh.dispose(); }
     });
     this.projectiles = [];
@@ -633,7 +608,6 @@ export class Pet {
     }
 
     // Clean up light
-    if (this.petLight) { this.petLight.dispose(); this.petLight = null; }
 
     // Dispose all children then the root
     if (this.mesh) {

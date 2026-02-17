@@ -34,7 +34,10 @@ export class Game {
     // Create scene
     this.scene = new BABYLON.Scene(this.engine);
     this.scene.clearColor = new BABYLON.Color4(0.4, 0.6, 0.9, 1);
-    this.scene.maxSimultaneousLights = 12;
+    this.scene.maxSimultaneousLights = 4;
+    // Performance: skip light sorting and limit active lights
+    this.scene.autoClear = false;
+    this.scene.blockMaterialDirtyMechanism = true;
 
     // Enable physics
     this.scene.enablePhysics(

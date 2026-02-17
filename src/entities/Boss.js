@@ -324,12 +324,7 @@ export class Boss {
     eyeR.parent = this.visualRoot;
     eyeR.material = eyeMat;
 
-    // Eye glow light
-    const bossEyeLight = new BABYLON.PointLight('bossEyeGlow', new BABYLON.Vector3(0, 1.08 * s, 0.35 * s), this.scene);
-    bossEyeLight.diffuse = this.config.eyeColor;
-    bossEyeLight.intensity = 0.6;
-    bossEyeLight.range = 5 * s;
-    bossEyeLight.parent = this.visualRoot;
+    // Eye glow via emissive — no PointLight for performance
 
     // Big spiked shoulder pads
     for (let side = -1; side <= 1; side += 2) {
@@ -381,12 +376,7 @@ export class Boss {
     scepterOrb.parent = this.visualRoot;
     scepterOrb.material = eyeMat;
 
-    // Scepter orb glow
-    const scepterLight = new BABYLON.PointLight('scepterGlow', new BABYLON.Vector3(0.65 * s, 0.72 * s, 0.15 * s), this.scene);
-    scepterLight.diffuse = this.config.eyeColor;
-    scepterLight.intensity = 0.5;
-    scepterLight.range = 4 * s;
-    scepterLight.parent = this.visualRoot;
+    // Scepter glow via emissive — no PointLight for performance
 
     // Legs (armored boots)
     const bLegL = BABYLON.MeshBuilder.CreateBox('bLegL', {
@@ -870,10 +860,7 @@ export class Boss {
     );
     proj.material = mat;
 
-    const light = new BABYLON.PointLight('bossProjLight', proj.position.clone(), this.scene);
-    light.diffuse = this.config.projectileColor;
-    light.intensity = 0.8;
-    light.range = 6;
+    // Projectile glow via emissive — no PointLight for performance
 
     // Aim from spawn point directly at the player's body (y=1.0)
     const aimTarget = targetPos.clone();
@@ -884,7 +871,6 @@ export class Boss {
 
     this.projectiles.push({
       mesh: proj,
-      light: light,
       velocity: direction.scale(15),
       lifetime: 3.0
     });
@@ -921,7 +907,6 @@ export class Boss {
   }
 
   disposeProjectile(p) {
-    if (p.light) p.light.dispose();
     if (p.mesh) {
       if (p.mesh.material) p.mesh.material.dispose();
       p.mesh.dispose();

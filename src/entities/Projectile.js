@@ -35,11 +35,7 @@ export class Projectile {
     material.diffuseColor = color;
     this.mesh.material = material;
 
-    // Add light
-    this.light = new BABYLON.PointLight('projectileLight', position, scene);
-    this.light.diffuse = color;
-    this.light.intensity = 2;
-    this.light.range = 5;
+    // Projectile glow via emissive — no PointLight for performance
 
     // Trail effect
     this.trail = [];
