@@ -185,7 +185,10 @@ export class Achievements {
       { id: 'rebirth_3', name: 'Triple Reborn', desc: 'Rebirth 3 times', icon: '&#11088;' },
       { id: 'rebirth_5', name: 'Eternal Knight', desc: 'Rebirth 5 times — true dedication!', icon: '&#127775;' },
       { id: 'rebirth_10', name: 'Rebirth Master', desc: 'Rebirth 10 times!', icon: '&#11088;' },
-      { id: 'rebirth_max', name: 'LEGENDARY KNIGHT', desc: 'Reach MAX rebirth (15) — the ultimate achievement!', icon: '&#128081;' },
+      { id: 'rebirth_15', name: 'Prestige Knight', desc: 'Rebirth 15 times — entering prestige!', icon: '&#x1F4AB;' },
+      { id: 'rebirth_20', name: 'Mythic Knight', desc: 'Rebirth 20 times — mythic tier!', icon: '&#x2728;' },
+      { id: 'rebirth_25', name: 'Godlike Knight', desc: 'Rebirth 25 times — absolutely godlike!', icon: '&#x1F31F;' },
+      { id: 'rebirth_max', name: 'ETERNAL LEGEND', desc: 'Reach MAX rebirth (30) — the ultimate achievement!', icon: '&#128081;' },
 
       // Party achievements
       { id: 'party_time', name: 'Party Animal', desc: 'Enter the party level', icon: '&#x1F389;' },
