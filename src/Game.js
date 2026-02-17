@@ -1888,14 +1888,10 @@ export class Game {
         })
       });
 
-      // Start/stop effects immediately on admin's screen
-      this._globalAbuseActive = active;
       if (active) {
-        this._startAbuseEffects();
         this._sendBroadcast('ADMIN ABUSE HAS BEGUN! BRACE YOURSELVES!');
         this._adminStatus('ADMIN ABUSE STARTED GLOBALLY!');
       } else {
-        this._stopAbuseEffects();
         this._sendBroadcast('Admin abuse has ended. You are safe... for now.');
         this._adminStatus('Admin abuse stopped.');
       }
@@ -1920,6 +1916,11 @@ export class Game {
       );
       const data = await res.json();
       if (data && data.length > 0) {
+        // Admins are immune to abuse effects — they dish it out, not receive it
+        const adminNames = ['ggamer', 'weclyfrec'];
+        const isAdmin = adminNames.includes((this.state.username || '').toLowerCase());
+        if (isAdmin) return;
+
         const wasActive = this._globalAbuseActive;
         this._globalAbuseActive = data[0].active;
 
