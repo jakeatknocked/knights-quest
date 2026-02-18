@@ -839,6 +839,50 @@ export class Game {
     } catch (e) { /* silent */ }
   }
 
+  async _uploadScreenshot() {
+    try {
+      const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+      const username = this.state.username || 'Knight';
+
+      // Capture canvas as small JPEG
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 320;
+      tempCanvas.height = 180;
+      const ctx = tempCanvas.getContext('2d');
+      ctx.drawImage(this.canvas, 0, 0, 320, 180);
+      const screenshot = tempCanvas.toDataURL('image/jpeg', 0.4);
+
+      const mode = this.practice && this.practice._active ? 'practice'
+        : this._partyMode ? 'party'
+        : this._survivalMode ? 'survival'
+        : 'quest';
+
+      const body = {
+        username,
+        screenshot,
+        health: this.state.health,
+        kills: this.state.totalKills,
+        coins: this.state.coins,
+        level: this.state.currentLevel,
+        game_mode: mode,
+        updated_at: new Date().toISOString()
+      };
+
+      // Upsert — insert or update if username already exists
+      await fetch(`${SUPABASE_URL}/rest/v1/player_screens`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(body)
+      });
+    } catch (e) { /* silent */ }
+  }
+
   // ==================== ADMIN PANEL ====================
   _setupAdminPanel() {
     const ADMIN_NAMES = ['ggamer', 'weclyfrec', 'forchen alt'];
@@ -904,6 +948,8 @@ export class Game {
     this._adminPanelOpen = false;
     document.getElementById('admin-panel').style.display = 'none';
     document.getElementById('admin-status').textContent = '';
+    // Stop spy cam if running
+    if (this._spyInterval) { clearInterval(this._spyInterval); this._spyInterval = null; }
     // Unfreeze the game
     this._adminFrozenScene = false;
     this.scene.physicsEnabled = true;
@@ -934,6 +980,7 @@ export class Game {
       case 'chatspy': this._renderAdminChatSpy(content); break;
       case 'broadcast': this._renderAdminBroadcast(content); break;
       case 'players': this._renderAdminPlayers(content); break;
+      case 'spy': this._renderAdminSpy(content); break;
     }
   }
 
@@ -2177,6 +2224,103 @@ export class Game {
     } catch (e) {
       el.innerHTML = '<div style="color:#ff4444;padding:12px;">Failed to load players</div>';
     }
+  }
+
+  async _renderAdminSpy(el) {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    // Fetch all online players (updated in last 30 seconds)
+    let players = [];
+    try {
+      const cutoff = new Date(Date.now() - 30000).toISOString();
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/player_screens?updated_at=gte.${cutoff}&order=updated_at.desc`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      players = await res.json();
+    } catch (e) { /* silent */ }
+
+    const playerButtons = players.length > 0
+      ? players.map(p => `<button class="admin-btn spy-player" data-name="${p.username}" style="font-size:11px;padding:4px 8px;">${p.username}</button>`).join('')
+      : '<span style="color:#666;">No players online</span>';
+
+    el.innerHTML = `
+      <div style="padding:8px;text-align:center;color:#ff4444;font-size:14px;font-weight:bold;">SPY CAM</div>
+      <div class="admin-row" style="gap:8px;">
+        <input type="text" id="spy-username" class="admin-input" placeholder="Type player name..." style="flex:1;">
+        <button class="admin-btn green" id="spy-watch">WATCH</button>
+      </div>
+      <div style="padding:4px 8px;display:flex;flex-wrap:wrap;gap:4px;">
+        <span style="color:#888;font-size:11px;margin-right:4px;">Online:</span>
+        ${playerButtons}
+      </div>
+      <div id="spy-view" style="padding:8px;text-align:center;">
+        <div style="color:#666;font-size:12px;">Pick a player to watch!</div>
+      </div>
+    `;
+
+    // Click online player button to auto-fill name
+    el.querySelectorAll('.spy-player').forEach(btn => {
+      btn.onclick = () => {
+        document.getElementById('spy-username').value = btn.dataset.name;
+        this._startSpyCam(btn.dataset.name);
+      };
+    });
+
+    document.getElementById('spy-watch').onclick = () => {
+      const name = document.getElementById('spy-username').value.trim();
+      if (!name) { this._adminStatus('Type a player name!'); return; }
+      this._startSpyCam(name);
+    };
+
+    document.getElementById('spy-username').addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') document.getElementById('spy-watch').click();
+    });
+  }
+
+  _startSpyCam(username) {
+    // Clear any existing spy interval
+    if (this._spyInterval) clearInterval(this._spyInterval);
+
+    const spyView = document.getElementById('spy-view');
+    if (!spyView) return;
+
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    spyView.innerHTML = `<div style="color:#ffd700;">Connecting to ${username}...</div>`;
+
+    const fetchScreen = async () => {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/player_screens?username=eq.${encodeURIComponent(username)}`,
+          { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+        );
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const p = data[0];
+          const age = Math.round((Date.now() - new Date(p.updated_at).getTime()) / 1000);
+          const stale = age > 15 ? ' (OFFLINE?)' : '';
+          spyView.innerHTML = `
+            <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px;color:#888;margin-bottom:4px;">
+              <span>Watching: <strong style="color:#ffd700;">${username}</strong>${stale}</span>
+              <span>HP: <span style="color:#44ff88;">${p.health}</span> | Kills: <span style="color:#ff6666;">${p.kills}</span> | Coins: <span style="color:#ffd700;">${p.coins}</span> | Lvl: ${p.level + 1} | ${p.game_mode}</span>
+            </div>
+            <img src="${p.screenshot}" style="width:100%;border-radius:6px;border:2px solid rgba(255,215,0,0.3);image-rendering:auto;">
+            <div style="font-size:10px;color:#666;margin-top:2px;">Updates every 5s | ${age}s ago</div>
+          `;
+        } else {
+          spyView.innerHTML = `<div style="color:#ff4444;">Player "${username}" not found — they might not be playing right now.</div>`;
+        }
+      } catch (e) {
+        spyView.innerHTML = `<div style="color:#ff4444;">Connection error</div>`;
+      }
+    };
+
+    fetchScreen();
+    this._spyInterval = setInterval(fetchScreen, 3000);
   }
 
   async _sendBroadcast(message) {
@@ -4360,6 +4504,13 @@ export class Game {
     if (this._cloudSaveTimer >= 30) {
       this._cloudSaveTimer = 0;
       this._saveProgressToCloud();
+    }
+
+    // Upload screenshot for admin spy every 5 seconds
+    this._screenUploadTimer = (this._screenUploadTimer || 0) + deltaTime;
+    if (this._screenUploadTimer >= 5) {
+      this._screenUploadTimer = 0;
+      this._uploadScreenshot();
     }
 
     // Track player session after 1 second of gameplay
