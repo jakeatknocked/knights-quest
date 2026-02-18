@@ -388,6 +388,8 @@ export class Game {
       this.shop.applyUpgrades(this.state, this.player);
       this.soundManager.init();
       this.hud.show();
+      this.chat.setUsername(this.state.username);
+      this.chat.show();
       this.practice.start();
       this.canvas.requestPointerLock();
     });
