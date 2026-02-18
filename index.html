@@ -82,7 +82,23 @@
 <canvas id="gameCanvas"></canvas>
 
 <!-- ==================== START SCREEN ==================== -->
-<div id="start-screen">
+<!-- ==================== LOGIN SCREEN ==================== -->
+<div id="login-screen">
+  <div id="login-box">
+    <h1 style="color:#ffd700;font-size:32px;margin-bottom:4px;">&#9876; Knight's Quest &#9876;</h1>
+    <p style="color:#8899bb;font-size:14px;margin-bottom:20px;">Sign in to save your progress!</p>
+    <div id="login-form">
+      <input id="login-username" type="text" placeholder="Username" maxlength="16" autocomplete="username">
+      <input id="login-password" type="password" placeholder="Password" maxlength="32" autocomplete="current-password">
+      <button id="login-btn" class="login-action-btn">SIGN IN</button>
+      <button id="signup-btn" class="login-action-btn signup">CREATE ACCOUNT</button>
+      <div id="login-error" style="color:#ff4444;font-size:12px;min-height:18px;margin-top:8px;"></div>
+      <button id="guest-btn" class="login-guest-btn">Play as Guest</button>
+    </div>
+  </div>
+</div>
+
+<div id="start-screen" style="display:none;">
   <div id="admin-label"></div>
   <div id="title-container">
     <div id="title-swords">
