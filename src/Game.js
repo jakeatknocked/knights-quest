@@ -590,7 +590,12 @@ export class Game {
       });
     }
 
-    // Restart
+    // Quick restart — jump right back into the game
+    document.getElementById('quick-restart-btn').addEventListener('click', () => {
+      this.quickRestart();
+    });
+
+    // Back to menu
     document.getElementById('restart-btn').addEventListener('click', () => {
       location.reload();
     });
@@ -4322,6 +4327,34 @@ export class Game {
         this.showGameOver();
       }
     }
+  }
+
+  quickRestart() {
+    // Hide all overlay screens
+    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('victory-screen').style.display = 'none';
+    document.getElementById('level-complete').style.display = 'none';
+    const killcam = document.getElementById('killcam-overlay');
+    if (killcam) killcam.style.display = 'none';
+
+    // Reset player state
+    this.state.dead = false;
+    this.state.health = this.state.maxHealth;
+    this.state.shield = 0;
+    this.state.score = 0;
+    this.state.levelComplete = false;
+    this.replayPlaying = false;
+
+    // Reset physics if needed
+    if (this.player.mesh.physicsImpostor) {
+      this.player.mesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+    }
+
+    // Restart the current level
+    this.startLevel(this.state.currentLevel);
+    this.hud.show();
+    this.hud.update();
+    this.canvas.requestPointerLock();
   }
 
   showGameOver() {
