@@ -390,6 +390,7 @@ export class Game {
       this.hud.show();
       this.chat.setUsername(this.state.username);
       this.chat.show();
+      this.chat.startPolling();
       this.practice.start();
       this.canvas.requestPointerLock();
     });
@@ -406,6 +407,7 @@ export class Game {
       this.hud.show();
       this.chat.setUsername(this.state.username);
       this.chat.show();
+      this.chat.startPolling();
       this.chat.systemMsg(`${this.state.username} is celebrating!`);
       this.startPartyLevel();
       this.hud.update();
@@ -1836,6 +1838,16 @@ export class Game {
     document.getElementById('chatspy-stealth').onclick = () => {
       this.chat.stealthMode = !this.chat.stealthMode;
       this._adminStatus(`Stealth Mode: ${this.chat.stealthMode ? 'ON — invisible' : 'OFF — visible'}`);
+      // Hide/show on leaderboard
+      if (this.chat.stealthMode) {
+        // Remove from leaderboard when going stealth
+        const lb = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+        const filtered = lb.filter(e => e.name !== this.state.username);
+        localStorage.setItem('leaderboard', JSON.stringify(filtered));
+      } else {
+        // Re-add to leaderboard when leaving stealth
+        this.updateLeaderboard();
+      }
       this._renderAdminChatSpy(el);
     };
 
@@ -2941,7 +2953,10 @@ export class Game {
   addKill() {
     this.state.totalKills++;
     localStorage.setItem('totalKills', this.state.totalKills.toString());
-    this.updateLeaderboard();
+    // Don't update leaderboard if stealth mode is on (hide admin from leaderboard)
+    if (!this.chat.stealthMode) {
+      this.updateLeaderboard();
+    }
     this.chat.killMsg(this.state.username, 'an enemy');
 
     // Kill milestone achievements
