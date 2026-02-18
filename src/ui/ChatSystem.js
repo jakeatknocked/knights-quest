@@ -105,9 +105,39 @@ export class ChatSystem {
   startPolling() {
     if (this._pollingStarted) return;
     this._pollingStarted = true;
+    console.log('[Chat] Polling started for user:', this.username);
     // Poll for new messages every 2 seconds
     this._pollInterval = setInterval(() => this._pollMessages(), 2000);
-    this._pollMessages();
+    // Load recent messages on first poll so chat isn't empty
+    this._loadRecentAndPoll();
+  }
+
+  async _loadRecentAndPoll() {
+    try {
+      // Grab last 10 messages to show recent chat history
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_messages?order=id.desc&limit=10`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        // Reverse so oldest first
+        const sorted = data.reverse();
+        for (const msg of sorted) {
+          if (msg.username !== this.username) {
+            this.messages.push({ name: msg.username, text: msg.message, type: 'player' });
+            if (this.messages.length > this.maxMessages) this.messages.shift();
+          }
+          this._lastChatId = Math.max(this._lastChatId, msg.id);
+        }
+        this.render();
+      }
+    } catch (e) { console.warn('[Chat] Initial load error:', e); }
   }
 
   async _pollMessages() {
@@ -133,7 +163,7 @@ export class ChatSystem {
         }
         this.render();
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[Chat] Poll error:', e); }
   }
 
   // Get recent messages for admin spy panel
