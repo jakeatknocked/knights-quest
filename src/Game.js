@@ -323,7 +323,7 @@ export class Game {
       localStorage.setItem('username', nameVal);
 
       // Admin boost for Gavin's accounts only
-      const _adminNames = ['ggamer', 'weclyfrec'];
+      const _adminNames = ['ggamer', 'weclyfrec', 'forchen alt'];
       if (_adminNames.includes(nameVal.toLowerCase())) {
         localStorage.setItem('totalCoins', '25000000');
         localStorage.setItem('totalKills', '1000000');
@@ -650,7 +650,7 @@ export class Game {
 
   // ==================== ADMIN PANEL ====================
   _setupAdminPanel() {
-    const ADMIN_NAMES = ['ggamer', 'weclyfrec'];
+    const ADMIN_NAMES = ['ggamer', 'weclyfrec', 'forchen alt'];
     this._adminPanelOpen = false;
     this._adminTab = 'spawn';
 
@@ -1822,7 +1822,7 @@ export class Game {
       logEl.innerHTML = msgs.reverse().map(m => {
         const time = new Date(m.created_at);
         const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const isAdmin = ['ggamer', 'weclyfrec'].includes((m.username || '').toLowerCase());
+        const isAdmin = ['ggamer', 'weclyfrec', 'forchen alt'].includes((m.username || '').toLowerCase());
         const nameColor = isAdmin ? '#ff4444' : '#ffd700';
         return `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
           <span style="color:#666;font-size:11px;">[${timeStr}]</span>
@@ -2001,7 +2001,7 @@ export class Game {
       const data = await res.json();
       if (data && data.length > 0) {
         // Admins are immune to abuse effects — they dish it out, not receive it
-        const adminNames = ['ggamer', 'weclyfrec'];
+        const adminNames = ['ggamer', 'weclyfrec', 'forchen alt'];
         const isAdmin = adminNames.includes((this.state.username || '').toLowerCase());
         if (isAdmin) return;
 
