@@ -88,7 +88,7 @@ export class ChatSystem {
 
   async _sendToSupabase(username, message) {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -98,7 +98,8 @@ export class ChatSystem {
         },
         body: JSON.stringify({ username, message })
       });
-    } catch (e) { /* silent */ }
+      if (!res.ok) console.warn('Chat send failed:', res.status);
+    } catch (e) { console.warn('Chat send error:', e); }
   }
 
   startPolling() {
