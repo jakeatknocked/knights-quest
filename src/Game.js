@@ -742,6 +742,7 @@ export class Game {
       case 'events': this._renderAdminEvents(content); break;
       case 'chatspy': this._renderAdminChatSpy(content); break;
       case 'broadcast': this._renderAdminBroadcast(content); break;
+      case 'players': this._renderAdminPlayers(content); break;
     }
   }
 
@@ -1911,6 +1912,82 @@ export class Game {
     });
   }
 
+  async _renderAdminPlayers(el) {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    el.innerHTML = '<div style="color:#888;padding:12px;text-align:center;">Loading players...</div>';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/player_sessions?order=joined_at.desc&limit=100`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        el.innerHTML = '<div style="color:#888;padding:12px;text-align:center;">No players yet — waiting for data!</div>';
+        return;
+      }
+
+      // Count unique players
+      const uniquePlayers = new Set(data.map(d => d.username.toLowerCase()));
+      const today = new Date().toDateString();
+      const todayCount = new Set(data.filter(d => new Date(d.joined_at).toDateString() === today).map(d => d.username.toLowerCase())).size;
+
+      el.innerHTML = `
+        <div style="padding:8px;display:flex;gap:12px;justify-content:center;">
+          <div style="background:rgba(255,215,0,0.15);padding:8px 16px;border-radius:8px;text-align:center;">
+            <div style="color:#ffd700;font-size:20px;font-weight:bold;">${uniquePlayers.size}</div>
+            <div style="color:#888;font-size:10px;">Total Players</div>
+          </div>
+          <div style="background:rgba(68,255,136,0.15);padding:8px 16px;border-radius:8px;text-align:center;">
+            <div style="color:#44ff88;font-size:20px;font-weight:bold;">${todayCount}</div>
+            <div style="color:#888;font-size:10px;">Today</div>
+          </div>
+          <div style="background:rgba(68,136,255,0.15);padding:8px 16px;border-radius:8px;text-align:center;">
+            <div style="color:#4488ff;font-size:20px;font-weight:bold;">${data.length}</div>
+            <div style="color:#888;font-size:10px;">Total Sessions</div>
+          </div>
+        </div>
+        <div style="max-height:250px;overflow-y:auto;padding:4px 8px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr style="color:#888;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <th style="text-align:left;padding:4px;">Player</th>
+              <th style="text-align:left;padding:4px;">Mode</th>
+              <th style="text-align:left;padding:4px;">Skin</th>
+              <th style="text-align:right;padding:4px;">Time</th>
+            </tr>
+            ${data.map(d => {
+              const time = new Date(d.joined_at);
+              const timeStr = time.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+              const isAdmin = ['ggamer', 'weclyfrec', 'forchen alt'].includes((d.username || '').toLowerCase());
+              const nameColor = isAdmin ? '#ff4444' : '#ffd700';
+              return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                <td style="padding:3px 4px;color:${nameColor};">${d.username}</td>
+                <td style="padding:3px 4px;color:#aaa;">${d.game_mode}</td>
+                <td style="padding:3px 4px;color:#aaa;">${d.knight_skin || '?'}</td>
+                <td style="padding:3px 4px;color:#666;text-align:right;">${timeStr}</td>
+              </tr>`;
+            }).join('')}
+          </table>
+        </div>
+        <div style="padding:8px;text-align:center;">
+          <button class="admin-btn green" id="players-refresh">Refresh</button>
+        </div>
+      `;
+
+      document.getElementById('players-refresh').onclick = () => this._renderAdminPlayers(el);
+    } catch (e) {
+      el.innerHTML = '<div style="color:#ff4444;padding:12px;">Failed to load players</div>';
+    }
+  }
+
   async _sendBroadcast(message) {
     const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
@@ -3009,6 +3086,31 @@ export class Game {
     localStorage.setItem('leaderboard', JSON.stringify(top));
   }
 
+  async _logPlayerSession() {
+    try {
+      const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+      const mode = this.practice && this.practice._active ? 'practice'
+        : this._partyMode ? 'party'
+        : this._survivalMode ? 'survival'
+        : 'quest';
+      await fetch(`${SUPABASE_URL}/rest/v1/player_sessions`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          username: this.state.username || 'Knight',
+          game_mode: mode,
+          knight_skin: this.state.knightSkin || 'Silver'
+        })
+      });
+    } catch (e) { /* silent */ }
+  }
+
   async checkGiftInbox() {
     const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
@@ -4061,6 +4163,15 @@ export class Game {
   update(deltaTime) {
     // Freeze everything when admin panel is open
     if (this._adminFrozenScene) return;
+
+    // Track player session after 1 second of gameplay
+    if (!this._sessionLogged) {
+      this._sessionTimer = (this._sessionTimer || 0) + deltaTime;
+      if (this._sessionTimer >= 1) {
+        this._sessionLogged = true;
+        this._logPlayerSession();
+      }
+    }
 
     // Update player — pass yaw for movement direction
     // Skip normal player movement when fly mode is active (fly handles its own movement)
