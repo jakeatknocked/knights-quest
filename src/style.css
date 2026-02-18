@@ -418,6 +418,10 @@ body {
   pointer-events: none;
   z-index: -1;
 }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
 @keyframes starsTwinkle {
   0% { opacity: 0.4; }
   100% { opacity: 1; }
