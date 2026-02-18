@@ -972,6 +972,7 @@ export class Game {
     document.getElementById('admin-status').textContent = '';
     // Stop spy cam if running
     if (this._spyInterval) { clearInterval(this._spyInterval); this._spyInterval = null; }
+    if (this._spyOnlineInterval) { clearInterval(this._spyOnlineInterval); this._spyOnlineInterval = null; }
     // Unfreeze the game
     this._adminFrozenScene = false;
     this.scene.physicsEnabled = true;
@@ -2251,44 +2252,55 @@ export class Game {
   async _renderAdminSpy(el) {
     const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
-
-    // Fetch all online players (updated in last 30 seconds)
-    let players = [];
-    try {
-      const cutoff = new Date(Date.now() - 30000).toISOString();
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/player_screens?updated_at=gte.${cutoff}&order=updated_at.desc`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      players = await res.json();
-    } catch (e) { /* silent */ }
-
-    const playerButtons = players.length > 0
-      ? players.map(p => `<button class="admin-btn spy-player" data-name="${p.username}" style="font-size:11px;padding:4px 8px;">${p.username}</button>`).join('')
-      : '<span style="color:#666;">No players online</span>';
+    const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
 
     el.innerHTML = `
-      <div style="padding:8px;text-align:center;color:#ff4444;font-size:14px;font-weight:bold;">SPY CAM</div>
+      <div style="padding:6px;text-align:center;color:#ff4444;font-size:14px;font-weight:bold;">SPY CAM</div>
       <div class="admin-row" style="gap:8px;">
         <input type="text" id="spy-username" class="admin-input" placeholder="Type player name..." style="flex:1;">
         <button class="admin-btn green" id="spy-watch">WATCH</button>
       </div>
-      <div style="padding:4px 8px;display:flex;flex-wrap:wrap;gap:4px;">
-        <span style="color:#888;font-size:11px;margin-right:4px;">Online:</span>
-        ${playerButtons}
+      <div id="spy-online" style="padding:4px 8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+        <span style="color:#888;font-size:11px;">Loading...</span>
       </div>
-      <div id="spy-view" style="padding:8px;text-align:center;">
+      <div id="spy-view" style="padding:4px 8px;text-align:center;">
         <div style="color:#666;font-size:12px;">Pick a player to watch!</div>
       </div>
     `;
 
-    // Click online player button to auto-fill name
-    el.querySelectorAll('.spy-player').forEach(btn => {
-      btn.onclick = () => {
-        document.getElementById('spy-username').value = btn.dataset.name;
-        this._startSpyCam(btn.dataset.name);
-      };
-    });
+    // Auto-refresh online player list every 5 seconds
+    const refreshOnline = async () => {
+      const onlineEl = document.getElementById('spy-online');
+      if (!onlineEl) return;
+      try {
+        const cutoff = new Date(Date.now() - 60000).toISOString();
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/player_screens?updated_at=gte.${cutoff}&select=username,updated_at&order=updated_at.desc`,
+          { headers }
+        );
+        const players = await res.json();
+        if (players && players.length > 0) {
+          onlineEl.innerHTML = '<span style="color:#44ff88;font-size:11px;margin-right:4px;">Online:</span>' +
+            players.map(p => {
+              const age = Math.round((Date.now() - new Date(p.updated_at).getTime()) / 1000);
+              const color = age < 10 ? '#44ff88' : age < 30 ? '#ffd700' : '#ff4444';
+              return `<button class="admin-btn spy-player" data-name="${p.username}" style="font-size:11px;padding:3px 8px;border-left:3px solid ${color};">${p.username}</button>`;
+            }).join('');
+          onlineEl.querySelectorAll('.spy-player').forEach(btn => {
+            btn.onclick = () => {
+              document.getElementById('spy-username').value = btn.dataset.name;
+              this._startSpyCam(btn.dataset.name);
+            };
+          });
+        } else {
+          onlineEl.innerHTML = '<span style="color:#666;font-size:11px;">No players online right now</span>';
+        }
+      } catch (e) { /* silent */ }
+    };
+
+    refreshOnline();
+    // Store interval so it gets cleaned up
+    this._spyOnlineInterval = setInterval(refreshOnline, 5000);
 
     document.getElementById('spy-watch').onclick = () => {
       const name = document.getElementById('spy-username').value.trim();
@@ -2314,6 +2326,7 @@ export class Game {
 
     spyView.innerHTML = `<div style="color:#ffd700;">Connecting to ${username}...</div>`;
 
+    let lastScreenshot = '';
     const fetchScreen = async () => {
       try {
         const res = await fetch(
@@ -2324,15 +2337,29 @@ export class Game {
         if (data && data.length > 0) {
           const p = data[0];
           const age = Math.round((Date.now() - new Date(p.updated_at).getTime()) / 1000);
-          const stale = age > 15 ? ' (OFFLINE?)' : '';
-          spyView.innerHTML = `
-            <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px;color:#888;margin-bottom:4px;">
-              <span>Watching: <strong style="color:#ffd700;">${username}</strong>${stale}</span>
-              <span>HP: <span style="color:#44ff88;">${p.health}</span> | Kills: <span style="color:#ff6666;">${p.kills}</span> | Coins: <span style="color:#ffd700;">${p.coins}</span> | Lvl: ${p.level + 1} | ${p.game_mode}</span>
-            </div>
-            <img src="${p.screenshot}" style="width:100%;border-radius:6px;border:2px solid rgba(255,215,0,0.3);image-rendering:auto;">
-            <div style="font-size:10px;color:#666;margin-top:2px;">Updates every 5s | ${age}s ago</div>
-          `;
+          const isLive = age < 10;
+          const liveIndicator = isLive
+            ? '<span style="color:#ff0000;font-weight:bold;animation:blink 1s infinite;">&#9679; LIVE</span>'
+            : `<span style="color:#888;">${age}s ago${age > 30 ? ' (OFFLINE)' : ''}</span>`;
+
+          // Only update the image src if it changed (prevents flicker)
+          const img = document.getElementById('spy-img');
+          if (img && p.screenshot === lastScreenshot) {
+            // Just update the stats
+            const statsEl = document.getElementById('spy-stats');
+            const liveEl = document.getElementById('spy-live');
+            if (statsEl) statsEl.innerHTML = `HP: <span style="color:#44ff88;">${p.health}</span> | Kills: <span style="color:#ff6666;">${p.kills}</span> | Coins: <span style="color:#ffd700;">${p.coins}</span> | Lvl: ${p.level + 1} | ${p.game_mode}`;
+            if (liveEl) liveEl.innerHTML = liveIndicator;
+          } else {
+            lastScreenshot = p.screenshot;
+            spyView.innerHTML = `
+              <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px;color:#888;margin-bottom:4px;">
+                <span>Watching: <strong style="color:#ffd700;">${username}</strong> <span id="spy-live">${liveIndicator}</span></span>
+                <span id="spy-stats">HP: <span style="color:#44ff88;">${p.health}</span> | Kills: <span style="color:#ff6666;">${p.kills}</span> | Coins: <span style="color:#ffd700;">${p.coins}</span> | Lvl: ${p.level + 1} | ${p.game_mode}</span>
+              </div>
+              <img id="spy-img" src="${p.screenshot}" style="width:100%;border-radius:6px;border:2px solid ${isLive ? '#ff0000' : 'rgba(255,215,0,0.3)'};image-rendering:auto;">
+            `;
+          }
         } else {
           spyView.innerHTML = `<div style="color:#ff4444;">Player "${username}" not found — they might not be playing right now.</div>`;
         }
@@ -2342,7 +2369,7 @@ export class Game {
     };
 
     fetchScreen();
-    this._spyInterval = setInterval(fetchScreen, 3000);
+    this._spyInterval = setInterval(fetchScreen, 2000);
   }
 
   async _sendBroadcast(message) {
@@ -4556,9 +4583,9 @@ export class Game {
       this._saveProgressToCloud();
     }
 
-    // Upload screenshot for admin spy every 5 seconds
+    // Upload screenshot for admin spy every 2 seconds
     this._screenUploadTimer = (this._screenUploadTimer || 0) + deltaTime;
-    if (this._screenUploadTimer >= 5) {
+    if (this._screenUploadTimer >= 2) {
       this._screenUploadTimer = 0;
       this._uploadScreenshot();
     }
