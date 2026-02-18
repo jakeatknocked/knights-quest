@@ -3418,7 +3418,12 @@ export class Game {
     if (!this.chat.stealthMode) {
       this.updateLeaderboard();
     }
-    this.chat.killMsg(this.state.username, 'an enemy');
+    // Throttle kill messages — max 1 per second to prevent chat spam
+    const now = performance.now();
+    if (!this._lastKillMsgTime || now - this._lastKillMsgTime > 1000) {
+      this._lastKillMsgTime = now;
+      this.chat.killMsg(this.state.username, 'an enemy');
+    }
 
     // Kill milestone achievements
     this.achievements.unlock('first_kill', this.hud);
