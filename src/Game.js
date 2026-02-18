@@ -851,12 +851,18 @@ export class Game {
       const username = this.state.username || 'Knight';
 
       // Capture canvas directly — preserveDrawingBuffer is enabled
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 320;
-      tempCanvas.height = 180;
-      const ctx = tempCanvas.getContext('2d');
-      ctx.drawImage(this.canvas, 0, 0, 320, 180);
-      const screenshot = tempCanvas.toDataURL('image/jpeg', 0.35);
+      let screenshot;
+      try {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 320;
+        tempCanvas.height = 180;
+        const ctx = tempCanvas.getContext('2d');
+        ctx.drawImage(this.canvas, 0, 0, 320, 180);
+        screenshot = tempCanvas.toDataURL('image/jpeg', 0.35);
+      } catch (e2) {
+        // Fallback: direct canvas toDataURL
+        screenshot = this.canvas.toDataURL('image/jpeg', 0.35);
+      }
 
       const mode = this.practice && this.practice._active ? 'practice'
         : this._partyMode ? 'party'
@@ -874,29 +880,28 @@ export class Game {
         updated_at: new Date().toISOString()
       };
 
-      // First time: insert. After that: update by username.
-      if (!this._screenInserted) {
-        fetch(`${SUPABASE_URL}/rest/v1/player_screens`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify(body)
-        }).then(() => { this._screenInserted = true; });
-      } else {
-        fetch(`${SUPABASE_URL}/rest/v1/player_screens?username=eq.${encodeURIComponent(username)}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body)
-        });
-      }
+      const headers = {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Always try PATCH first, if no rows affected then POST
+      fetch(`${SUPABASE_URL}/rest/v1/player_screens?username=eq.${encodeURIComponent(username)}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Prefer': 'return=headers-only' },
+        body: JSON.stringify(body)
+      }).then(res => {
+        // If no rows were patched (new player), insert instead
+        const count = res.headers.get('content-range');
+        if (count && count.includes('0')) {
+          fetch(`${SUPABASE_URL}/rest/v1/player_screens`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          });
+        }
+      }).catch(() => {});
     } catch (e) { /* silent */ }
   }
 
