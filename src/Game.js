@@ -869,17 +869,29 @@ export class Game {
         updated_at: new Date().toISOString()
       };
 
-      // Upsert — insert or update if username already exists
-      fetch(`${SUPABASE_URL}/rest/v1/player_screens`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates'
-        },
-        body: JSON.stringify(body)
-      });
+      // First time: insert. After that: update by username.
+      if (!this._screenInserted) {
+        fetch(`${SUPABASE_URL}/rest/v1/player_screens`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(body)
+        }).then(() => { this._screenInserted = true; });
+      } else {
+        fetch(`${SUPABASE_URL}/rest/v1/player_screens?username=eq.${encodeURIComponent(username)}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+      }
     } catch (e) { /* silent */ }
   }
 
