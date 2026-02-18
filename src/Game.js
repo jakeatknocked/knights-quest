@@ -839,18 +839,19 @@ export class Game {
     } catch (e) { /* silent */ }
   }
 
-  async _uploadScreenshot() {
+  _uploadScreenshot() {
     try {
       const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
       const username = this.state.username || 'Knight';
 
-      // Capture canvas as small JPEG using Babylon's screenshot tools
-      const screenshot = await new Promise((resolve) => {
-        BABYLON.Tools.CreateScreenshotUsingRenderTarget(this.engine, this.camera, { width: 320, height: 180 }, (data) => {
-          resolve(data);
-        });
-      });
+      // Capture canvas directly — preserveDrawingBuffer is enabled
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 320;
+      tempCanvas.height = 180;
+      const ctx = tempCanvas.getContext('2d');
+      ctx.drawImage(this.canvas, 0, 0, 320, 180);
+      const screenshot = tempCanvas.toDataURL('image/jpeg', 0.35);
 
       const mode = this.practice && this.practice._active ? 'practice'
         : this._partyMode ? 'party'
@@ -869,7 +870,7 @@ export class Game {
       };
 
       // Upsert — insert or update if username already exists
-      await fetch(`${SUPABASE_URL}/rest/v1/player_screens`, {
+      fetch(`${SUPABASE_URL}/rest/v1/player_screens`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
