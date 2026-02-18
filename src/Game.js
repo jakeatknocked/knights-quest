@@ -280,6 +280,9 @@ export class Game {
   }
 
   setupUI() {
+    // ==================== LOGIN SYSTEM ====================
+    this._setupLoginScreen();
+
     // Secret admin code — type "admin" on start screen to toggle
     this.adminBuffer = '';
     window.addEventListener('keydown', (evt) => {
@@ -646,6 +649,194 @@ export class Game {
       if (evt.code === 'Digit6' && this.state.hasLaser) { this.state.selectedWeapon = this.state.selectedWeapon === 'laser' ? 'pistol' : 'laser'; this.hud.update(); }
       if (evt.code === 'Digit7' && this.state.hasMinigun) { this.state.selectedWeapon = this.state.selectedWeapon === 'minigun' ? 'pistol' : 'minigun'; this.hud.update(); }
     });
+  }
+
+  // ==================== LOGIN / ACCOUNT SYSTEM ====================
+  _setupLoginScreen() {
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    const loginScreen = document.getElementById('login-screen');
+    const startScreen = document.getElementById('start-screen');
+    const loginUsername = document.getElementById('login-username');
+    const loginPassword = document.getElementById('login-password');
+    const loginError = document.getElementById('login-error');
+    const usernameInput = document.getElementById('username-input');
+
+    // Check if already logged in
+    const savedAccount = localStorage.getItem('loggedInUser');
+    if (savedAccount) {
+      loginScreen.style.display = 'none';
+      startScreen.style.display = '';
+      this.state.username = savedAccount;
+      if (usernameInput) {
+        usernameInput.value = savedAccount;
+        usernameInput.disabled = true;
+      }
+      this._showLoggedInAs(savedAccount);
+      return;
+    }
+
+    // Simple hash function for passwords (not crypto-grade, but fine for a game)
+    const simpleHash = async (str) => {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
+    const showError = (msg) => {
+      loginError.textContent = msg;
+      loginError.style.color = msg.includes('!') && !msg.includes('error') ? '#44ff88' : '#ff4444';
+    };
+
+    // SIGN IN
+    document.getElementById('login-btn').onclick = async () => {
+      const name = loginUsername.value.trim();
+      const pass = loginPassword.value;
+      if (!name || !pass) { showError('Enter username and password!'); return; }
+
+      try {
+        const hash = await simpleHash(pass);
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/player_accounts?username=eq.${encodeURIComponent(name)}&password_hash=eq.${hash}`,
+          { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+        );
+        const data = await res.json();
+        if (data && data.length > 0) {
+          // Login success!
+          const account = data[0];
+          localStorage.setItem('loggedInUser', name);
+          // Load saved progress from account
+          if (account.total_kills) localStorage.setItem('totalKills', account.total_kills.toString());
+          if (account.total_coins) localStorage.setItem('totalCoins', account.total_coins.toString());
+          if (account.current_level) localStorage.setItem('savedLevel', account.current_level.toString());
+          if (account.rebirth_count) localStorage.setItem('rebirthCount', account.rebirth_count.toString());
+          if (account.knight_skin) localStorage.setItem('knightSkin', account.knight_skin);
+          // Update last login
+          fetch(`${SUPABASE_URL}/rest/v1/player_accounts?username=eq.${encodeURIComponent(name)}`, {
+            method: 'PATCH',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ last_login: new Date().toISOString() })
+          });
+          this.state.username = name;
+          if (usernameInput) { usernameInput.value = name; usernameInput.disabled = true; }
+          loginScreen.style.display = 'none';
+          startScreen.style.display = '';
+          this._showLoggedInAs(name);
+          // Reload state from localStorage
+          this.loadProgress();
+        } else {
+          showError('Wrong username or password!');
+        }
+      } catch (e) { showError('Connection error — try again!'); }
+    };
+
+    // CREATE ACCOUNT
+    document.getElementById('signup-btn').onclick = async () => {
+      const name = loginUsername.value.trim();
+      const pass = loginPassword.value;
+      if (!name) { showError('Enter a username!'); return; }
+      if (name.length < 2) { showError('Username must be at least 2 characters!'); return; }
+      if (!pass) { showError('Enter a password!'); return; }
+      if (pass.length < 3) { showError('Password must be at least 3 characters!'); return; }
+
+      try {
+        // Check if username already exists
+        const check = await fetch(
+          `${SUPABASE_URL}/rest/v1/player_accounts?username=eq.${encodeURIComponent(name)}`,
+          { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+        );
+        const existing = await check.json();
+        if (existing && existing.length > 0) {
+          showError('Username already taken!');
+          return;
+        }
+
+        const hash = await simpleHash(pass);
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/player_accounts`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ username: name, password_hash: hash })
+        });
+        if (res.ok) {
+          localStorage.setItem('loggedInUser', name);
+          this.state.username = name;
+          if (usernameInput) { usernameInput.value = name; usernameInput.disabled = true; }
+          loginScreen.style.display = 'none';
+          startScreen.style.display = '';
+          this._showLoggedInAs(name);
+        } else {
+          showError('Could not create account — try again!');
+        }
+      } catch (e) { showError('Connection error — try again!'); }
+    };
+
+    // PLAY AS GUEST
+    document.getElementById('guest-btn').onclick = () => {
+      loginScreen.style.display = 'none';
+      startScreen.style.display = '';
+    };
+
+    // Enter key submits login
+    [loginUsername, loginPassword].forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') document.getElementById('login-btn').click();
+      });
+    });
+  }
+
+  _showLoggedInAs(username) {
+    // Show logged-in indicator on start screen with logout button
+    let indicator = document.getElementById('logged-in-indicator');
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'logged-in-indicator';
+      indicator.style.cssText = 'position:fixed;top:10px;right:10px;z-index:150;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.6);padding:8px 16px;border-radius:8px;border:1px solid rgba(255,215,0,0.3);';
+      document.body.appendChild(indicator);
+    }
+    indicator.innerHTML = `
+      <span style="color:#44ff88;font-size:13px;">Signed in as <strong style="color:#ffd700;">${username}</strong></span>
+      <button id="logout-btn" style="background:#ff4444;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">LOG OUT</button>
+    `;
+    document.getElementById('logout-btn').onclick = () => {
+      localStorage.removeItem('loggedInUser');
+      location.reload();
+    };
+  }
+
+  // Save progress to cloud account
+  async _saveProgressToCloud() {
+    const username = localStorage.getItem('loggedInUser');
+    if (!username) return; // Guest — don't save to cloud
+
+    const SUPABASE_URL = 'https://lijeewobwwiupncjfueq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpamVld29id3dpdXBuY2pmdWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDkwNTQsImV4cCI6MjA4MDI4NTA1NH0.ttSbkrtcHDfu2YWTfDVLGBUOL6gPC97gHoZua_tqQeQ';
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/player_accounts?username=eq.${encodeURIComponent(username)}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          total_kills: this.state.totalKills,
+          total_coins: this.state.coins,
+          current_level: this.state.currentLevel,
+          rebirth_count: parseInt(localStorage.getItem('rebirthCount') || '0'),
+          knight_skin: this.state.knightSkin || 'Silver'
+        })
+      });
+    } catch (e) { /* silent */ }
   }
 
   // ==================== ADMIN PANEL ====================
@@ -4163,6 +4354,13 @@ export class Game {
   update(deltaTime) {
     // Freeze everything when admin panel is open
     if (this._adminFrozenScene) return;
+
+    // Save progress to cloud every 30 seconds
+    this._cloudSaveTimer = (this._cloudSaveTimer || 0) + deltaTime;
+    if (this._cloudSaveTimer >= 30) {
+      this._cloudSaveTimer = 0;
+      this._saveProgressToCloud();
+    }
 
     // Track player session after 1 second of gameplay
     if (!this._sessionLogged) {
