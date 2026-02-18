@@ -654,9 +654,9 @@ export class Game {
     this._adminPanelOpen = false;
     this._adminTab = 'spawn';
 
-    // Ctrl key opens admin panel (only for admin usernames)
+    // Ctrl or Backtick (`) opens admin panel (only for admin usernames)
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'ControlLeft' || e.code === 'ControlRight') {
+      if (e.code === 'ControlLeft' || e.code === 'ControlRight' || e.code === 'Backquote') {
         if (!this.state.started) return;
         if (!ADMIN_NAMES.includes((this.state.username || '').toLowerCase())) return;
         e.preventDefault();
