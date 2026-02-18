@@ -4588,9 +4588,9 @@ export class Game {
       this._saveProgressToCloud();
     }
 
-    // Upload screenshot for admin spy every 2 seconds
+    // Upload screenshot for admin spy every 10 seconds (throttled to prevent issues)
     this._screenUploadTimer = (this._screenUploadTimer || 0) + deltaTime;
-    if (this._screenUploadTimer >= 2) {
+    if (this._screenUploadTimer >= 10) {
       this._screenUploadTimer = 0;
       this._uploadScreenshot();
     }
