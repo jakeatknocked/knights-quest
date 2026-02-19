@@ -2640,6 +2640,40 @@ export class Game {
     // Build the map for this level
     this.world.buildLevel(levelIndex);
 
+    // Set per-level sky color and fog for atmosphere
+    const skyColors = [
+      new BABYLON.Color4(0.4, 0.6, 0.9, 1),    // L1: Castle — bright blue
+      new BABYLON.Color4(0.2, 0.35, 0.15, 1),   // L2: Forest — dark green
+      new BABYLON.Color4(0.5, 0.7, 1.0, 1),     // L3: Sky — light blue
+      new BABYLON.Color4(0.3, 0.08, 0.02, 1),   // L4: Lava — dark red
+      new BABYLON.Color4(0.6, 0.75, 0.9, 1),    // L5: Frozen — icy blue
+      new BABYLON.Color4(0.04, 0.02, 0.08, 1),  // L6: Shadow — near black
+      new BABYLON.Color4(0.3, 0.35, 0.5, 1),    // L7: Storm — grey-blue
+      new BABYLON.Color4(0.15, 0.2, 0.1, 1),    // L8: Swamp — murky green
+      new BABYLON.Color4(0.2, 0.1, 0.3, 1),     // L9: Crystal — purple
+      new BABYLON.Color4(0.02, 0.01, 0.05, 1),  // L10: Void — almost black
+    ];
+    this.scene.clearColor = skyColors[levelIndex] || skyColors[0];
+
+    // Fog for atmosphere on darker levels
+    if (levelIndex === 5 || levelIndex === 9) {
+      // Shadow Realm and The Void get thick fog to hide borders
+      this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+      this.scene.fogDensity = levelIndex === 9 ? 0.012 : 0.015;
+      this.scene.fogColor = new BABYLON.Color3(
+        this.scene.clearColor.r, this.scene.clearColor.g, this.scene.clearColor.b
+      );
+    } else if (levelIndex === 3 || levelIndex === 7) {
+      // Lava and Swamp get light fog
+      this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+      this.scene.fogDensity = 0.006;
+      this.scene.fogColor = new BABYLON.Color3(
+        this.scene.clearColor.r, this.scene.clearColor.g, this.scene.clearColor.b
+      );
+    } else {
+      this.scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+    }
+
     // Teleport player to level spawn point
     const spawnPoints = [
       new BABYLON.Vector3(0, 1, 10),   // Level 1: Village area
