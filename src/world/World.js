@@ -32,7 +32,7 @@ export class World {
     this.dispose();
     this._createMaterials();
     this._createGround(levelIndex);
-    this._buildBorders();
+    this._buildBorders(levelIndex);
 
     if (levelIndex === 0) {
       this._buildCastleMap();
@@ -136,8 +136,17 @@ export class World {
   }
 
   // --- Borders ---
-  _buildBorders() {
+  _buildBorders(levelIndex) {
     const borderSize = 140;
+    // Choose border material based on level theme
+    const borderMats = {
+      3: this.materials.lava,       // Lava Fortress
+      4: this.materials.ice,        // Frozen Depths
+      5: this.materials.darkStone,  // Shadow Realm
+      9: this.materials.darkStone,  // The Void
+    };
+    const borderMat = borderMats[levelIndex] || this.materials.mountain;
+
     for (let i = 0; i < 36; i++) {
       const angle = (i / 36) * Math.PI * 2;
       const x = Math.cos(angle) * borderSize;
@@ -147,7 +156,7 @@ export class World {
         height, diameterTop: 0, diameterBottom: 10 + Math.random() * 8
       }, this.scene));
       m.position = new BABYLON.Vector3(x, height / 2, z);
-      m.material = this.materials.mountain;
+      m.material = borderMat;
     }
     // Invisible walls
     const wh = 30;
