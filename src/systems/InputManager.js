@@ -19,6 +19,7 @@ export class InputManager {
       const tag = document.activeElement && document.activeElement.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
+      if (!evt.key) return;
       this.keys[evt.key.toLowerCase()] = true;
 
       if (evt.key === ' ') {
@@ -28,6 +29,7 @@ export class InputManager {
     });
 
     window.addEventListener('keyup', (evt) => {
+      if (!evt.key) return;
       this.keys[evt.key.toLowerCase()] = false;
 
       if (evt.key === ' ') {

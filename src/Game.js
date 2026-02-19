@@ -286,7 +286,7 @@ export class Game {
     // Secret admin code — type "admin" on start screen to toggle
     this.adminBuffer = '';
     window.addEventListener('keydown', (evt) => {
-      if (this.state.started) return;
+      if (this.state.started || !evt.key) return;
       this.adminBuffer += evt.key.toLowerCase();
       if (this.adminBuffer.length > 10) this.adminBuffer = this.adminBuffer.slice(-10);
       if (this.adminBuffer.includes('admin')) {
@@ -3437,14 +3437,14 @@ export class Game {
     if (this.state.totalKills >= 5000) this.achievements.unlock('kills_5000', this.hud);
 
     // Kill streak tracking
-    const now = performance.now() / 1000;
-    this.recentKillTimes.push(now);
-    this.recentKillTimes = this.recentKillTimes.filter(t => now - t < 20);
-    const killsIn10s = this.recentKillTimes.filter(t => now - t < 10).length;
+    const nowSec = performance.now() / 1000;
+    this.recentKillTimes.push(nowSec);
+    this.recentKillTimes = this.recentKillTimes.filter(t => nowSec - t < 20);
+    const killsIn10s = this.recentKillTimes.filter(t => nowSec - t < 10).length;
     if (killsIn10s >= 5) this.achievements.unlock('kill_streak_5', this.hud);
     if (this.recentKillTimes.length >= 10) this.achievements.unlock('kill_streak_10', this.hud);
     if (this.recentKillTimes.length >= 15) this.achievements.unlock('kill_streak_15', this.hud);
-    const killsIn30s = this.recentKillTimes.filter(t => now - t < 30).length;
+    const killsIn30s = this.recentKillTimes.filter(t => nowSec - t < 30).length;
     if (killsIn30s >= 20) this.achievements.unlock('kill_streak_20', this.hud);
 
     // Coin achievements
