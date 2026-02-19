@@ -137,13 +137,21 @@ export class World {
 
   // --- Borders ---
   _buildBorders(levelIndex) {
+    // Shadow Realm and The Void: skip visible mountains — fog hides the edges
+    if (levelIndex === 5 || levelIndex === 9) {
+      const wh = 30;
+      this._createWall(0, 0, -150, 300, wh, 2).isVisible = false;
+      this._createWall(0, 0, 150, 300, wh, 2).isVisible = false;
+      this._createWall(150, 0, 0, 2, wh, 300).isVisible = false;
+      this._createWall(-150, 0, 0, 2, wh, 300).isVisible = false;
+      return;
+    }
+
     const borderSize = 140;
     // Choose border material based on level theme
     const borderMats = {
       3: this.materials.lava,       // Lava Fortress
       4: this.materials.ice,        // Frozen Depths
-      5: this.materials.darkStone,  // Shadow Realm
-      9: this.materials.darkStone,  // The Void
     };
     const borderMat = borderMats[levelIndex] || this.materials.mountain;
 
@@ -1595,8 +1603,8 @@ export class World {
     }
 
     // Void pillars -- tall ominous columns (scaled 1.3x)
-    for (let i = 0; i < 20; i++) {
-      const angle = (i / 20) * Math.PI * 2;
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
       const r = 71.5 + Math.random() * 19.5;
       const h = 15 + Math.random() * 20;
       const pillar = this._track(BABYLON.MeshBuilder.CreateBox('voidPillar', {
